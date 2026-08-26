@@ -23,6 +23,8 @@
 /storage/*.key
 /storage/pail
 /vendor
+/docs/
+*.drawio
 /docs/_qa_*
 /docs/~$*
 /docs/.$*.bkp
