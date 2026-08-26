@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Filament\Resources\Leads\Tables;
+
+use App\Enums\LeadSource;
+use App\Enums\LeadStatus;
+use App\Models\Cabang;
+use App\Models\User;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
+
+class LeadsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->defaultSort('tanggal_masuk', 'desc')
+            ->striped()
+            ->columns([
+                TextColumn::make('nama')->label('Calon siswa')->description(fn ($record) => $record->no_wa)->searchable(['nama', 'no_wa'])->weight('semibold'),
+                TextColumn::make('sekolah.nama_sekolah')->label('Sekolah')->placeholder('Belum diisi')->searchable()->toggleable(),
+                TextColumn::make('minatProgram.nama_program')->label('Minat program')->placeholder('Belum dipilih')->wrap()->toggleable(),
+                TextColumn::make('sumber_lead')->label('Sumber')->placeholder('Belum diisi')->badge()->color(fn (?string $state): string => LeadSource::color($state))->toggleable(),
+                TextColumn::make('status_lead')->label('Status')->badge()->color(fn (string $state): string => LeadStatus::color($state)),
+                TextColumn::make('diserahkanKe.name')->label('PIC')->placeholder('Belum ditugaskan')->searchable(),
+                TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess())->toggleable(),
+                TextColumn::make('followups_count')->label('Follow-up')->badge()->color('gray')->sortable(),
+                TextColumn::make('whatsapp_conversations_count')->label('WhatsApp')->badge()->color(fn (int $state) => $state > 0 ? 'success' : 'gray')->icon('heroicon-o-chat-bubble-left-right')->sortable(),
+                TextColumn::make('tanggal_masuk')->label('Tanggal masuk')->date('d M Y')->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('status_lead')->label('Status')->options(LeadStatus::options()),
+                SelectFilter::make('sumber_lead')->label('Sumber leads')->options(LeadSource::options()),
+                SelectFilter::make('cabang_id')->label('Cabang')->options(Cabang::where('aktif', true)->orderBy('nama')->pluck('nama', 'cabang_id'))->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
+                SelectFilter::make('diserahkan_ke_user_id')->label('PIC')->options(User::where('aktif', true)->when(! auth()->user()->hasGlobalBranchAccess(), fn ($q) => $q->where('cabang_id', auth()->user()->cabang_id))->orderBy('name')->pluck('name', 'id'))->searchable(),
+                TernaryFilter::make('has_whatsapp')->label('Masuk melalui WhatsApp')->queries(
+                    true: fn ($query) => $query->whereHas('whatsappConversations'),
+                    false: fn ($query) => $query->whereDoesntHave('whatsappConversations'),
+                ),
+            ])
+            ->recordActions([ViewAction::make(), EditAction::make()->visible(fn () => auth()->user()->canManageOperationalData())])
+            ->emptyStateHeading('Belum ada lead')
+            ->emptyStateDescription('Tambahkan calon siswa pertama untuk mulai melakukan follow-up.')
+            ->emptyStateIcon('heroicon-o-user-plus');
+    }
+}

@@ -1,0 +1,212 @@
+STRUKTUR BERDASARKAN ARSITEKTUR TEKNOLOGI SIVMI CRM
+===================================================
+
+Pemetaan file menurut node runtime, state, jaringan, deployment, dan operasi.
+
+Catatan:
+- Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.
+- Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.
+- Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.
+
+01 Client dan Front-End Build/
+├── .npmrc
+├── package-lock.json
+├── package.json
+├── resources/
+│   ├── css/
+│   │   ├── app.css
+│   │   └── filament/
+│   │       └── admin/
+│   │           └── theme.css
+│   ├── js/
+│   │   └── app.js
+│   └── views/
+│       ├── filament/
+│       │   ├── pages/
+│       │   │   ├── audit-aktivitas.blade.php
+│       │   │   ├── dashboard.blade.php
+│       │   │   ├── laporan.blade.php
+│       │   │   └── pengaturan.blade.php
+│       │   ├── partials/
+│       │   │   ├── sidebar-state.blade.php
+│       │   │   └── topbar-tools.blade.php
+│       │   └── resources/
+│       │       └── whatsapp-conversations/
+│       │           └── pages/
+│       │               ├── partials/
+│       │               │   └── chat-styles.blade.php
+│       │               └── view-whatsapp-conversation.blade.php
+│       ├── integrations/
+│       │   └── waha/
+│       │       └── qr-unavailable.blade.php
+│       └── welcome.blade.php
+└── vite.config.js
+
+02 Web Server dan Public Entry Point/
+├── docker/
+│   └── nginx/
+│       ├── default.conf
+│       └── Dockerfile
+└── public/
+    ├── .htaccess
+    ├── favicon.ico
+    ├── index.php
+    └── robots.txt
+
+03 PHP dan Laravel Runtime/
+├── artisan
+├── bootstrap/
+│   ├── app.php
+│   ├── cache/
+│   │   ├── .gitignore
+│   │   ├── packages.php
+│   │   └── services.php
+│   └── providers.php
+├── composer.json
+├── composer.lock
+├── config/
+│   ├── app.php
+│   ├── auth.php
+│   ├── filesystems.php
+│   ├── logging.php
+│   └── mail.php
+└── docker/
+    └── php/
+        ├── Dockerfile
+        ├── entrypoint.sh
+        └── php.ini
+
+04 MySQL dan Persistensi/
+├── config/
+│   └── database.php
+└── database/
+    ├── factories/
+    │   └── UserFactory.php
+    ├── migrations/
+    │   ├── 0001_01_01_000000_create_users_table.php
+    │   ├── 0001_01_01_000001_create_cache_table.php
+    │   ├── 0001_01_01_000002_create_jobs_table.php
+    │   ├── 2026_08_13_000001_create_crm_dashboard_tables.php
+    │   ├── 2026_08_14_000001_update_rbac_roles_and_branches.php
+    │   ├── 2026_08_14_000002_complete_master_data_columns.php
+    │   ├── 2026_08_14_000003_complete_registration_payment_columns.php
+    │   ├── 2026_08_14_000004_complete_program_and_performance_targets.php
+    │   ├── 2026_08_14_000005_create_crm_settings_table.php
+    │   ├── 2026_08_14_000006_create_notifications_and_activity_logs_tables.php
+    │   ├── 2026_08_20_000001_create_filament_import_export_tables.php
+    │   ├── 2026_08_20_000002_migrate_school_clusters_to_grades.php
+    │   ├── 2026_08_21_000001_update_lead_status_values.php
+    │   ├── 2026_08_21_000002_simplify_program_names.php
+    │   ├── 2026_08_24_000001_add_sumber_lead_to_leads_table.php
+    │   ├── 2026_08_24_000002_create_whatsapp_integration_tables.php
+    │   └── 2026_08_25_000001_create_public_api_tables.php
+    └── seeders/
+        └── DatabaseSeeder.php
+
+05 Redis, Session, Cache, dan Queue/
+├── app/
+│   ├── Console/
+│   │   └── Commands/
+│   │       ├── SendCrmReminders.php
+│   │       └── SyncWahaSessions.php
+│   └── Jobs/
+│       └── ProcessWahaWebhook.php
+└── config/
+    ├── cache.php
+    ├── queue.php
+    └── session.php
+
+06 WAHA GOWS dan Webhook/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Webhooks/
+│   │   │   │   └── WahaWebhookController.php
+│   │   │   ├── WhatsAppMediaController.php
+│   │   │   └── WhatsAppQrController.php
+│   │   └── Middleware/
+│   │       └── VerifyWahaWebhookHmac.php
+│   ├── Jobs/
+│   │   └── ProcessWahaWebhook.php
+│   └── Services/
+│       └── WhatsApp/
+│           ├── LeadMatcher.php
+│           ├── WahaClient.php
+│           ├── WahaSessionService.php
+│           └── WhatsAppChatService.php
+├── config/
+│   └── services.php
+└── routes/
+    └── api.php
+
+07 Docker Compose dan Jaringan Layanan/
+├── .dockerignore
+└── docker/
+    ├── compose.production.yml
+    ├── compose.yml
+    ├── nginx/
+    │   ├── default.conf
+    │   └── Dockerfile
+    └── php/
+        ├── Dockerfile
+        ├── entrypoint.sh
+        └── php.ini
+
+08 Environment dan Secret Template/
+├── .editorconfig
+├── .env.example
+├── .gitattributes
+├── .gitignore
+└── docker/
+    ├── .env.example
+    └── .env.production.example
+
+09 Storage dan File Media/
+├── config/
+│   └── filesystems.php
+└── storage/
+    └── app/
+        ├── private/
+        │   └── .gitignore
+        └── public/
+            └── .gitignore
+
+10 Operasi, Health Check, dan Diagnostik/
+├── config/
+│   └── logging.php
+├── docker/
+│   ├── logs-full.ps1
+│   ├── start-full.ps1
+│   ├── status-full.ps1
+│   ├── stop-full.ps1
+│   └── test-full.ps1
+└── routes/
+    └── console.php
+
+11 Testing dan Release Gate/
+├── composer.json
+├── package.json
+├── phpunit.xml
+└── tests/
+    ├── Feature/
+    │   ├── AuditNotificationTest.php
+    │   ├── CreateSchoolFromLeadTest.php
+    │   ├── DashboardTest.php
+    │   ├── ExampleTest.php
+    │   ├── LeadCsvTest.php
+    │   ├── LeadManagementTest.php
+    │   ├── MasterDataAccessTest.php
+    │   ├── ProfileTest.php
+    │   ├── ProgramTargetTest.php
+    │   ├── PublicLeadApiTest.php
+    │   ├── RegistrationPaymentTest.php
+    │   ├── ReportTest.php
+    │   ├── SchoolCsvTest.php
+    │   ├── SettingsTest.php
+    │   └── WahaIntegrationTest.php
+    ├── TestCase.php
+    └── Unit/
+        ├── DatabaseIsolationTest.php
+        └── ExampleTest.php
+
+Total referensi file pada seluruh kelompok: 121

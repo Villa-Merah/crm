@@ -1,0 +1,39 @@
+@baseUrl = http://localhost:8000/api/v1
+@token = sivmi_GANTI_DENGAN_TOKEN_API_CLIENT
+@leadId = 1
+
+### Menerima daftar lead
+GET {{baseUrl}}/leads?status=Cold&per_page=25
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Menerima detail lead
+GET {{baseUrl}}/leads/{{leadId}}
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Mengirim/membuat lead
+POST {{baseUrl}}/leads
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{token}}
+Idempotency-Key: lead-local-{{$timestamp}}
+
+{
+  "nama": "Calon Siswa Contoh",
+  "no_wa": "081234567890",
+  "status_lead": "Cold",
+  "sumber_lead": "Instagram",
+  "tanggal_masuk": "2026-08-25"
+}
+
+### Uji validasi
+POST {{baseUrl}}/leads
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{token}}
+Idempotency-Key: validation-local-{{$timestamp}}
+
+{
+  "nama": "Data tanpa nomor WhatsApp"
+}

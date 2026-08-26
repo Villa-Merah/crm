@@ -1,0 +1,306 @@
+<x-filament-panels::page>
+    @php
+        $rupiah = fn ($value) => $value >= 1000000000 ? 'Rp '.number_format($value / 1000000000, 1, ',', '.').' M' : ($value >= 1000000 ? 'Rp '.number_format($value / 1000000, 1, ',', '.').' jt' : 'Rp '.number_format($value, 0, ',', '.'));
+        $omzetPct = $target->omzet > 0 ? min(100, round($stats['revenue'] / $target->omzet * 100)) : 0;
+        $siswaPct = $target->siswa > 0 ? min(100, round($stats['students'] / $target->siswa * 100)) : 0;
+        $maxTrend = max(1, $trendLeads->max(), $trendRegs->max());
+        $comparisonLabel = $bulan ? 'bulan sebelumnya' : 'tahun sebelumnya';
+        $comparisonBadge = function ($change) use ($comparisonLabel) {
+            if ($change === null) return ['—', 'Belum ada pembanding', 'bg-slate-100 text-slate-500'];
+            if ($change > 0) return ['↑', number_format(abs($change), 1, ',', '.').'% dari '.$comparisonLabel, 'bg-emerald-50 text-emerald-700'];
+            if ($change < 0) return ['↓', number_format(abs($change), 1, ',', '.').'% dari '.$comparisonLabel, 'bg-rose-50 text-rose-600'];
+            return ['→', 'Tetap dari '.$comparisonLabel, 'bg-slate-100 text-slate-500'];
+        };
+    @endphp
+    <div class="space-y-5" wire:loading.class="opacity-60" wire:target="cabang,tahun,bulan,pengguna" aria-live="polite">
+        <div wire:offline class="dashboard-card border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <b>Koneksi terputus.</b> Data tidak dapat diperbarui. Periksa jaringan Anda lalu coba lagi.
+        </div>
+        @if($dashboardError)
+            <div role="alert" class="dashboard-card flex flex-col gap-3 border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 sm:flex-row sm:items-center sm:justify-between">
+                <div><b>Terjadi kendala.</b> {{ $dashboardError }}</div>
+                <button type="button" wire:click="$refresh" class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-rose-700">Coba lagi</button>
+            </div>
+        @endif
+        <section class="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-[#1476B8] via-[#0d6da9] to-[#075985] p-6 text-white shadow-xl shadow-sky-900/10 md:p-8">
+            <div class="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10"></div><div class="absolute -bottom-24 right-48 h-52 w-52 rounded-full bg-cyan-300/10"></div>
+            <div class="relative flex flex-col justify-between gap-7 lg:flex-row lg:items-start">
+                <div><span class="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">{{ now()->translatedFormat('l, d F Y') }}</span><h2 class="mt-4 text-2xl font-bold md:text-3xl">Selamat datang, {{ str(auth()->user()->name)->before(' ') }}!</h2><p class="mt-2 max-w-xl text-sm text-sky-100">{{ $dashboardTagline }}</p></div>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[520px]">
+                    @foreach([['Leads hari ini',$stats['leads_today']],['Follow-up hari ini',$stats['followups_today']],['Siswa baru',$stats['new_students']],['Omzet hari ini',$rupiah($stats['revenue_today'])]] as $item)
+                        <div class="rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur"><p class="text-[11px] text-sky-100">{{ $item[0] }}</p><p class="mt-2 text-xl font-bold">{{ $item[1] }}</p></div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-card p-4">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <label class="text-xs font-semibold text-slate-500">Cabang<select wire:model.live="cabang" @disabled(! auth()->user()->hasGlobalBranchAccess()) class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm"><option value="">Semua cabang</option>@foreach($branches as $branch)<option value="{{ $branch->cabang_id }}">{{ $branch->nama }}</option>@endforeach</select></label>
+                <label class="text-xs font-semibold text-slate-500">Tahun<select wire:model.live="tahun" class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm">@foreach(range(now()->year, now()->year - 2) as $year)<option>{{ $year }}</option>@endforeach</select></label>
+                <label class="text-xs font-semibold text-slate-500">Bulan<select wire:model.live="bulan" class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm"><option value="">Semua bulan</option>@foreach(range(1,12) as $month)<option value="{{ $month }}">{{ now()->setMonth($month)->translatedFormat('F') }}</option>@endforeach</select></label>
+                <label class="text-xs font-semibold text-slate-500">Pengguna<select wire:model.live="pengguna" @disabled(auth()->user()->hasRole(\App\Enums\UserRole::Staff)) class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm"><option value="">Semua pengguna</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->name }}</option>@endforeach</select></label>
+            </div>
+            <div wire:loading class="mt-3 w-full"><div class="skeleton h-1.5 w-full"></div></div>
+        </section>
+
+        <section wire:loading.class.remove="hidden" wire:loading.class="flex" wire:target="cabang,tahun,bulan,pengguna" class="dashboard-card hidden flex-col gap-5 p-5" aria-label="Memuat data dashboard">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                @foreach(range(1, 4) as $item)
+                    <div class="rounded-2xl border border-slate-100 p-4"><div class="skeleton h-10 w-10"></div><div class="skeleton mt-5 h-8 w-24"></div><div class="skeleton mt-3 h-3 w-32"></div></div>
+                @endforeach
+            </div>
+            <div class="grid gap-4 xl:grid-cols-[1.7fr_1fr]"><div class="skeleton h-56 w-full"></div><div class="skeleton h-56 w-full"></div></div>
+        </section>
+
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="KPI utama">
+            @foreach([['Total leads',$stats['leads'],'bg-sky-50 text-[#1476B8]','heroicon-o-user-group','leads',number_format($stats['leads'], 0, ',', '.').' calon siswa'],['Konversi lead',$stats['conversion'].'%','bg-emerald-50 text-emerald-600','heroicon-o-arrow-trending-up','conversion',number_format($stats['registrations'], 0, ',', '.').' pendaftaran dari '.number_format($stats['leads'], 0, ',', '.').' leads'],['Siswa aktif',$stats['students'],'bg-violet-50 text-violet-600','heroicon-o-academic-cap','students',number_format($stats['registrations'], 0, ',', '.').' pendaftaran periode ini'],['Omzet tervalidasi',$rupiah($stats['revenue']),'bg-amber-50 text-amber-600','heroicon-o-banknotes','revenue','Pembayaran lunas atau terverifikasi']] as $card)
+                @php
+                    $badge = $comparisonBadge($comparisons[$card[4]]);
+                @endphp
+                <article class="dashboard-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
+                    <div class="flex items-center justify-between gap-3"><div class="rounded-xl {{ $card[2] }} p-2.5"><x-dynamic-component :component="$card[3]" class="h-5 w-5" /></div><span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $badge[2] }}" title="Dibandingkan dengan {{ $comparisonLabel }}">{{ $badge[0] }} {{ $badge[1] }}</span></div>
+                    <p class="mt-5 text-3xl font-bold text-slate-900">{{ $card[1] }}</p><p class="mt-1 text-sm font-semibold text-slate-600">{{ $card[0] }}</p><p class="mt-2 text-[11px] text-slate-400">{{ $card[5] }}</p>
+                </article>
+            @endforeach
+        </section>
+
+        @php
+            $funnelTotal = max(1, $leadFunnel->sum('total'));
+            $funnelStyles = [
+                'Cold' => ['bg-sky-500', 'bg-sky-50 text-sky-700', 'border-sky-100'],
+                'Warm' => ['bg-amber-400', 'bg-amber-50 text-amber-700', 'border-amber-100'],
+                'Hot' => ['bg-rose-500', 'bg-rose-50 text-rose-700', 'border-rose-100'],
+                'Daftar' => ['bg-emerald-500', 'bg-emerald-50 text-emerald-700', 'border-emerald-100'],
+                'Tidak Berminat' => ['bg-slate-400', 'bg-slate-100 text-slate-600', 'border-slate-200'],
+            ];
+            $pipelineStages = $leadFunnel->where('label', '!=', 'Tidak Berminat')->values();
+            $lostStage = $leadFunnel->firstWhere('label', 'Tidak Berminat');
+            $sourceMax = max(1, $leadSources->max('total') ?? 0);
+        @endphp
+        <section class="grid gap-5 xl:grid-cols-2">
+            <div class="dashboard-card p-5 md:p-6">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h3 class="font-bold text-slate-900">Pipeline leads</h3><p class="mt-1 text-xs text-slate-500">Perjalanan leads dari Cold hingga menjadi siswa</p></div><span class="w-fit rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-[#1476B8]">{{ number_format($stats['leads'], 0, ',', '.') }} leads</span></div>
+                @if($stats['leads'] > 0)
+                    <div class="mt-6 overflow-x-auto pb-2">
+                        <div class="flex min-w-[650px] items-stretch gap-2">
+                        @foreach($pipelineStages as $stage)
+                            @php
+                                $stageStyle = $funnelStyles[$stage->label] ?? ['bg-slate-400', 'bg-slate-100 text-slate-600', 'border-slate-200'];
+                                $stagePct = round($stage->total / $funnelTotal * 100, 1);
+                            @endphp
+                            <article class="relative min-w-0 flex-1 overflow-hidden rounded-2xl border {{ $stageStyle[2] }} bg-white p-4 shadow-sm">
+                                <div class="absolute inset-x-0 top-0 h-1.5 {{ $stageStyle[0] }}"></div>
+                                <div class="flex items-center justify-between gap-2 pt-1"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tahap {{ $loop->iteration }}</span><span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $stageStyle[1] }}">{{ $stagePct }}%</span></div>
+                                <div class="mt-4 flex items-end justify-between gap-2"><div><p class="text-sm font-bold text-slate-700">{{ $stage->label }}</p><p class="mt-1 text-[10px] text-slate-400">dari total leads</p></div><p class="text-3xl font-bold text-slate-900">{{ number_format($stage->total, 0, ',', '.') }}</p></div>
+                            </article>
+                            @unless($loop->last)
+                                <div class="flex w-5 shrink-0 items-center justify-center text-slate-300" aria-hidden="true"><x-heroicon-o-chevron-right class="h-5 w-5" /></div>
+                            @endunless
+                        @endforeach
+                        </div>
+                    </div>
+                    @php
+                        $lostPct = $lostStage ? round($lostStage->total / $funnelTotal * 100, 1) : 0;
+                    @endphp
+                    <div class="mt-3 flex flex-col gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-500"><x-heroicon-o-arrow-uturn-down class="h-4 w-4" /></div>
+                        <div class="min-w-0 flex-1"><p class="text-xs font-bold text-slate-700">Jalur keluar · Tidak Berminat</p><p class="mt-0.5 text-[10px] text-slate-400">Lead yang tidak melanjutkan ke tahap pendaftaran</p></div>
+                        <div class="flex items-center gap-2"><b class="text-lg text-slate-800">{{ number_format($lostStage?->total ?? 0, 0, ',', '.') }}</b><span class="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-500">{{ $lostPct }}%</span></div>
+                    </div>
+                @else
+                    <div class="mt-6 flex min-h-36 flex-col items-center justify-center rounded-2xl bg-slate-50 text-center"><x-heroicon-o-arrow-trending-up class="h-9 w-9 text-slate-300"/><p class="mt-3 font-semibold text-slate-600">Pipeline belum memiliki data</p><p class="mt-1 text-xs text-slate-400">Status lead akan dirangkum setelah data tersedia.</p></div>
+                @endif
+            </div>
+
+            <div class="dashboard-card p-5 md:p-6">
+                <div><h3 class="font-bold text-slate-900">Performa sumber leads</h3><p class="mt-1 text-xs text-slate-500">Akuisisi dan hasil pendaftaran per kanal</p></div>
+                <div class="mt-5 space-y-3">
+                    @forelse($leadSources as $source)
+                        <div class="rounded-xl border border-slate-100 p-3.5">
+                            <div class="flex items-center gap-3"><div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-700">{{ $source->sumber }}</p><div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#1476B8]" style="width: {{ max(2, $source->total / $sourceMax * 100) }}%"></div></div></div><div class="text-right"><b class="text-sm text-slate-900">{{ $source->total }} leads</b><p class="mt-0.5 text-[10px] text-emerald-600">{{ $source->registrations }} daftar · {{ $source->conversion }}%</p></div></div>
+                        </div>
+                    @empty
+                        <div class="flex min-h-36 flex-col items-center justify-center rounded-2xl bg-slate-50 text-center"><x-heroicon-o-megaphone class="h-9 w-9 text-slate-300"/><p class="mt-3 font-semibold text-slate-600">Belum ada sumber leads</p><p class="mt-1 text-xs text-slate-400">Isi sumber lead untuk mengukur kanal akuisisi.</p></div>
+                    @endforelse
+                </div>
+            </div>
+        </section>
+
+        @php
+            $programKpiTotal = $programLeadKpis->sum('total');
+            $unassignedProgramLeads = (int) optional($programLeadKpis->firstWhere('program', 'Belum memilih program'))->total;
+            $programCoverage = $programKpiTotal > 0 ? round(($programKpiTotal - $unassignedProgramLeads) / $programKpiTotal * 100) : 0;
+            $topProgram = $programLeadKpis->first(fn ($item) => ! in_array($item->program, ['Belum memilih program', 'Program lainnya'], true));
+            $programColors = ['bg-[#1476B8]', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-slate-400'];
+        @endphp
+        <section class="dashboard-card overflow-hidden" aria-labelledby="program-leads-title">
+            <div class="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
+                <div>
+                    <h3 id="program-leads-title" class="font-bold text-slate-900">KPI leads berdasarkan program</h3>
+                    <p class="mt-1 text-xs text-slate-500">Distribusi minat program pada periode dan filter yang dipilih</p>
+                </div>
+                <span class="w-fit rounded-full bg-sky-50 px-3 py-1.5 text-xs font-bold text-[#1476B8]">{{ number_format($programKpiTotal, 0, ',', '.') }} leads</span>
+            </div>
+
+            @if($programKpiTotal > 0)
+                <div class="grid gap-6 p-5 md:p-6 lg:grid-cols-[260px_1fr]">
+                    <div class="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                        <div class="rounded-2xl bg-gradient-to-br from-[#1476B8] to-[#075985] p-5 text-white">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15"><x-heroicon-o-academic-cap class="h-5 w-5" /></div>
+                            <p class="mt-5 text-xs text-sky-100">Program teratas</p>
+                            <p class="mt-1 line-clamp-2 text-lg font-bold">{{ $topProgram?->program ?? 'Belum tersedia' }}</p>
+                            <p class="mt-2 text-sm font-semibold text-white/90">{{ number_format($topProgram?->total ?? 0, 0, ',', '.') }} leads</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                            <div class="flex items-center justify-between"><span class="text-xs font-semibold text-slate-500">Cakupan pilihan program</span><span class="text-lg font-bold text-emerald-600">{{ $programCoverage }}%</span></div>
+                            <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-200"><div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ $programCoverage }}%"></div></div>
+                            <p class="mt-3 text-xs leading-5 text-slate-500">{{ number_format($programKpiTotal - $unassignedProgramLeads, 0, ',', '.') }} dari {{ number_format($programKpiTotal, 0, ',', '.') }} leads sudah memilih program.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        @foreach($programLeadKpis as $programKpi)
+                            @php
+                                $programPct = $programKpiTotal > 0 ? round($programKpi->total / $programKpiTotal * 100) : 0;
+                            @endphp
+                            <div>
+                                <div class="mb-2 flex items-center gap-3 text-sm">
+                                    <span class="min-w-0 flex-1 truncate font-semibold text-slate-700" title="{{ $programKpi->program }}">{{ $programKpi->program }}</span>
+                                    <span class="hidden whitespace-nowrap text-xs text-slate-400 sm:inline">{{ $programKpi->registrations }} daftar · {{ $programKpi->conversion }}% konversi</span>
+                                    <span class="w-20 whitespace-nowrap text-right font-bold text-slate-800">{{ number_format($programKpi->total, 0, ',', '.') }} leads</span>
+                                </div>
+                                <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{ $programColors[$loop->index % count($programColors)] }} transition-all duration-500" style="width: {{ max(2, $programPct) }}%"></div></div>
+                                <div class="mt-1.5 flex justify-between text-[10px] text-slate-400"><span>{{ $programPct }}% dari seluruh leads</span><span>{{ $rupiah($programKpi->revenue) }} omzet</span></div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="flex min-h-56 flex-col items-center justify-center p-8 text-center">
+                    <div class="rounded-2xl bg-slate-50 p-4"><x-heroicon-o-academic-cap class="h-9 w-9 text-slate-300" /></div>
+                    <p class="mt-4 font-semibold text-slate-600">Belum ada data minat program</p>
+                    <p class="mt-1 max-w-sm text-xs leading-5 text-slate-400">Data akan muncul setelah lead pada periode terpilih memiliki program yang diminati.</p>
+                </div>
+            @endif
+
+            <div class="border-t border-slate-100 bg-slate-50/60 p-5 md:p-6">
+                <div class="mb-4">
+                    <h4 class="font-bold text-slate-800">Breakdown klasifikasi program</h4>
+                    <p class="mt-1 text-xs text-slate-500">Perbandingan leads berdasarkan atribut program yang diminati</p>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    @foreach($programLeadDimensions as $dimension)
+                        <article class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                            <div class="flex items-center justify-between gap-2">
+                                <h5 class="text-sm font-bold text-slate-800">{{ $dimension['label'] }}</h5>
+                                <span class="rounded-lg bg-sky-50 px-2 py-1 text-[10px] font-bold text-[#1476B8]">{{ $dimension['items']->count() }} kelompok</span>
+                            </div>
+                            <div class="mt-4 space-y-3">
+                                @forelse($dimension['items'] as $item)
+                                    @php
+                                        $dimensionPct = $programKpiTotal > 0 ? round($item->total / $programKpiTotal * 100) : 0;
+                                    @endphp
+                                    <div>
+                                        <div class="mb-1.5 flex items-center gap-2 text-xs">
+                                            <span class="min-w-0 flex-1 truncate font-semibold text-slate-600" title="{{ $item->label }}">{{ $item->label }}</span>
+                                            <span class="text-slate-400">{{ $dimensionPct }}%</span>
+                                            <b class="text-slate-800">{{ number_format($item->total, 0, ',', '.') }}</b>
+                                        </div>
+                                        <div class="h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{ $programColors[$loop->index % count($programColors)] }} transition-all duration-500" style="width: {{ max(2, $dimensionPct) }}%"></div></div>
+                                    </div>
+                                @empty
+                                    <div class="flex min-h-24 flex-col items-center justify-center rounded-xl bg-slate-50 px-3 text-center">
+                                        <x-heroicon-o-chart-bar class="h-6 w-6 text-slate-300" />
+                                        <p class="mt-2 text-[11px] text-slate-400">Belum ada data</p>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-5 xl:grid-cols-2">
+            <div class="dashboard-card p-5 md:p-6">
+                <div class="flex items-start justify-between gap-3">
+                    <div><h3 class="font-bold text-slate-900">Top 5 sekolah</h3><p class="mt-1 text-xs text-slate-500">Sekolah penyumbang leads terbanyak pada periode terpilih</p></div>
+                    <div class="rounded-xl bg-sky-50 p-2.5 text-[#1476B8]"><x-heroicon-o-building-library class="h-5 w-5" /></div>
+                </div>
+                <div class="mt-5 space-y-3">
+                    @forelse($topSchools as $school)
+                        @php
+                            $schoolPct = $stats['leads'] > 0 ? round($school->total / $stats['leads'] * 100) : 0;
+                        @endphp
+                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $loop->first ? 'bg-[#1476B8] text-white' : 'bg-white text-slate-500' }} text-xs font-bold shadow-sm">{{ $loop->iteration }}</span>
+                                <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-700" title="{{ $school->nama_sekolah }}">{{ $school->nama_sekolah }}</p><p class="mt-0.5 truncate text-[11px] text-slate-400">{{ $school->kota ?: 'Wilayah belum diisi' }}</p></div>
+                                <div class="text-right"><b class="text-sm text-slate-800">{{ number_format($school->total, 0, ',', '.') }}</b><p class="text-[10px] text-slate-400">{{ $schoolPct }}%</p></div>
+                            </div>
+                            <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200"><div class="h-full rounded-full bg-[#1476B8] transition-all duration-500" style="width: {{ max(2, $schoolPct) }}%"></div></div>
+                        </div>
+                    @empty
+                        <div class="flex min-h-56 flex-col items-center justify-center rounded-xl bg-slate-50 text-center"><x-heroicon-o-building-library class="h-9 w-9 text-slate-300"/><p class="mt-3 font-semibold text-slate-600">Belum ada data sekolah</p><p class="mt-1 text-xs text-slate-400">Lead pada periode ini belum terhubung ke sekolah.</p></div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="dashboard-card p-5 md:p-6">
+                <div class="flex items-start justify-between gap-3">
+                    <div><h3 class="font-bold text-slate-900">Top 5 wilayah/kota</h3><p class="mt-1 text-xs text-slate-500">Asal sekolah leads terbanyak pada periode terpilih</p></div>
+                    <div class="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><x-heroicon-o-map-pin class="h-5 w-5" /></div>
+                </div>
+                <div class="mt-5 space-y-4">
+                    @forelse($topCities as $city)
+                        @php
+                            $cityPct = $stats['leads'] > 0 ? round($city->total / $stats['leads'] * 100) : 0;
+                        @endphp
+                        <div>
+                            <div class="mb-2 flex items-center gap-3">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $loop->first ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-700' }} text-xs font-bold">{{ $loop->iteration }}</span>
+                                <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700" title="{{ $city->kota }}">{{ $city->kota }}</span>
+                                <span class="text-xs text-slate-400">{{ $cityPct }}%</span>
+                                <b class="w-16 text-right text-sm text-slate-800">{{ number_format($city->total, 0, ',', '.') }}</b>
+                            </div>
+                            <div class="ml-11 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ max(2, $cityPct) }}%"></div></div>
+                        </div>
+                    @empty
+                        <div class="flex min-h-56 flex-col items-center justify-center rounded-xl bg-slate-50 text-center"><x-heroicon-o-map-pin class="h-9 w-9 text-slate-300"/><p class="mt-3 font-semibold text-slate-600">Belum ada data wilayah</p><p class="mt-1 text-xs text-slate-400">Kota atau kabupaten asal sekolah belum tersedia.</p></div>
+                    @endforelse
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
+            <div class="dashboard-card p-5 md:p-6">
+                <div class="flex items-start justify-between"><div><h3 class="font-bold text-slate-900">Tren leads & pendaftaran</h3><p class="mt-1 text-xs text-slate-500">Pergerakan {{ $bulan ? 'harian' : 'bulanan' }} pada periode terpilih</p></div><div class="flex gap-3 text-[11px]"><span class="flex items-center gap-1"><i class="h-2 w-2 rounded-full bg-[#1476B8]"></i> Leads</span><span class="flex items-center gap-1"><i class="h-2 w-2 rounded-full bg-emerald-500"></i> Pendaftaran</span></div></div>
+                @if($trendLeads->sum() + $trendRegs->sum() > 0)
+                    <div class="mt-8 flex h-56 items-end gap-1 overflow-hidden">@foreach($days as $i => $day)@php $trendLabel = $bulan ? 'Tanggal '.$day : now()->setMonth($day)->translatedFormat('F'); @endphp<div class="group flex h-full min-w-0 flex-1 items-end justify-center gap-px" title="{{ $trendLabel }}: {{ $trendLeads[$i] }} leads, {{ $trendRegs[$i] }} pendaftaran"><div class="w-1/2 rounded-t bg-[#1476B8] transition hover:bg-[#075985]" style="height:{{ max(3,$trendLeads[$i]/$maxTrend*100) }}%"></div><div class="w-1/2 rounded-t bg-emerald-400 transition hover:bg-emerald-600" style="height:{{ max(3,$trendRegs[$i]/$maxTrend*100) }}%"></div></div>@endforeach</div>
+                    <div class="mt-2 flex gap-1 text-center text-[10px] text-slate-400">@foreach($days as $day)<span class="min-w-0 flex-1">{{ $bulan ? ($loop->first || $loop->last || $day % 5 === 0 ? $day : '') : now()->setMonth($day)->translatedFormat('M') }}</span>@endforeach</div>
+                @else <div class="mt-8 flex h-56 flex-col items-center justify-center rounded-xl bg-slate-50 text-center"><x-heroicon-o-chart-bar class="h-10 w-10 text-slate-300"/><p class="mt-3 font-semibold text-slate-600">Belum ada data tren</p><p class="text-xs text-slate-400">Coba pilih periode atau cabang lain.</p></div>@endif
+            </div>
+            <div class="dashboard-card p-5 md:p-6"><div class="flex items-start justify-between gap-3"><div><h3 class="font-bold text-slate-900">Progress target</h3><p class="mt-1 text-xs text-slate-500">Realisasi dibanding laju waktu periode</p></div><span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">Waktu {{ $targetPace }}%</span></div>
+                @foreach([['Target omzet',$rupiah($stats['revenue']).' / '.$rupiah($target->omzet),$omzetPct,'bg-[#1476B8]',$target->omzet],['Target siswa',$stats['students'].' / '.$target->siswa.' siswa',$siswaPct,'bg-emerald-500',$target->siswa]] as $progress)
+                    @php
+                        $targetStatus = $progress[4] <= 0 ? ['Target belum diatur', 'bg-slate-100 text-slate-500'] : ($progress[2] >= 100 ? ['Tercapai', 'bg-emerald-50 text-emerald-700'] : ($progress[2] + 10 >= $targetPace ? ['Sesuai jalur', 'bg-sky-50 text-[#1476B8]'] : ($progress[2] + 20 >= $targetPace ? ['Berisiko', 'bg-amber-50 text-amber-700'] : ['Tertinggal', 'bg-rose-50 text-rose-600'])));
+                    @endphp
+                    <div class="mt-7"><div class="mb-2 flex items-center justify-between gap-2 text-sm"><span class="font-semibold text-slate-700">{{ $progress[0] }}</span><div class="flex items-center gap-2"><span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $targetStatus[1] }}">{{ $targetStatus[0] }}</span><span class="font-bold">{{ $progress[2] }}%</span></div></div><div class="relative h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{ $progress[3] }} transition-all duration-500" style="width:{{ $progress[2] }}%"></div><span class="absolute inset-y-0 w-0.5 bg-slate-500" style="left: {{ $targetPace }}%" title="Laju waktu {{ $targetPace }}%"></span></div><p class="mt-2 text-xs text-slate-400">{{ $progress[1] }}</p></div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="grid gap-5 xl:grid-cols-2">
+            <div class="dashboard-card p-5 md:p-6"><div class="flex items-center justify-between"><div><h3 class="font-bold text-slate-900">Aktivitas terbaru</h3><p class="text-xs text-slate-500">Pembaruan tim paling baru</p></div><span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">● Langsung</span></div>
+                <div class="mt-4 divide-y divide-slate-100">@forelse($activities as $activity)<div class="flex gap-3 py-3"><div class="mt-1 h-8 w-8 shrink-0 rounded-full bg-sky-50 p-2 text-[#1476B8]"><x-heroicon-o-user-plus /></div><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-700">{{ $activity->nama }}</p><p class="text-xs text-slate-500">{{ $activity->status_lead }} · {{ $activity->petugas ?? 'Belum ditugaskan' }}</p></div><time class="ml-auto whitespace-nowrap text-[10px] text-slate-400">{{ \Carbon\Carbon::parse($activity->created_at)->diffForHumans() }}</time></div>@empty<div class="py-12 text-center text-sm text-slate-400">Belum ada aktivitas.</div>@endforelse</div>
+            </div>
+            <div class="dashboard-card p-5 md:p-6"><h3 class="font-bold text-slate-900">Peringkat kinerja user</h3><p class="text-xs text-slate-500">Mengutamakan hasil daftar dan konversi, bukan volume semata</p><div class="mt-5 space-y-3">@forelse($ranking as $i => $person)<div class="flex items-center gap-3 rounded-xl bg-slate-50 p-3"><div class="flex h-9 w-9 items-center justify-center rounded-full {{ $i === 0 ? 'bg-amber-400 text-white' : 'bg-white text-slate-500' }} font-bold">{{ $i + 1 }}</div><div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ $person->name }}</p><div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500"><span>{{ $person->leads }} leads</span><span class="font-semibold text-emerald-600">{{ $person->registrations }} daftar</span><span>{{ $person->conversion }}% konversi</span></div></div><div class="w-16"><div class="h-1.5 overflow-hidden rounded-full bg-slate-200"><div class="h-full bg-emerald-500" style="width:{{ $ranking->max('conversion') ? $person->conversion/$ranking->max('conversion')*100 : 0 }}%"></div></div></div></div>@empty<p class="py-12 text-center text-sm text-slate-400">Belum ada data kinerja.</p>@endforelse</div></div>
+        </section>
+
+        <section class="grid gap-5 xl:grid-cols-[1fr_1.6fr]">
+            <div class="dashboard-card p-5 md:p-6"><h3 class="font-bold text-slate-900">Aksi cepat</h3><p class="text-xs text-slate-500">Pintasan pekerjaan utama</p><div class="mt-5 grid grid-cols-2 gap-3">@php $quickActions = auth()->user()->canManageOperationalData() ? [['Tambah lead','heroicon-o-user-plus','from-[#1476B8] to-[#075985]',\App\Filament\Resources\Leads\LeadResource::getUrl('create')],['Catat follow-up','heroicon-o-calendar-days','from-emerald-500 to-emerald-600',\App\Filament\Resources\FollowupRiwayats\FollowupRiwayatResource::getUrl('create')],['Pendaftaran','heroicon-o-document-plus','from-amber-400 to-orange-500',\App\Filament\Resources\Pendaftarans\PendaftaranResource::getUrl('create')],['Catat pembayaran','heroicon-o-banknotes','from-violet-500 to-purple-600',\App\Filament\Resources\Pembayarans\PembayaranResource::getUrl('create')]] : [['Lihat leads','heroicon-o-user-group','from-[#1476B8] to-[#075985]',\App\Filament\Resources\Leads\LeadResource::getUrl()],['Lihat follow-up','heroicon-o-calendar-days','from-emerald-500 to-emerald-600',\App\Filament\Resources\FollowupRiwayats\FollowupRiwayatResource::getUrl()],['Lihat pendaftaran','heroicon-o-document-check','from-amber-400 to-orange-500',\App\Filament\Resources\Pendaftarans\PendaftaranResource::getUrl()],['Lihat pembayaran','heroicon-o-banknotes','from-violet-500 to-purple-600',\App\Filament\Resources\Pembayarans\PembayaranResource::getUrl()]]; @endphp @foreach($quickActions as $action)<a href="{{ $action[3] }}" class="rounded-xl bg-gradient-to-br {{ $action[2] }} p-4 text-white transition hover:-translate-y-0.5"><x-dynamic-component :component="$action[1]" class="h-5 w-5"/><p class="mt-5 text-xs font-semibold">{{ $action[0] }}</p></a>@endforeach</div></div>
+            <div class="dashboard-card p-5 md:p-6"><div class="flex items-center justify-between"><div><h3 class="font-bold text-slate-900">Tindakan tertunda</h3><p class="text-xs text-slate-500">Item yang memerlukan perhatian</p></div><span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-500">{{ array_sum($pending) }} tertunda</span></div><div class="mt-5 grid gap-3 md:grid-cols-3">@foreach([['Follow-up lewat jadwal',$pending['followup'],'bg-amber-50 text-amber-600',\App\Filament\Resources\FollowupRiwayats\FollowupRiwayatResource::getUrl()],['Pembayaran diperiksa',$pending['payments'],'bg-sky-50 text-[#1476B8]',\App\Filament\Resources\Pembayarans\PembayaranResource::getUrl()],['Lead belum diproses',$pending['new_leads'],'bg-rose-50 text-rose-500',\App\Filament\Resources\Leads\LeadResource::getUrl()]] as $pendingItem)<div class="rounded-xl border border-slate-100 p-4"><div class="inline-flex h-9 w-9 items-center justify-center rounded-xl {{ $pendingItem[2] }} font-bold">{{ $pendingItem[1] }}</div><p class="mt-4 text-sm font-semibold text-slate-700">{{ $pendingItem[0] }}</p><a href="{{ $pendingItem[3] }}" class="mt-3 inline-block text-xs font-bold text-[#1476B8]">Tinjau sekarang →</a></div>@endforeach</div></div>
+        </section>
+    </div>
+</x-filament-panels::page>

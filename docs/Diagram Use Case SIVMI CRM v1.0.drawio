@@ -1,0 +1,318 @@
+<mxfile host="Electron" version="29.6.6" pages="2">
+  <diagram id="sivmi-usecase-1" name="01 - Use Case Utama dan RBAC">
+    <mxGraphModel dx="1895" dy="1138" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="uc1-title" value="Use Case Utama dan RBAC SIVMI CRM" style="text;html=1;strokeColor=none;fillColor=none;fontSize=30;fontStyle=1;fontColor=#14357A;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1570" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-subtitle" value="Hak akses operasional dibatasi oleh role, cabang pengguna, dan penugasan PIC" style="text;html=1;strokeColor=none;fillColor=none;fontSize=16;fontColor=#64748B;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="73" width="1570" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-boundary" value="SIVMI CRM" style="swimlane;html=1;rounded=1;arcSize=8;horizontal=1;startSize=42;fillColor=#F8FAFC;swimlaneFillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=20;fontStyle=1;fontColor=#075985;align=left;spacingLeft=18;" vertex="1" parent="1">
+          <mxGeometry x="390" y="125" width="1185" height="950" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-super" value="Superadmin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=16;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="55" y="165" width="100" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-admin" value="Admin Cabang" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=16;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="55" y="365" width="100" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-staff" value="Staff" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=16;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="55" y="565" width="100" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-direksi" value="Direksi" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=16;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="55" y="765" width="100" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-user" value="Pengguna CRM" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=16;fontStyle=1;fontColor=#075985;" vertex="1" parent="1">
+          <mxGeometry x="245" y="455" width="100" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-auth" value="Autentikasi dan keluar akun" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="75" width="315" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-profile" value="Kelola profil dan keamanan akun" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="178" width="315" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-dashboard" value="Lihat dashboard dan KPI" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="281" width="315" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-lead" value="Kelola leads, follow-up, dan Inbox WhatsApp" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="405" width="315" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-transaction" value="Kelola pendaftaran dan pembayaran" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="520" width="315" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-report" value="Lihat laporan dan ekspor data" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#A855F7;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="635" width="315" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-notification" value="Lihat notifikasi dan aktivitas" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#A855F7;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="105" y="750" width="315" height="84" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-master" value="Kelola cabang, sekolah, dan pengguna" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="75" width="350" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-program" value="Kelola klasifikasi dan program bimbel" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="190" width="350" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-target" value="Kelola target cabang dan target user" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="305" width="350" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-waha" value="Kelola nomor dan session WAHA" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="420" width="350" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-setting" value="Kelola pengaturan sistem" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#F43F5E;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="535" width="350" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-audit" value="Tinjau audit aktivitas lintas cabang" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#A855F7;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="650" width="350" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-api" value="Kelola API client dan scope integrasi" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#F43F5E;strokeWidth=2;fontSize=16;fontColor=#0F172A;" vertex="1" parent="uc1-boundary">
+          <mxGeometry x="665" y="765" width="350" height="84" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-note" value="&lt;b&gt;Aturan cakupan&lt;/b&gt;&lt;br&gt;Superadmin: seluruh cabang&lt;br&gt;Admin Cabang: cabang sendiri&lt;br&gt;Staff: cabang dan penugasan sendiri&lt;br&gt;Direksi: monitoring lintas cabang, tanpa mutasi operasional" style="shape=note;whiteSpace=wrap;html=1;size=20;fillColor=#FFF7E6;strokeColor=#F59E0B;fontSize=14;fontColor=#334155;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="25" y="920" width="335" height="155" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-gen-super" edge="1" parent="1" source="uc1-super" target="uc1-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-gen-admin" edge="1" parent="1" source="uc1-admin" target="uc1-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-gen-staff" edge="1" parent="1" source="uc1-staff" target="uc1-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-gen-direksi" edge="1" parent="1" source="uc1-direksi" target="uc1-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-edge-user-auth" edge="1" parent="1" source="uc1-user" target="uc1-auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-user-profile" edge="1" parent="1" source="uc1-user" target="uc1-profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-user-dashboard" edge="1" parent="1" source="uc1-user" target="uc1-dashboard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-user-notification" edge="1" parent="1" source="uc1-user" target="uc1-notification" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#64748B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-edge-super-master" edge="1" parent="1" source="uc1-super" target="uc1-master" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="semua cabang">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-super-program" edge="1" parent="1" source="uc1-super" target="uc1-program" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-super-setting" edge="1" parent="1" source="uc1-super" target="uc1-setting" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-super-audit" edge="1" parent="1" source="uc1-super" target="uc1-audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-super-api" edge="1" parent="1" source="uc1-super" target="uc1-api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-super-waha" edge="1" parent="1" source="uc1-super" target="uc1-waha" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-edge-admin-lead" edge="1" parent="1" source="uc1-admin" target="uc1-lead" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="cabang sendiri">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-admin-transaction" edge="1" parent="1" source="uc1-admin" target="uc1-transaction" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-admin-master" edge="1" parent="1" source="uc1-admin" target="uc1-master" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#F59E0B;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="staff cabang">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-admin-target" edge="1" parent="1" source="uc1-admin" target="uc1-target" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#F59E0B;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-admin-waha" edge="1" parent="1" source="uc1-admin" target="uc1-waha" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-edge-staff-lead" edge="1" parent="1" source="uc1-staff" target="uc1-lead" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="penugasan sendiri">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-staff-transaction" edge="1" parent="1" source="uc1-staff" target="uc1-transaction" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-staff-report" edge="1" parent="1" source="uc1-staff" target="uc1-report" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#A855F7;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="jika diizinkan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc1-edge-direksi-report" edge="1" parent="1" source="uc1-direksi" target="uc1-report" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#A855F7;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="lintas cabang">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1-edge-direksi-audit" edge="1" parent="1" source="uc1-direksi" target="uc1-audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#A855F7;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="sivmi-usecase-2" name="02 - Use Case Lead dan Integrasi">
+    <mxGraphModel dx="1895" dy="1138" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="uc2-title" value="Use Case Lead, WhatsApp, dan REST API" style="text;html=1;strokeColor=none;fillColor=none;fontSize=30;fontStyle=1;fontColor=#14357A;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1570" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-subtitle" value="Alur akuisisi lead sampai konversi dengan deteksi duplikasi, scope cabang, notifikasi, dan audit" style="text;html=1;strokeColor=none;fillColor=none;fontSize=16;fontColor=#64748B;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="73" width="1570" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-boundary" value="SIVMI CRM — Akuisisi dan Konversi Lead" style="swimlane;html=1;rounded=1;arcSize=8;horizontal=1;startSize=42;fillColor=#F8FAFC;swimlaneFillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=20;fontStyle=1;fontColor=#075985;align=left;spacingLeft=18;" vertex="1" parent="1">
+          <mxGeometry x="260" y="125" width="1135" height="950" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-api-actor" value="Sistem Mitra / API Client" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=15;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="130" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-student" value="Calon Siswa" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=15;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="55" y="430" width="100" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-operator" value="Admin Cabang / Staff" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=15;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="35" y="710" width="140" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-waha-actor" value="WAHA (GOWS)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=15;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="1475" y="320" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-worker" value="Queue / Scheduler" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=15;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="1465" y="745" width="125" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-manual" value="Input atau impor lead" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="75" y="95" width="250" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-rest" value="Kirim / baca lead melalui REST API" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAF4FB;strokeColor=#1476B8;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="75" y="205" width="250" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-webhook" value="Terima webhook pesan WhatsApp" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="75" y="325" width="250" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-chat" value="Kirim / terima chat dan media" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="75" y="445" width="250" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-normalize" value="Normalisasi nomor WhatsApp" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="440" y="95" width="260" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-scope" value="Validasi ability dan scope cabang" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="440" y="205" width="260" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-duplicate" value="Deteksi duplikasi lead" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="440" y="325" width="260" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-mark" value="Tandai cocok, lead baru, atau konflik" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="440" y="445" width="260" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-assign" value="Distribusikan lead ke PIC" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="440" y="565" width="260" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-status" value="Kelola status lead&lt;br&gt;Cold · Warm · Hot · Daftar · Tidak Berminat" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#A855F7;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="785" y="95" width="290" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-followup" value="Catat follow-up dan jadwal berikutnya" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#A855F7;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="785" y="215" width="290" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-register" value="Konversi menjadi pendaftaran" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="785" y="335" width="290" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-payment" value="Catat dan validasi pembayaran" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EAFBF5;strokeColor=#10B981;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="785" y="455" width="290" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-notify" value="Kirim notifikasi sistem" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#F43F5E;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="785" y="575" width="290" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-audit" value="Catat audit aktivitas" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#F43F5E;strokeWidth=2;fontSize=15;fontColor=#0F172A;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="785" y="695" width="290" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-note" value="&lt;b&gt;Kontrol integrasi&lt;/b&gt;&lt;br&gt;REST API: bearer token, ability, rate limit, idempotency, request ID&lt;br&gt;WAHA: API key, HMAC webhook, session per user, deduplikasi message ID&lt;br&gt;Semua perubahan penting dicatat tanpa menyimpan secret pada log." style="shape=note;whiteSpace=wrap;html=1;size=18;fillColor=#FFF7E6;strokeColor=#F59E0B;fontSize=14;fontColor=#334155;spacing=10;" vertex="1" parent="uc2-boundary">
+          <mxGeometry x="110" y="790" width="855" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-edge-api-rest" edge="1" parent="1" source="uc2-api-actor" target="uc2-rest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-student-waha" edge="1" parent="1" source="uc2-student" target="uc2-waha-actor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#10B981;strokeWidth=2;labelBackgroundColor=#FFFFFF;fontSize=13;" value="chat WhatsApp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="215" y="485" /><mxPoint x="1435" y="485" /><mxPoint x="1435" y="370" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="uc2-edge-waha-webhook" edge="1" parent="1" source="uc2-waha-actor" target="uc2-webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-waha-chat" edge="1" parent="1" source="uc2-waha-actor" target="uc2-chat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-operator-manual" edge="1" parent="1" source="uc2-operator" target="uc2-manual" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#1476B8;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-operator-chat" edge="1" parent="1" source="uc2-operator" target="uc2-chat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-operator-status" edge="1" parent="1" source="uc2-operator" target="uc2-status" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#A855F7;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-operator-followup" edge="1" parent="1" source="uc2-operator" target="uc2-followup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#A855F7;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-operator-register" edge="1" parent="1" source="uc2-operator" target="uc2-register" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-operator-payment" edge="1" parent="1" source="uc2-operator" target="uc2-payment" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#10B981;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-edge-worker-notify" edge="1" parent="1" source="uc2-worker" target="uc2-notify" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;strokeColor=#F43F5E;strokeWidth=2;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc2-inc-manual-normalize" edge="1" parent="uc2-boundary" source="uc2-manual" target="uc2-normalize" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-rest-scope" edge="1" parent="uc2-boundary" source="uc2-rest" target="uc2-scope" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-webhook-normalize" edge="1" parent="uc2-boundary" source="uc2-webhook" target="uc2-normalize" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-normalize-duplicate" edge="1" parent="uc2-boundary" source="uc2-normalize" target="uc2-duplicate" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-duplicate-mark" edge="1" parent="uc2-boundary" source="uc2-duplicate" target="uc2-mark" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-mark-assign" edge="1" parent="uc2-boundary" source="uc2-mark" target="uc2-assign" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-webhook-notify" edge="1" parent="uc2-boundary" source="uc2-webhook" target="uc2-notify" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-ext-status-register" edge="1" parent="uc2-boundary" source="uc2-register" target="uc2-status" value="&lt;&lt;extend&gt;&gt; status Daftar" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-ext-payment-register" edge="1" parent="uc2-boundary" source="uc2-payment" target="uc2-register" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-inc-status-audit" edge="1" parent="uc2-boundary" source="uc2-status" target="uc2-audit" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=8 6;endArrow=open;endFill=0;strokeColor=#64748B;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

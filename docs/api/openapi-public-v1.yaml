@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: SIVMI CRM Public API
+  version: 1.0.0
+  description: Template API publik untuk pertukaran data Leads. API dinonaktifkan secara default.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Docker lokal
+security:
+  - bearerAuth: []
+paths:
+  /leads:
+    get:
+      operationId: listLeads
+      summary: Menerima daftar lead sesuai role dan scope cabang
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/LeadStatus' } }
+        - { name: sumber, in: query, schema: { $ref: '#/components/schemas/LeadSource' } }
+        - { name: search, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: cabang_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        '200':
+          description: Daftar lead
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeadListResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { description: Rate limit terlampaui }
+    post:
+      operationId: createLead
+      summary: Mengirim dan membuat satu lead
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 100, pattern: '^[A-Za-z0-9._:-]+$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLeadRequest' }
+      responses:
+        '201':
+          description: Lead berhasil dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeadResponse' }
+        '400': { description: Idempotency-Key tidak valid }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Konflik idempotensi }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /leads/{lead}:
+    get:
+      operationId: getLead
+      summary: Menerima detail satu lead dalam scope client
+      parameters:
+        - name: lead
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Detail lead
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeadResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Lead tidak ditemukan dalam scope }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SIVMI API key
+  responses:
+    Unauthenticated:
+      description: Token tidak valid atau client nonaktif
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: Ability, role, atau scope cabang ditolak
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ValidationError:
+      description: Data tidak valid
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    LeadStatus:
+      type: string
+      enum: [Cold, Warm, Hot, Daftar, Tidak Berminat]
+    LeadSource:
+      type: string
+      enum: [Iklan, Instagram, Kunjungan, Saudara, Facebook, Tiktok]
+    CreateLeadRequest:
+      type: object
+      required: [nama, no_wa]
+      properties:
+        nama: { type: string, maxLength: 150 }
+        no_wa: { type: string, maxLength: 20 }
+        cabang_id: { oneOf: [{ type: integer }, { type: 'null' }] }
+        sekolah_id: { oneOf: [{ type: integer }, { type: 'null' }] }
+        minat_program_id: { oneOf: [{ type: integer }, { type: 'null' }] }
+        sumber_lead: { $ref: '#/components/schemas/LeadSource' }
+        status_lead: { $ref: '#/components/schemas/LeadStatus' }
+        diserahkan_ke_user_id: { oneOf: [{ type: integer }, { type: 'null' }] }
+        tanggal_masuk: { type: string, format: date }
+    Lead:
+      type: object
+      properties:
+        id: { type: integer }
+        nama: { type: string }
+        no_wa: { type: string }
+        status: { $ref: '#/components/schemas/LeadStatus' }
+        sumber: { oneOf: [{ $ref: '#/components/schemas/LeadSource' }, { type: 'null' }] }
+        tanggal_masuk: { type: string, format: date }
+        cabang: { type: object, additionalProperties: true }
+        sekolah: { oneOf: [{ type: object, additionalProperties: true }, { type: 'null' }] }
+        program: { oneOf: [{ type: object, additionalProperties: true }, { type: 'null' }] }
+        pic: { oneOf: [{ type: object, additionalProperties: true }, { type: 'null' }] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    LeadResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Lead' }
+        meta: { type: object, additionalProperties: true }
+    LeadListResponse:
+      type: object
+      required: [data, meta, links]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Lead' } }
+        meta: { type: object, additionalProperties: true }
+        links: { type: object, additionalProperties: true }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            fields: { type: object, additionalProperties: true }
+            request_id: { type: string, format: uuid }

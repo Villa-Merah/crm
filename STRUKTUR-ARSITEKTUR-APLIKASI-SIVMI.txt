@@ -1,0 +1,332 @@
+STRUKTUR BERDASARKAN ARSITEKTUR APLIKASI SIVMI CRM
+==================================================
+
+Pemetaan source modular monolith menurut layer dan tanggung jawab aplikasi.
+
+Catatan:
+- Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.
+- Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.
+- Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.
+
+01 Presentation - Filament, Livewire, Blade, dan Tailwind/
+├── app/
+│   └── Filament/
+│       ├── Exports/
+│       │   ├── LeadExporter.php
+│       │   └── SekolahExporter.php
+│       ├── Imports/
+│       │   ├── LeadImporter.php
+│       │   └── SekolahImporter.php
+│       ├── Pages/
+│       │   ├── AuditAktivitas.php
+│       │   ├── Auth/
+│       │   │   └── EditProfile.php
+│       │   ├── Dashboard.php
+│       │   ├── Laporan.php
+│       │   └── Pengaturan.php
+│       └── Resources/
+│           ├── Cabangs/
+│           │   ├── CabangResource.php
+│           │   └── Pages/
+│           │       ├── CreateCabang.php
+│           │       ├── EditCabang.php
+│           │       └── ListCabangs.php
+│           ├── FollowupRiwayats/
+│           │   ├── FollowupRiwayatResource.php
+│           │   ├── Pages/
+│           │   │   ├── CreateFollowupRiwayat.php
+│           │   │   ├── EditFollowupRiwayat.php
+│           │   │   └── ListFollowupRiwayats.php
+│           │   ├── Schemas/
+│           │   │   └── FollowupRiwayatForm.php
+│           │   └── Tables/
+│           │       └── FollowupRiwayatsTable.php
+│           ├── Leads/
+│           │   ├── LeadResource.php
+│           │   ├── Pages/
+│           │   │   ├── CreateLead.php
+│           │   │   ├── EditLead.php
+│           │   │   ├── ListLeads.php
+│           │   │   └── ViewLead.php
+│           │   ├── RelationManagers/
+│           │   │   └── FollowupsRelationManager.php
+│           │   ├── Schemas/
+│           │   │   ├── LeadForm.php
+│           │   │   └── LeadInfolist.php
+│           │   └── Tables/
+│           │       └── LeadsTable.php
+│           ├── Pembayarans/
+│           │   ├── Pages/
+│           │   │   ├── CreatePembayaran.php
+│           │   │   ├── EditPembayaran.php
+│           │   │   └── ListPembayarans.php
+│           │   └── PembayaranResource.php
+│           ├── Pendaftarans/
+│           │   ├── Pages/
+│           │   │   ├── CreatePendaftaran.php
+│           │   │   ├── EditPendaftaran.php
+│           │   │   └── ListPendaftarans.php
+│           │   └── PendaftaranResource.php
+│           ├── ProgramBimbels/
+│           │   ├── Pages/
+│           │   │   ├── CreateProgramBimbel.php
+│           │   │   ├── EditProgramBimbel.php
+│           │   │   └── ListProgramBimbels.php
+│           │   └── ProgramBimbelResource.php
+│           ├── Sekolahs/
+│           │   ├── Pages/
+│           │   │   ├── CreateSekolah.php
+│           │   │   ├── EditSekolah.php
+│           │   │   └── ListSekolahs.php
+│           │   └── SekolahResource.php
+│           ├── TargetKinerjaCabangs/
+│           │   ├── Pages/
+│           │   │   ├── CreateTargetKinerjaCabang.php
+│           │   │   ├── EditTargetKinerjaCabang.php
+│           │   │   └── ListTargetKinerjaCabangs.php
+│           │   ├── RelationManagers/
+│           │   │   └── TargetsUserRelationManager.php
+│           │   └── TargetKinerjaCabangResource.php
+│           ├── Users/
+│           │   ├── Pages/
+│           │   │   ├── CreateUser.php
+│           │   │   ├── EditUser.php
+│           │   │   └── ListUsers.php
+│           │   └── UserResource.php
+│           ├── WhatsAppAccounts/
+│           │   ├── Pages/
+│           │   │   ├── CreateWhatsAppAccount.php
+│           │   │   ├── EditWhatsAppAccount.php
+│           │   │   └── ListWhatsAppAccounts.php
+│           │   └── WhatsAppAccountResource.php
+│           └── WhatsAppConversations/
+│               ├── Pages/
+│               │   ├── ListWhatsAppConversations.php
+│               │   └── ViewWhatsAppConversation.php
+│               └── WhatsAppConversationResource.php
+├── public/
+│   ├── .htaccess
+│   ├── index.php
+│   └── robots.txt
+└── resources/
+    ├── css/
+    │   ├── app.css
+    │   └── filament/
+    │       └── admin/
+    │           └── theme.css
+    ├── js/
+    │   └── app.js
+    └── views/
+        ├── filament/
+        │   ├── pages/
+        │   │   ├── audit-aktivitas.blade.php
+        │   │   ├── dashboard.blade.php
+        │   │   ├── laporan.blade.php
+        │   │   └── pengaturan.blade.php
+        │   ├── partials/
+        │   │   ├── sidebar-state.blade.php
+        │   │   └── topbar-tools.blade.php
+        │   └── resources/
+        │       └── whatsapp-conversations/
+        │           └── pages/
+        │               ├── partials/
+        │               │   └── chat-styles.blade.php
+        │               └── view-whatsapp-conversation.blade.php
+        ├── integrations/
+        │   └── waha/
+        │       └── qr-unavailable.blade.php
+        └── welcome.blade.php
+
+02 Application - Use Case dan Orkestrasi/
+└── app/
+    ├── Console/
+    │   └── Commands/
+    │       ├── CreateApiClient.php
+    │       ├── SendCrmReminders.php
+    │       └── SyncWahaSessions.php
+    ├── Http/
+    │   ├── Controllers/
+    │   │   ├── Api/
+    │   │   │   └── V1/
+    │   │   │       └── LeadController.php
+    │   │   ├── Controller.php
+    │   │   ├── Webhooks/
+    │   │   │   └── WahaWebhookController.php
+    │   │   ├── WhatsAppMediaController.php
+    │   │   └── WhatsAppQrController.php
+    │   ├── Requests/
+    │   │   └── Api/
+    │   │       └── V1/
+    │   │           ├── ListLeadRequest.php
+    │   │           └── StoreLeadRequest.php
+    │   └── Resources/
+    │       └── Api/
+    │           └── V1/
+    │               └── LeadResource.php
+    ├── Jobs/
+    │   └── ProcessWahaWebhook.php
+    └── Observers/
+        ├── CrmActivityObserver.php
+        └── CrmNotificationObserver.php
+
+03 Domain - Enum, Service, dan Aturan Bisnis/
+└── app/
+    ├── Enums/
+    │   ├── LeadEntryChannel.php
+    │   ├── LeadSource.php
+    │   ├── LeadStatus.php
+    │   ├── SchoolGrade.php
+    │   ├── SchoolNamePrefix.php
+    │   ├── UserRole.php
+    │   ├── WhatsAppAccountStatus.php
+    │   ├── WhatsAppMatchStatus.php
+    │   ├── WhatsAppMessageDirection.php
+    │   └── WhatsAppMessageStatus.php
+    ├── Services/
+    │   ├── Schools/
+    │   │   └── CreateSchoolFromLead.php
+    │   └── WhatsApp/
+    │       ├── LeadMatcher.php
+    │       ├── WahaClient.php
+    │       ├── WahaSessionService.php
+    │       └── WhatsAppChatService.php
+    └── Support/
+        ├── ApiResponse.php
+        ├── CrmNotifier.php
+        ├── LeadCsvTemplate.php
+        ├── PhoneNormalizer.php
+        └── SekolahCsvTemplate.php
+
+04 Persistence - Model dan Skema Data/
+├── app/
+│   └── Models/
+│       ├── ActivityLog.php
+│       ├── ApiClient.php
+│       ├── ApiIdempotencyKey.php
+│       ├── Cabang.php
+│       ├── CrmSetting.php
+│       ├── FollowupRiwayat.php
+│       ├── Lead.php
+│       ├── Pembayaran.php
+│       ├── Pendaftaran.php
+│       ├── ProgramBimbel.php
+│       ├── Sekolah.php
+│       ├── TargetKinerjaCabang.php
+│       ├── TargetKinerjaUser.php
+│       ├── User.php
+│       ├── UserWhatsAppAccount.php
+│       ├── WahaWebhookEvent.php
+│       ├── WhatsAppConversation.php
+│       └── WhatsAppMessage.php
+└── database/
+    ├── factories/
+    │   └── UserFactory.php
+    ├── migrations/
+    │   ├── 0001_01_01_000000_create_users_table.php
+    │   ├── 0001_01_01_000001_create_cache_table.php
+    │   ├── 0001_01_01_000002_create_jobs_table.php
+    │   ├── 2026_08_13_000001_create_crm_dashboard_tables.php
+    │   ├── 2026_08_14_000001_update_rbac_roles_and_branches.php
+    │   ├── 2026_08_14_000002_complete_master_data_columns.php
+    │   ├── 2026_08_14_000003_complete_registration_payment_columns.php
+    │   ├── 2026_08_14_000004_complete_program_and_performance_targets.php
+    │   ├── 2026_08_14_000005_create_crm_settings_table.php
+    │   ├── 2026_08_14_000006_create_notifications_and_activity_logs_tables.php
+    │   ├── 2026_08_20_000001_create_filament_import_export_tables.php
+    │   ├── 2026_08_20_000002_migrate_school_clusters_to_grades.php
+    │   ├── 2026_08_21_000001_update_lead_status_values.php
+    │   ├── 2026_08_21_000002_simplify_program_names.php
+    │   ├── 2026_08_24_000001_add_sumber_lead_to_leads_table.php
+    │   ├── 2026_08_24_000002_create_whatsapp_integration_tables.php
+    │   └── 2026_08_25_000001_create_public_api_tables.php
+    └── seeders/
+        └── DatabaseSeeder.php
+
+05 Integration - REST API dan WAHA/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Api/
+│   │   │   │   └── V1/
+│   │   │   │       └── LeadController.php
+│   │   │   ├── Webhooks/
+│   │   │   │   └── WahaWebhookController.php
+│   │   │   ├── WhatsAppMediaController.php
+│   │   │   └── WhatsAppQrController.php
+│   │   └── Middleware/
+│   │       ├── AuthenticatePublicApi.php
+│   │       ├── EnsureApiIdempotency.php
+│   │       └── VerifyWahaWebhookHmac.php
+│   ├── Jobs/
+│   │   └── ProcessWahaWebhook.php
+│   └── Services/
+│       └── WhatsApp/
+│           ├── LeadMatcher.php
+│           ├── WahaClient.php
+│           ├── WahaSessionService.php
+│           └── WhatsAppChatService.php
+├── config/
+│   ├── public_api.php
+│   └── services.php
+└── routes/
+    └── api.php
+
+06 Cross-Cutting - Provider, Auth, Config, Route, dan Logging/
+├── app/
+│   └── Providers/
+│       ├── AppServiceProvider.php
+│       └── Filament/
+│           └── AdminPanelProvider.php
+├── bootstrap/
+│   ├── app.php
+│   └── providers.php
+├── config/
+│   ├── app.php
+│   ├── auth.php
+│   ├── cache.php
+│   ├── database.php
+│   ├── filesystems.php
+│   ├── logging.php
+│   ├── mail.php
+│   ├── public_api.php
+│   ├── queue.php
+│   ├── services.php
+│   └── session.php
+└── routes/
+    ├── api.php
+    ├── console.php
+    └── web.php
+
+07 Quality Assurance/
+├── phpunit.xml
+└── tests/
+    ├── Feature/
+    │   ├── AuditNotificationTest.php
+    │   ├── CreateSchoolFromLeadTest.php
+    │   ├── DashboardTest.php
+    │   ├── ExampleTest.php
+    │   ├── LeadCsvTest.php
+    │   ├── LeadManagementTest.php
+    │   ├── MasterDataAccessTest.php
+    │   ├── ProfileTest.php
+    │   ├── ProgramTargetTest.php
+    │   ├── PublicLeadApiTest.php
+    │   ├── RegistrationPaymentTest.php
+    │   ├── ReportTest.php
+    │   ├── SchoolCsvTest.php
+    │   ├── SettingsTest.php
+    │   └── WahaIntegrationTest.php
+    ├── TestCase.php
+    └── Unit/
+        ├── DatabaseIsolationTest.php
+        └── ExampleTest.php
+
+08 Build dan Package Management/
+├── .npmrc
+├── composer.json
+├── composer.lock
+├── package-lock.json
+├── package.json
+└── vite.config.js
+
+Total referensi file pada seluruh kelompok: 205
