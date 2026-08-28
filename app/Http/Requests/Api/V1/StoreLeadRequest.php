@@ -22,6 +22,7 @@ class StoreLeadRequest extends FormRequest
         return [
             'nama' => ['required', 'string', 'max:150'],
             'no_wa' => ['required', 'string', 'max:20'],
+            'kota_asal' => ['nullable', 'string', 'max:100'],
             'cabang_id' => ['nullable', 'integer', 'exists:cabang,cabang_id'],
             'sekolah_id' => ['nullable', 'integer', 'exists:sekolah,sekolah_id'],
             'minat_program_id' => ['nullable', 'integer', 'exists:program_bimbel,program_bimbel_id'],

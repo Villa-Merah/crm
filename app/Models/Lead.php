@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Lead extends Model
 {
@@ -74,6 +75,12 @@ class Lead extends Model
         static::saving(function (Lead $lead): void {
             if ($lead->isDirty('no_wa') || blank($lead->no_wa_normalized)) {
                 $lead->no_wa_normalized = app(PhoneNormalizer::class)->normalize($lead->no_wa);
+            }
+
+            if ($lead->isDirty('kota_asal')) {
+                $lead->kota_asal = filled($lead->kota_asal)
+                    ? Str::squish((string) $lead->kota_asal)
+                    : null;
             }
         });
     }

@@ -37,6 +37,7 @@ class LeadCsvTest extends TestCase
 
         $lead = Lead::sole();
         $this->assertSame('Alya Putri', $lead->nama);
+        $this->assertSame('Bandung', $lead->kota_asal);
         $this->assertSame($branch->getKey(), $lead->cabang_id);
         $this->assertSame($school->getKey(), $lead->sekolah_id);
         $this->assertSame($program->getKey(), $lead->minat_program_id);
@@ -112,6 +113,7 @@ class LeadCsvTest extends TestCase
         $lead = Lead::create([
             'nama' => '=HYPERLINK("https://example.test")',
             'no_wa' => '+6281234567890',
+            'kota_asal' => '  Bandung  ',
             'sekolah_id' => $school->getKey(),
             'minat_program_id' => $program->getKey(),
             'cabang_id' => $branch->getKey(),
@@ -128,11 +130,12 @@ class LeadCsvTest extends TestCase
         $this->assertSame((string) $lead->getKey(), $data[0]);
         $this->assertStringStartsWith("'=HYPERLINK", $data[1]);
         $this->assertSame("'+6281234567890", $data[2]);
-        $this->assertSame($school->npsn, $data[3]);
-        $this->assertSame('Facebook', $data[6]);
-        $this->assertSame($branch->nama, $data[8]);
-        $this->assertSame($pic->email, $data[9]);
-        $this->assertSame('2026-08-21', $data[10]);
+        $this->assertSame('Bandung', $data[3]);
+        $this->assertSame($school->npsn, $data[4]);
+        $this->assertSame('Facebook', $data[7]);
+        $this->assertSame($branch->nama, $data[9]);
+        $this->assertSame($pic->email, $data[10]);
+        $this->assertSame('2026-08-21', $data[11]);
     }
 
     public function test_export_query_is_scoped_to_the_authenticated_users_branch(): void
@@ -165,7 +168,7 @@ class LeadCsvTest extends TestCase
         ob_start();
         $response->sendContent();
         $content = ob_get_clean();
-        $this->assertStringContainsString('lead_id,nama,no_wa,sekolah_npsn', $content);
+        $this->assertStringContainsString('lead_id,nama,no_wa,kota_asal,sekolah_npsn', $content);
         $this->assertStringContainsString('program_bimbel,sumber_lead,status_lead', $content);
         $this->assertStringContainsString('Alya Putri', $content);
 
@@ -221,6 +224,7 @@ class LeadCsvTest extends TestCase
             'lead_id' => '',
             'nama' => 'Alya Putri',
             'no_wa' => '+6281234567890',
+            'kota_asal' => 'Bandung',
             'sekolah_npsn' => '',
             'sekolah_nama' => '',
             'program_bimbel' => '',

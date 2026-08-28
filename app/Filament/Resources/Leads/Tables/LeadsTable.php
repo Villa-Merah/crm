@@ -22,6 +22,7 @@ class LeadsTable
             ->striped()
             ->columns([
                 TextColumn::make('nama')->label('Calon siswa')->description(fn ($record) => $record->no_wa)->searchable(['nama', 'no_wa'])->weight('semibold'),
+                TextColumn::make('kota_asal')->label('Kota asal')->placeholder('Belum diisi')->searchable()->sortable()->toggleable(),
                 TextColumn::make('sekolah.nama_sekolah')->label('Sekolah')->placeholder('Belum diisi')->searchable()->toggleable(),
                 TextColumn::make('minatProgram.nama_program')->label('Minat program')->placeholder('Belum dipilih')->wrap()->toggleable(),
                 TextColumn::make('sumber_lead')->label('Sumber')->placeholder('Belum diisi')->badge()->color(fn (?string $state): string => LeadSource::color($state))->toggleable(),

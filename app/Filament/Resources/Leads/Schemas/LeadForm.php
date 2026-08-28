@@ -33,6 +33,7 @@ class LeadForm
                 ->schema([
                     TextInput::make('nama')->label('Nama lengkap')->required()->maxLength(150),
                     TextInput::make('no_wa')->label('Nomor WhatsApp')->tel()->required()->maxLength(20)->placeholder('08xxxxxxxxxx'),
+                    TextInput::make('kota_asal')->label('Kota asal')->required()->maxLength(100)->placeholder('Contoh: Bandung'),
                     Select::make('sekolah_id')
                         ->label('Sekolah')
                         ->options(fn (): array => Sekolah::query()

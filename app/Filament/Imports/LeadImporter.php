@@ -48,6 +48,10 @@ class LeadImporter extends Importer
                     return preg_replace("/^'(?=\+)/", '', (string) $state);
                 })
                 ->rules(['required', 'string', 'max:20', 'regex:/^\+?[0-9][0-9\s().-]{7,19}$/']),
+            ImportColumn::make('kota_asal')
+                ->label('Kota asal')
+                ->requiredMappingForNewRecordsOnly()
+                ->rules(['required', 'string', 'max:100']),
             ImportColumn::make('sekolah_npsn')
                 ->label('NPSN sekolah')
                 ->rules(['nullable', 'regex:/^\d{8}$/'])

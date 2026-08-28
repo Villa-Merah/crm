@@ -42,6 +42,7 @@ RUN apt-get update \
         libicu-dev \
         libpng-dev \
         libzip-dev \
+        default-mysql-client \
         unzip \
     && docker-php-ext-configure intl \
     && docker-php-ext-install -j"$(nproc)" \

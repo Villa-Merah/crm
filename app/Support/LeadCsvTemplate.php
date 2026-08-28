@@ -10,6 +10,7 @@ class LeadCsvTemplate
         'lead_id',
         'nama',
         'no_wa',
+        'kota_asal',
         'sekolah_npsn',
         'sekolah_nama',
         'program_bimbel',
@@ -21,8 +22,8 @@ class LeadCsvTemplate
     ];
 
     public const EXAMPLES = [
-        ['', 'Alya Putri', '+6281234567890', '', '', 'SR GOLD TATAP MUKA', 'Instagram', 'Warm', 'Bandung', 'staff.bdg.1@sivmi.test', '2026-08-21'],
-        ['', 'Bima Pratama', '+6281234567891', '', '', '', 'Kunjungan', 'Cold', 'JakSel', 'staff.jks.1@sivmi.test', '2026-08-21'],
+        ['', 'Alya Putri', '+6281234567890', 'Bandung', '', '', 'SR GOLD TATAP MUKA', 'Instagram', 'Warm', 'Bandung', 'staff.bdg.1@sivmi.test', '2026-08-21'],
+        ['', 'Bima Pratama', '+6281234567891', 'Jakarta Selatan', '', '', '', 'Kunjungan', 'Cold', 'JakSel', 'staff.jks.1@sivmi.test', '2026-08-21'],
     ];
 
     public static function download(): StreamedResponse

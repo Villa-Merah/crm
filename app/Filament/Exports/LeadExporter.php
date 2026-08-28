@@ -21,6 +21,7 @@ class LeadExporter extends Exporter
             ExportColumn::make('lead_id')->label('lead_id'),
             ExportColumn::make('nama')->label('nama')->formatStateUsing($safe),
             ExportColumn::make('no_wa')->label('no_wa')->formatStateUsing($safe),
+            ExportColumn::make('kota_asal')->label('kota_asal')->formatStateUsing($safe),
             ExportColumn::make('sekolah_npsn')->label('sekolah_npsn')->state(fn (Lead $record) => $record->sekolah?->npsn)->formatStateUsing($safe),
             ExportColumn::make('sekolah_nama')->label('sekolah_nama')->state(fn (Lead $record) => $record->sekolah?->nama_sekolah)->formatStateUsing($safe),
             ExportColumn::make('program_bimbel')->label('program_bimbel')->state(fn (Lead $record) => $record->minatProgram?->nama_program)->formatStateUsing($safe),

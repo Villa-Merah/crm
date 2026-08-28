@@ -28,6 +28,7 @@ class LeadManagementTest extends TestCase
         $this->actingAs($admin)->get('/admin/leads/create')
             ->assertOk()
             ->assertSee('Data calon siswa')
+            ->assertSee('Kota asal')
             ->assertSee('Cold')
             ->assertSee('Warm')
             ->assertSee('Hot')
