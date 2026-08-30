@@ -42,7 +42,7 @@ class SekolahResource extends Resource
             Section::make('Identitas sekolah')->columns(['default' => 1, 'md' => 2])->schema([
                 TextInput::make('npsn')->label('NPSN')->helperText('Opsional. Jika diisi, gunakan 8 digit NPSN.')->length(8)->regex('/^\d{8}$/')->unique(ignoreRecord: true),
                 TextInput::make('nama_sekolah')->label('Nama sekolah')->required()->maxLength(200),
-                Select::make('status_sekolah')->label('Status sekolah')->options(['Negeri' => 'Negeri', 'Swasta' => 'Swasta', 'Lainnya' => 'Lainnya'])->default('Lainnya')->required(),
+                Select::make('status_sekolah')->label('Status sekolah')->options(['Negeri' => 'Negeri', 'Swasta' => 'Swasta', 'Lainnya' => 'Lainnya'])->default('Lainnya'),
                 Select::make('kluster_sekolah')
                     ->label('Kluster sekolah')
                     ->options(SchoolGrade::options())
@@ -53,7 +53,7 @@ class SekolahResource extends Resource
             ]),
             Section::make('Lokasi')->columns(['default' => 1, 'md' => 2])->schema([
                 TextInput::make('kecamatan')->label('Kecamatan')->maxLength(100),
-                TextInput::make('kota')->label('Kota/Kabupaten')->required()->maxLength(100),
+                TextInput::make('kota')->label('Kota/Kabupaten')->maxLength(100),
                 TextInput::make('provinsi')->label('Provinsi')->maxLength(100),
                 Textarea::make('alamat')->label('Alamat')->rows(3)->columnSpanFull(),
             ]),

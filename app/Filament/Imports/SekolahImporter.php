@@ -23,7 +23,7 @@ class SekolahImporter extends Importer
             ImportColumn::make('status_sekolah')->label('Status Sekolah')->rules(['nullable', 'in:Negeri,Swasta,Lainnya']),
             ImportColumn::make('alamat')->label('Alamat')->rules(['nullable', 'string', 'max:3000']),
             ImportColumn::make('kecamatan')->label('Kecamatan')->rules(['nullable', 'string', 'max:100']),
-            ImportColumn::make('kota')->label('Kota/Kabupaten')->requiredMappingForNewRecordsOnly()->rules(['required', 'string', 'max:100']),
+            ImportColumn::make('kota')->label('Kota/Kabupaten')->rules(['nullable', 'string', 'max:100']),
             ImportColumn::make('provinsi')->label('Provinsi')->rules(['nullable', 'string', 'max:100']),
             ImportColumn::make('kluster_sekolah')->label('Kluster Sekolah')->rules(['nullable', 'in:'.implode(',', SchoolGrade::values())]),
             ImportColumn::make('aktif')->label('Aktif')->boolean()->rules(['nullable', 'boolean']),

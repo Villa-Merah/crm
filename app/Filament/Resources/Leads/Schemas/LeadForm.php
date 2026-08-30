@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Leads\Schemas;
 
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
-use App\Enums\SchoolNamePrefix;
 use App\Enums\UserRole;
 use App\Models\Cabang;
 use App\Models\CrmSetting;
@@ -20,7 +19,6 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class LeadForm
@@ -66,28 +64,20 @@ class LeadForm
                             ->label('Tambah sekolah')
                             ->tooltip('Tambah sekolah yang belum tersedia'))
                         ->createOptionForm([
-                            Select::make('prefix')
-                                ->label('Format sekolah')
-                                ->options(SchoolNamePrefix::options())
-                                ->live()
-                                ->required(),
                             TextInput::make('nama_sekolah_baru')
-                                ->label('Nama atau nomor sekolah')
-                                ->placeholder('Contoh: 3 Bandung')
-                                ->helperText('Awalan dipasang otomatis. Hasil contoh: SMAN 3 BANDUNG.')
-                                ->visible(fn (Get $get): bool => $get('prefix') !== SchoolNamePrefix::AlumniGapyear->value)
-                                ->required(fn (Get $get): bool => $get('prefix') !== SchoolNamePrefix::AlumniGapyear->value)
+                                ->label('Nama sekolah')
+                                ->placeholder('Contoh: SMAN 3 Bandung')
+                                ->helperText('Wajib. Tulis nama sekolah secara lengkap.')
+                                ->required()
                                 ->maxLength(190),
                             TextInput::make('npsn')
                                 ->label('NPSN')
                                 ->helperText('Opsional. Jika diisi, gunakan 8 digit.')
-                                ->visible(fn (Get $get): bool => $get('prefix') !== SchoolNamePrefix::AlumniGapyear->value)
                                 ->length(8)
                                 ->regex('/^\d{8}$/')
                                 ->unique(Sekolah::class, 'npsn'),
                             TextInput::make('kota')
                                 ->label('Kota/Kabupaten')
-                                ->required()
                                 ->maxLength(100),
                             TextInput::make('provinsi')
                                 ->label('Provinsi')

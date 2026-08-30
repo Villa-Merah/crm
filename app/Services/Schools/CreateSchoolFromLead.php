@@ -11,31 +11,39 @@ class CreateSchoolFromLead
 {
     /**
      * @param array{
-     *     prefix: string,
-     *     nama_sekolah_baru?: string|null,
+     *     prefix?: string|null,
+     *     nama_sekolah_baru: string,
      *     npsn?: string|null,
-     *     kota: string,
+     *     kota?: string|null,
      *     provinsi?: string|null
      * } $data
      */
     public function create(array $data): Sekolah
     {
-        $prefix = SchoolNamePrefix::from($data['prefix']);
-        $namePart = $this->normalizeNamePart((string) ($data['nama_sekolah_baru'] ?? ''));
+        $prefix = filled($data['prefix'] ?? null)
+            ? SchoolNamePrefix::from((string) $data['prefix'])
+            : null;
+        $rawName = Str::upper(Str::squish((string) ($data['nama_sekolah_baru'] ?? '')));
 
-        if ($prefix->requiresSchoolName() && $namePart === '') {
+        if ($rawName === '' && (! $prefix || $prefix->requiresSchoolName())) {
             throw ValidationException::withMessages([
-                'nama_sekolah_baru' => 'Isi nama atau nomor sekolah setelah format sekolah.',
+                'nama_sekolah_baru' => 'Nama sekolah wajib diisi.',
             ]);
         }
 
-        $fullName = $prefix->requiresSchoolName()
-            ? "{$prefix->value} {$namePart}"
-            : $prefix->value;
-        $city = Str::title(Str::squish($data['kota']));
+        $fullName = $prefix
+            ? ($prefix->requiresSchoolName() ? "{$prefix->value} {$this->normalizeNamePart($rawName)}" : $prefix->value)
+            : $rawName;
+        $city = filled($data['kota'] ?? null)
+            ? Str::title(Str::squish((string) $data['kota']))
+            : null;
         $existing = Sekolah::query()
             ->whereRaw('UPPER(TRIM(nama_sekolah)) = ?', [$fullName])
-            ->whereRaw('UPPER(TRIM(kota)) = ?', [Str::upper($city)])
+            ->when(
+                $city,
+                fn ($query) => $query->whereRaw('UPPER(TRIM(kota)) = ?', [Str::upper($city)]),
+                fn ($query) => $query->whereNull('kota'),
+            )
             ->first();
 
         if ($existing) {
@@ -49,7 +57,7 @@ class CreateSchoolFromLead
         return Sekolah::create([
             'nama_sekolah' => $fullName,
             'npsn' => filled($data['npsn'] ?? null) ? trim((string) $data['npsn']) : null,
-            'status_sekolah' => $prefix->schoolStatus(),
+            'status_sekolah' => $prefix?->schoolStatus() ?? $this->inferSchoolStatus($fullName),
             'kota' => $city,
             'provinsi' => filled($data['provinsi'] ?? null) ? Str::title(Str::squish((string) $data['provinsi'])) : null,
             'aktif' => true,
@@ -61,5 +69,14 @@ class CreateSchoolFromLead
         $normalized = Str::upper(Str::squish($name));
 
         return trim((string) preg_replace('/^(SMAN|SMAS|SMKN|SMKS|MAN)\s+/iu', '', $normalized));
+    }
+
+    private function inferSchoolStatus(string $name): string
+    {
+        return match (true) {
+            preg_match('/^(SMAN|SMKN|MAN)\b/u', $name) === 1 => 'Negeri',
+            preg_match('/^(SMAS|SMKS)\b/u', $name) === 1 => 'Swasta',
+            default => 'Lainnya',
+        };
     }
 }

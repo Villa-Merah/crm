@@ -19,6 +19,25 @@ class SchoolCsvTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_import_accepts_school_with_only_name(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::AdminCabang, 'aktif' => true]);
+        $importer = new SekolahImporter($this->importFor($admin), $this->columnMap(), []);
+
+        $importer($this->row([
+            'npsn' => '', 'nama_sekolah' => 'Sekolah Minimal', 'status_sekolah' => '',
+            'alamat' => '', 'kecamatan' => '', 'kota' => '', 'provinsi' => '',
+            'kluster_sekolah' => '', 'aktif' => '',
+        ]));
+
+        $school = Sekolah::sole();
+        $this->assertSame('Sekolah Minimal', $school->nama_sekolah);
+        $this->assertNull($school->kota);
+        $this->assertNull($school->npsn);
+        $this->assertSame('Lainnya', $school->status_sekolah);
+        $this->assertTrue($school->aktif);
+    }
+
     public function test_admin_can_import_new_school_and_update_by_npsn(): void
     {
         $admin = User::factory()->create(['role' => UserRole::AdminCabang, 'aktif' => true]);

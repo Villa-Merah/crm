@@ -16,6 +16,19 @@ class CreateSchoolFromLeadTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_it_creates_a_school_with_only_the_name(): void
+    {
+        $school = app(CreateSchoolFromLead::class)->create([
+            'nama_sekolah_baru' => ' sman 5 bandung ',
+        ]);
+
+        $this->assertSame('SMAN 5 BANDUNG', $school->nama_sekolah);
+        $this->assertSame('Negeri', $school->status_sekolah);
+        $this->assertNull($school->kota);
+        $this->assertNull($school->npsn);
+        $this->assertTrue($school->aktif);
+    }
+
     public function test_it_creates_a_school_with_a_normalized_supported_prefix(): void
     {
         $school = app(CreateSchoolFromLead::class)->create([
@@ -106,13 +119,11 @@ class CreateSchoolFromLeadTest extends TestCase
             ->assertFormComponentActionExists('sekolah_id', 'createOption')
             ->mountFormComponentAction('sekolah_id', 'createOption')
             ->set('mountedActions.0.data', [
-                'prefix' => 'MAN',
-                'nama_sekolah_baru' => '2 Bandung',
+                'nama_sekolah_baru' => 'MAN 2 Bandung',
                 'npsn' => '',
-                'kota' => 'Bandung',
-                'provinsi' => 'Jawa Barat',
+                'kota' => '',
+                'provinsi' => '',
             ])
-            ->assertSet('mountedActions.0.data.prefix', 'MAN')
             ->callMountedFormComponentAction()
             ->assertHasNoFormComponentActionErrors();
 
