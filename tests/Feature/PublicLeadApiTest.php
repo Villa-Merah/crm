@@ -123,7 +123,7 @@ class PublicLeadApiTest extends TestCase
             ->assertJsonPath('error.code', 'branch_scope_violation');
     }
 
-    public function test_api_rejects_duplicate_normalized_phone_and_incomplete_lead(): void
+    public function test_api_rejects_duplicate_phone_and_accepts_minimal_lead(): void
     {
         [$branch, $admin] = $this->branchAndUser('BDG', 'Bandung');
         [$token] = $this->apiClient($admin, $branch, ['leads:write']);
@@ -140,11 +140,13 @@ class PublicLeadApiTest extends TestCase
             ->assertJsonPath('error.fields.no_wa.0', 'Nomor WhatsApp sudah digunakan oleh lead lain. Periksa data lead yang sudah ada.');
 
         $this->withToken($token)->withHeader('Idempotency-Key', 'lead-quality-003')->postJson('/api/v1/leads', [
-            'nama' => 'Tidak Lengkap',
+            'nama' => 'Lead Minimal',
             'no_wa' => '081234567899',
-        ])->assertUnprocessable()
-            ->assertJsonPath('error.code', 'validation_failed')
-            ->assertJsonStructure(['error' => ['fields' => ['kota_asal', 'kelas_sekolah', 'sekolah_id', 'minat_program_id', 'sumber_lead']]]);
+        ])->assertCreated()
+            ->assertJsonPath('data.nama', 'Lead Minimal')
+            ->assertJsonPath('data.kota_asal', null)
+            ->assertJsonPath('data.kelas_sekolah', null)
+            ->assertJsonPath('data.status', 'Cold');
     }
 
     private function branchAndUser(string $code, string $name): array

@@ -48,24 +48,28 @@ class LeadCsvTest extends TestCase
         $this->assertSame('Warm', $lead->status_lead);
     }
 
-    public function test_import_requires_a_valid_source_for_new_lead(): void
+    public function test_import_accepts_only_name_and_phone_but_rejects_invalid_optional_source(): void
     {
-        [$branch, $admin, $pic] = $this->fixtures();
+        [$branch, $admin] = $this->fixtures();
         $importer = new LeadImporter($this->importFor($admin), $this->columnMap(), []);
 
-        try {
-            $importer($this->row([
-                'sumber_lead' => '',
-                'cabang' => $branch->nama,
-                'pic_email' => $pic->email,
-            ]));
-            $this->fail('Sumber leads kosong seharusnya ditolak untuk lead baru.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('sumber_lead', $exception->errors());
-        }
+        $importer($this->row([
+            'kota_asal' => '', 'kelas_sekolah' => '', 'sekolah_nama' => '',
+            'program_bimbel' => '', 'sumber_lead' => '', 'status_lead' => '',
+            'cabang' => '', 'pic_email' => '', 'tanggal_masuk' => '',
+        ]));
 
+        $lead = Lead::sole();
+        $this->assertSame($branch->getKey(), $lead->cabang_id);
+        $this->assertNull($lead->sekolah_id);
+        $this->assertNull($lead->minat_program_id);
+        $this->assertNull($lead->diserahkan_ke_user_id);
+        $this->assertNull($lead->sumber_lead);
+        $this->assertSame('Cold', $lead->status_lead);
+
+        $importer = new LeadImporter($this->importFor($admin), $this->columnMap(), []);
         $this->expectException(ValidationException::class);
-        $importer($this->row(['sumber_lead' => 'Marketplace']));
+        $importer($this->row(['no_wa' => '+6281234567891', 'sumber_lead' => 'Marketplace']));
     }
 
     public function test_import_validation_errors_are_clear_in_indonesian(): void
@@ -76,15 +80,13 @@ class LeadCsvTest extends TestCase
         try {
             $importer($this->row([
                 'no_wa' => 'nomor-salah',
-                'kota_asal' => '',
             ]));
-            $this->fail('Baris dengan nomor WhatsApp dan kota asal tidak valid seharusnya ditolak.');
+            $this->fail('Baris dengan nomor WhatsApp tidak valid seharusnya ditolak.');
         } catch (ValidationException $exception) {
             $this->assertSame(
                 'Format nomor WhatsApp tidak valid. Gunakan 8–20 digit dan boleh diawali tanda +.',
                 $exception->errors()['no_wa'][0],
             );
-            $this->assertSame('Kota asal wajib diisi.', $exception->errors()['kota_asal'][0]);
         }
     }
 

@@ -52,13 +52,11 @@ class LeadImporter extends Importer
                 ->rules(['required', 'string', 'max:20', 'regex:/^\+?[0-9][0-9\s().-]{7,19}$/']),
             ImportColumn::make('kota_asal')
                 ->label('Kota asal')
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'string', 'max:100']),
+                ->rules(['nullable', 'string', 'max:100']),
             ImportColumn::make('kelas_sekolah')
                 ->label('Kelas sekolah saat ini')
                 ->guess(['kelas', 'kelas_sekolah', 'kelas sekolah'])
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'string', 'max:60', 'in:'.implode(',', CrmSetting::getArray('school_class_levels'))]),
+                ->rules(['nullable', 'string', 'max:60', 'in:'.implode(',', CrmSetting::getArray('school_class_levels'))]),
             ImportColumn::make('sekolah_npsn')
                 ->label('NPSN sekolah')
                 ->rules(['nullable', 'regex:/^\d{8}$/'])
@@ -69,31 +67,25 @@ class LeadImporter extends Importer
                 ->fillRecordUsing($ignore),
             ImportColumn::make('program_bimbel')
                 ->label('Program bimbel')
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'string', 'max:150'])
+                ->rules(['nullable', 'string', 'max:150'])
                 ->fillRecordUsing($ignore),
             ImportColumn::make('sumber_lead')
                 ->label('Sumber leads')
-                ->requiredMappingForNewRecordsOnly()
                 ->rules(['nullable', 'in:'.implode(',', array_column(LeadSource::cases(), 'value'))]),
             ImportColumn::make('status_lead')
                 ->label('Status lead')
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'in:'.implode(',', array_column(LeadStatus::cases(), 'value'))]),
+                ->rules(['nullable', 'in:'.implode(',', array_column(LeadStatus::cases(), 'value'))]),
             ImportColumn::make('cabang')
                 ->label('Cabang')
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'string', 'max:150'])
+                ->rules(['nullable', 'string', 'max:150'])
                 ->fillRecordUsing($ignore),
             ImportColumn::make('pic_email')
                 ->label('Email PIC')
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'email', 'max:255'])
+                ->rules(['nullable', 'email', 'max:255'])
                 ->fillRecordUsing($ignore),
             ImportColumn::make('tanggal_masuk')
                 ->label('Tanggal masuk')
-                ->requiredMappingForNewRecordsOnly()
-                ->rules(['required', 'date_format:Y-m-d', 'before_or_equal:today']),
+                ->rules(['nullable', 'date_format:Y-m-d', 'before_or_equal:today']),
         ];
     }
 
@@ -150,10 +142,6 @@ class LeadImporter extends Importer
 
         $errors = [];
 
-        if (! $this->record->exists && blank($this->data['sumber_lead'] ?? null)) {
-            $errors['sumber_lead'] = 'Sumber leads wajib diisi untuk lead baru.';
-        }
-
         $phone = app(PhoneNormalizer::class)->normalize($this->data['no_wa'] ?? null);
         $duplicatePhone = $phone
             ? Lead::query()
@@ -166,14 +154,12 @@ class LeadImporter extends Importer
             $errors['no_wa'] = 'Nomor WhatsApp sudah digunakan oleh lead lain.';
         }
 
-        if (blank($this->data['sekolah_npsn'] ?? null) && blank($this->data['sekolah_nama'] ?? null)) {
-            $errors['sekolah_nama'] = 'Sekolah wajib diisi menggunakan NPSN atau nama sekolah.';
-        }
-
         $branchName = trim((string) ($this->data['cabang'] ?? ''));
-        $branch = Cabang::query()->where('aktif', true)->where('nama', $branchName)->first();
+        $branch = $branchName !== ''
+            ? Cabang::query()->where('aktif', true)->where('nama', $branchName)->first()
+            : ($user->cabang_id ? Cabang::query()->where('aktif', true)->find($user->cabang_id) : null);
 
-        if (! $branch) {
+        if ($branchName !== '' && ! $branch) {
             $errors['cabang'] = "Cabang '{$branchName}' tidak ditemukan atau tidak aktif.";
         } elseif (! $user->hasGlobalBranchAccess() && $branch->getKey() !== $user->cabang_id) {
             $errors['cabang'] = 'Impor lead hanya diperbolehkan untuk cabang pengguna.';
@@ -181,16 +167,18 @@ class LeadImporter extends Importer
 
         $school = $this->resolveSchool($errors);
         $program = $this->resolveProgram($errors);
-        $pic = $this->resolvePic($branch, $errors);
+        $pic = blank($this->data['pic_email'] ?? null) && $user->hasRole(UserRole::Staff)
+            ? $user
+            : $this->resolvePic($branch, $errors);
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
 
-        $this->record->cabang_id = $branch->getKey();
+        $this->record->cabang_id = $branch?->getKey();
         $this->record->sekolah_id = $school?->getKey();
         $this->record->minat_program_id = $program?->getKey();
-        $this->record->diserahkan_ke_user_id = $pic->getKey();
+        $this->record->diserahkan_ke_user_id = $pic?->getKey();
 
         if (! $this->record->exists) {
             $this->record->diinput_oleh_user_id = $user->getKey();
@@ -247,6 +235,11 @@ class LeadImporter extends Importer
     private function resolvePic(?Cabang $branch, array &$errors): ?User
     {
         $email = trim((string) ($this->data['pic_email'] ?? ''));
+
+        if ($email === '') {
+            return null;
+        }
+
         $pic = User::query()
             ->where('email', $email)
             ->where('aktif', true)

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\LeadEntryChannel;
+use App\Enums\LeadStatus;
 use App\Enums\UserRole;
 use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Builder;
@@ -74,6 +75,14 @@ class Lead extends Model
     protected static function booted(): void
     {
         static::saving(function (Lead $lead): void {
+            if (blank($lead->status_lead)) {
+                $lead->status_lead = LeadStatus::Cold->value;
+            }
+
+            if (blank($lead->tanggal_masuk)) {
+                $lead->tanggal_masuk = today();
+            }
+
             if ($lead->isDirty('no_wa') || blank($lead->no_wa_normalized)) {
                 $lead->no_wa_normalized = app(PhoneNormalizer::class)->normalize($lead->no_wa);
             }

@@ -20,6 +20,25 @@ class LeadManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_lead_can_be_created_with_only_name_and_whatsapp_number(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Superadmin, 'cabang_id' => null, 'aktif' => true]);
+
+        $lead = Lead::create([
+            'nama' => 'Lead Minimal',
+            'no_wa' => '081234567899',
+            'diinput_oleh_user_id' => $admin->getKey(),
+        ]);
+
+        $this->assertNull($lead->cabang_id);
+        $this->assertNull($lead->sekolah_id);
+        $this->assertNull($lead->minat_program_id);
+        $this->assertNull($lead->diserahkan_ke_user_id);
+        $this->assertNull($lead->sumber_lead);
+        $this->assertSame(LeadStatus::Cold->value, $lead->status_lead);
+        $this->assertTrue($lead->tanggal_masuk->isToday());
+    }
+
     public function test_lead_and_followup_pages_render_for_admin(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);

@@ -42,7 +42,7 @@ class LeadForm
                         ->maxLength(20)
                         ->placeholder('08xxxxxxxxxx')
                         ->rule(fn (?Lead $record): UniqueNormalizedLeadPhone => new UniqueNormalizedLeadPhone($record?->getKey())),
-                    TextInput::make('kota_asal')->label('Kota asal')->required()->maxLength(100)->placeholder('Contoh: Bandung'),
+                    TextInput::make('kota_asal')->label('Kota asal')->maxLength(100)->placeholder('Contoh: Bandung'),
                     Select::make('kelas_sekolah')
                         ->label('Kelas sekolah saat ini')
                         ->options(fn (): array => collect(CrmSetting::getArray('school_class_levels'))
@@ -50,8 +50,7 @@ class LeadForm
                             ->all())
                         ->placeholder('Pilih kelas')
                         ->searchable()
-                        ->preload()
-                        ->required(),
+                        ->preload(),
                     Select::make('sekolah_id')
                         ->label('Sekolah')
                         ->options(fn (): array => Sekolah::query()
@@ -61,7 +60,6 @@ class LeadForm
                             ->all())
                         ->searchable()
                         ->preload()
-                        ->required()
                         ->helperText('Tidak ditemukan? Klik tombol + untuk menambahkan sekolah baru.')
                         ->createOptionModalHeading('Tambahkan sekolah baru')
                         ->createOptionAction(fn (Action $action): Action => $action
@@ -96,16 +94,16 @@ class LeadForm
                                 ->maxLength(100),
                         ])
                         ->createOptionUsing(fn (array $data): int => app(CreateSchoolFromLead::class)->create($data)->getKey()),
-                    Select::make('minat_program_id')->label('Program yang diminati')->options(ProgramBimbel::query()->where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable()->preload()->required(),
+                    Select::make('minat_program_id')->label('Program yang diminati')->options(ProgramBimbel::query()->where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable()->preload(),
                 ]),
             Section::make('Penanganan lead')
                 ->columns(['default' => 1, 'md' => 2])
                 ->schema([
-                    Select::make('cabang_id')->label('Cabang')->options(Cabang::query()->where('aktif', true)->when(! $user->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($user->cabang_id))->orderBy('nama')->pluck('nama', 'cabang_id'))->default($user->cabang_id)->required()->disabled(! $user->hasGlobalBranchAccess())->dehydrated(),
-                    Select::make('diserahkan_ke_user_id')->label('PIC')->options(User::query()->where('aktif', true)->when(! $user->hasGlobalBranchAccess(), fn ($q) => $q->where('cabang_id', $user->cabang_id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->orderBy('name')->pluck('name', 'id'))->default($user->hasRole(UserRole::Staff) ? $user->id : null)->disabled($user->hasRole(UserRole::Staff))->dehydrated()->searchable()->required(),
-                    Select::make('sumber_lead')->label('Sumber leads')->options(LeadSource::options())->required(),
-                    Select::make('status_lead')->label('Status')->options(LeadStatus::options())->default(LeadStatus::Cold->value)->required(),
-                    DatePicker::make('tanggal_masuk')->label('Tanggal masuk')->default(today())->maxDate(today())->required(),
+                    Select::make('cabang_id')->label('Cabang')->options(Cabang::query()->where('aktif', true)->when(! $user->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($user->cabang_id))->orderBy('nama')->pluck('nama', 'cabang_id'))->default($user->cabang_id)->disabled(! $user->hasGlobalBranchAccess())->dehydrated(),
+                    Select::make('diserahkan_ke_user_id')->label('PIC')->options(User::query()->where('aktif', true)->when(! $user->hasGlobalBranchAccess(), fn ($q) => $q->where('cabang_id', $user->cabang_id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->orderBy('name')->pluck('name', 'id'))->default($user->hasRole(UserRole::Staff) ? $user->id : null)->disabled($user->hasRole(UserRole::Staff))->dehydrated()->searchable(),
+                    Select::make('sumber_lead')->label('Sumber leads')->options(LeadSource::options()),
+                    Select::make('status_lead')->label('Status')->options(LeadStatus::options())->default(LeadStatus::Cold->value),
+                    DatePicker::make('tanggal_masuk')->label('Tanggal masuk')->default(today())->maxDate(today()),
                     Hidden::make('diinput_oleh_user_id')->default($user->id),
                 ]),
         ]);

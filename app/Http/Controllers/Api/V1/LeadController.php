@@ -103,12 +103,14 @@ class LeadController extends Controller
 
         $branchId = $client->cabang_id ?: ($data['cabang_id'] ?? null);
 
-        if (! $branchId || ! Cabang::query()->whereKey($branchId)->where('aktif', true)->exists()) {
-            return ApiResponse::error($request, 'invalid_branch', 'Cabang aktif wajib ditentukan.', 422, ['cabang_id' => ['Cabang aktif wajib ditentukan.']]);
+        if ($branchId && ! Cabang::query()->whereKey($branchId)->where('aktif', true)->exists()) {
+            return ApiResponse::error($request, 'invalid_branch', 'Cabang yang dipilih tidak aktif atau tidak ditemukan.', 422, ['cabang_id' => ['Cabang tidak valid.']]);
         }
 
         if (isset($data['diserahkan_ke_user_id'])) {
-            $picValid = User::query()->whereKey($data['diserahkan_ke_user_id'])->where('aktif', true)->where('cabang_id', $branchId)->exists();
+            $picValid = User::query()->whereKey($data['diserahkan_ke_user_id'])->where('aktif', true)
+                ->when($branchId, fn (Builder $query): Builder => $query->where('cabang_id', $branchId))
+                ->exists();
             if (! $picValid) {
                 return ApiResponse::error($request, 'invalid_pic', 'PIC harus aktif dan berada pada cabang lead.', 422, ['diserahkan_ke_user_id' => ['PIC tidak valid untuk cabang ini.']]);
             }
@@ -121,19 +123,11 @@ class LeadController extends Controller
             $data['diserahkan_ke_user_id'] = $client->user_id;
         }
 
-        if (! isset($data['diserahkan_ke_user_id'])) {
-            if ((int) $client->user->cabang_id !== (int) $branchId) {
-                return ApiResponse::error($request, 'invalid_pic', 'PIC aktif dari cabang lead wajib ditentukan.', 422, ['diserahkan_ke_user_id' => ['PIC aktif dari cabang lead wajib ditentukan.']]);
-            }
-
-            $data['diserahkan_ke_user_id'] = $client->user_id;
-        }
-
         $lead = DB::transaction(fn (): Lead => Lead::create([
             'nama' => $data['nama'],
             'no_wa' => $data['no_wa'],
             'kota_asal' => $data['kota_asal'] ?? null,
-            'kelas_sekolah' => $data['kelas_sekolah'],
+            'kelas_sekolah' => $data['kelas_sekolah'] ?? null,
             'sekolah_id' => $data['sekolah_id'] ?? null,
             'minat_program_id' => $data['minat_program_id'] ?? null,
             'sumber_lead' => $data['sumber_lead'] ?? null,
