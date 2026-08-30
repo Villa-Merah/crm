@@ -7,6 +7,8 @@ use App\Enums\UserRole;
 use App\Models\ApiClient;
 use App\Models\Cabang;
 use App\Models\Lead;
+use App\Models\ProgramBimbel;
+use App\Models\Sekolah;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -61,7 +63,7 @@ class PublicLeadApiTest extends TestCase
     {
         [$branch, $admin] = $this->branchAndUser('BDG', 'Bandung');
         [$token] = $this->apiClient($admin, $branch, ['leads:read', 'leads:write']);
-        $payload = [
+        $payload = $this->validLeadPayload([
             'nama' => 'Lead dari API',
             'no_wa' => '081234567890',
             'kota_asal' => 'Bandung',
@@ -69,7 +71,7 @@ class PublicLeadApiTest extends TestCase
             'status_lead' => 'Cold',
             'sumber_lead' => 'Instagram',
             'tanggal_masuk' => '2026-08-25',
-        ];
+        ]);
 
         $first = $this->withToken($token)
             ->withHeader('Idempotency-Key', 'lead-create-20260825-001')
@@ -77,7 +79,7 @@ class PublicLeadApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.nama', 'Lead dari API')
             ->assertJsonPath('data.kota_asal', 'Bandung')
-            ->assertJsonPath('data.kelas', 'XII')
+            ->assertJsonPath('data.kelas_sekolah', 'XII')
             ->assertJsonPath('data.cabang.kode', 'BDG');
 
         $this->withToken($token)
@@ -96,13 +98,12 @@ class PublicLeadApiTest extends TestCase
         [$token] = $this->apiClient($admin, $branch, ['leads:write']);
         $headers = ['Idempotency-Key' => 'lead-conflict-20260825-001'];
 
-        $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/leads', [
-            'nama' => 'Payload Pertama', 'no_wa' => '081234567890',
-        ])->assertCreated();
+        $payload = $this->validLeadPayload(['nama' => 'Payload Pertama', 'no_wa' => '081234567890']);
 
-        $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/leads', [
-            'nama' => 'Payload Berbeda', 'no_wa' => '081234567890',
-        ])->assertConflict()->assertJsonPath('error.code', 'idempotency_conflict');
+        $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/leads', $payload)->assertCreated();
+
+        $this->withToken($token)->withHeaders($headers)->postJson('/api/v1/leads', [...$payload, 'nama' => 'Payload Berbeda'])
+            ->assertConflict()->assertJsonPath('error.code', 'idempotency_conflict');
     }
 
     public function test_scoped_client_cannot_write_to_another_branch(): void
@@ -113,13 +114,37 @@ class PublicLeadApiTest extends TestCase
 
         $this->withToken($token)
             ->withHeader('Idempotency-Key', 'lead-cross-branch-001')
-            ->postJson('/api/v1/leads', [
+            ->postJson('/api/v1/leads', $this->validLeadPayload([
                 'nama' => 'Cross Branch',
                 'no_wa' => '081234567890',
                 'cabang_id' => $jaksel->getKey(),
-            ])
+            ]))
             ->assertForbidden()
             ->assertJsonPath('error.code', 'branch_scope_violation');
+    }
+
+    public function test_api_rejects_duplicate_normalized_phone_and_incomplete_lead(): void
+    {
+        [$branch, $admin] = $this->branchAndUser('BDG', 'Bandung');
+        [$token] = $this->apiClient($admin, $branch, ['leads:write']);
+        $payload = $this->validLeadPayload(['no_wa' => '081234567890']);
+
+        $this->withToken($token)->withHeader('Idempotency-Key', 'lead-quality-001')->postJson('/api/v1/leads', $payload)->assertCreated();
+
+        $this->withToken($token)->withHeader('Idempotency-Key', 'lead-quality-002')->postJson('/api/v1/leads', [
+            ...$payload,
+            'nama' => 'Duplikat',
+            'no_wa' => '+62 812-3456-7890',
+        ])->assertUnprocessable()
+            ->assertJsonPath('error.code', 'validation_failed')
+            ->assertJsonPath('error.fields.no_wa.0', 'Nomor WhatsApp sudah digunakan oleh lead lain. Periksa data lead yang sudah ada.');
+
+        $this->withToken($token)->withHeader('Idempotency-Key', 'lead-quality-003')->postJson('/api/v1/leads', [
+            'nama' => 'Tidak Lengkap',
+            'no_wa' => '081234567899',
+        ])->assertUnprocessable()
+            ->assertJsonPath('error.code', 'validation_failed')
+            ->assertJsonStructure(['error' => ['fields' => ['kota_asal', 'kelas_sekolah', 'sekolah_id', 'minat_program_id', 'sumber_lead']]]);
     }
 
     private function branchAndUser(string $code, string $name): array
@@ -151,6 +176,30 @@ class PublicLeadApiTest extends TestCase
         ]);
 
         return [$token, $client];
+    }
+
+    private function validLeadPayload(array $overrides = []): array
+    {
+        $school = Sekolah::firstOrCreate(
+            ['npsn' => '20200001'],
+            ['nama_sekolah' => 'SMA Contoh', 'kota' => 'Bandung', 'aktif' => true],
+        );
+        $program = ProgramBimbel::firstOrCreate(
+            ['nama_program' => 'SR GOLD ONLINE'],
+            ['jenjang_program' => 'SMA', 'biaya_pendidikan' => 1000000, 'aktif' => true],
+        );
+
+        return array_replace([
+            'nama' => 'Lead API',
+            'no_wa' => '081234567890',
+            'kota_asal' => 'Bandung',
+            'kelas_sekolah' => 'XII',
+            'sekolah_id' => $school->getKey(),
+            'minat_program_id' => $program->getKey(),
+            'sumber_lead' => 'Instagram',
+            'status_lead' => 'Cold',
+            'tanggal_masuk' => '2026-08-25',
+        ], $overrides);
     }
 
     private function lead(Cabang $branch, User $user, string $name): Lead

@@ -11,9 +11,13 @@ use Throwable;
 class CrmSetting extends Model
 {
     protected $table = 'crm_settings';
+
     protected $primaryKey = 'key';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     protected $guarded = [];
 
     private const CACHE_KEY = 'sivmi.crm.settings';
@@ -25,6 +29,7 @@ class CrmSetting extends Model
         'support_email' => null,
         'support_phone' => null,
         'staff_report_export' => false,
+        'school_class_levels' => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'Alumni/Gap Year'],
         'program_categories' => ['SR', 'AR', 'KG', 'W'],
         'program_classes' => ['Platinum', 'Gold', 'Silver', 'Bronze'],
         'program_types' => ['Reguler', 'Intensif'],
@@ -36,6 +41,7 @@ class CrmSetting extends Model
     public static function getValue(string $key, mixed $default = null): mixed
     {
         $settings = static::allValues();
+
         return $settings[$key] ?? static::DEFAULTS[$key] ?? $default;
     }
 
@@ -57,6 +63,7 @@ class CrmSetting extends Model
         $groups = [
             'app_name' => 'identity', 'organization_name' => 'identity', 'dashboard_tagline' => 'dashboard',
             'support_email' => 'contact', 'support_phone' => 'contact', 'staff_report_export' => 'report',
+            'school_class_levels' => 'lead',
             'program_categories' => 'program', 'program_classes' => 'program', 'program_types' => 'program',
             'program_learning_methods' => 'program', 'program_levels' => 'program', 'program_class_levels' => 'program',
         ];
@@ -86,10 +93,13 @@ class CrmSetting extends Model
     private static function allValues(): array
     {
         try {
-            if (! Schema::hasTable('crm_settings')) return static::DEFAULTS;
+            if (! Schema::hasTable('crm_settings')) {
+                return static::DEFAULTS;
+            }
 
             return Cache::rememberForever(static::CACHE_KEY, function (): array {
                 $rows = static::query()->get(['key', 'value', 'type']);
+
                 return array_replace(static::DEFAULTS, $rows->mapWithKeys(fn (self $setting) => [
                     $setting->key => match ($setting->type) {
                         'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),

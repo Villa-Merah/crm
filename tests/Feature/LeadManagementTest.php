@@ -29,7 +29,7 @@ class LeadManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Data calon siswa')
             ->assertSee('Kota asal')
-            ->assertSee('Kelas')
+            ->assertSee('Kelas sekolah saat ini')
             ->assertSee('Cold')
             ->assertSee('Warm')
             ->assertSee('Hot')
@@ -148,6 +148,6 @@ class LeadManagementTest extends TestCase
 
     private function leadData(Cabang $branch, User $user, string $name): array
     {
-        return ['nama' => $name, 'no_wa' => '08123456789', 'cabang_id' => $branch->cabang_id, 'status_lead' => 'Cold', 'diinput_oleh_user_id' => $user->id, 'diserahkan_ke_user_id' => $user->id, 'tanggal_masuk' => today()];
+        return ['nama' => $name, 'no_wa' => '08'.str_pad((string) sprintf('%u', crc32($name)), 10, '0', STR_PAD_LEFT), 'cabang_id' => $branch->cabang_id, 'status_lead' => 'Cold', 'diinput_oleh_user_id' => $user->id, 'diserahkan_ke_user_id' => $user->id, 'tanggal_masuk' => today()];
     }
 }

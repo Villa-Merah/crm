@@ -5,6 +5,10 @@ namespace App\Filament\Resources\Leads\Tables;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Models\Cabang;
+use App\Models\CrmSetting;
+use App\Models\Lead;
+use App\Models\ProgramBimbel;
+use App\Models\Sekolah;
 use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -23,7 +27,7 @@ class LeadsTable
             ->columns([
                 TextColumn::make('nama')->label('Calon siswa')->description(fn ($record) => $record->no_wa)->searchable(['nama', 'no_wa'])->weight('semibold'),
                 TextColumn::make('kota_asal')->label('Kota asal')->placeholder('Belum diisi')->searchable()->sortable()->toggleable(),
-                TextColumn::make('kelas')->label('Kelas')->placeholder('Belum diisi')->searchable()->sortable()->toggleable(),
+                TextColumn::make('kelas_sekolah')->label('Kelas sekolah')->placeholder('Belum diisi')->searchable()->sortable()->toggleable(),
                 TextColumn::make('sekolah.nama_sekolah')->label('Sekolah')->placeholder('Belum diisi')->searchable()->toggleable(),
                 TextColumn::make('minatProgram.nama_program')->label('Minat program')->placeholder('Belum dipilih')->wrap()->toggleable(),
                 TextColumn::make('sumber_lead')->label('Sumber')->placeholder('Belum diisi')->badge()->color(fn (?string $state): string => LeadSource::color($state))->toggleable(),
@@ -37,6 +41,20 @@ class LeadsTable
             ->filters([
                 SelectFilter::make('status_lead')->label('Status')->options(LeadStatus::options()),
                 SelectFilter::make('sumber_lead')->label('Sumber leads')->options(LeadSource::options()),
+                SelectFilter::make('kota_asal')
+                    ->label('Kota asal')
+                    ->options(fn (): array => Lead::query()
+                        ->visibleTo(auth()->user())
+                        ->whereNotNull('kota_asal')
+                        ->where('kota_asal', '<>', '')
+                        ->distinct()
+                        ->orderBy('kota_asal')
+                        ->pluck('kota_asal', 'kota_asal')
+                        ->all())
+                    ->searchable(),
+                SelectFilter::make('sekolah_id')->label('Sekolah')->options(fn (): array => Sekolah::query()->orderBy('nama_sekolah')->pluck('nama_sekolah', 'sekolah_id')->all())->searchable()->preload(),
+                SelectFilter::make('kelas_sekolah')->label('Kelas sekolah')->options(fn (): array => collect(CrmSetting::getArray('school_class_levels'))->mapWithKeys(fn (string $class): array => [$class => $class])->all()),
+                SelectFilter::make('minat_program_id')->label('Program yang diminati')->options(fn (): array => ProgramBimbel::query()->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id')->all())->searchable()->preload(),
                 SelectFilter::make('cabang_id')->label('Cabang')->options(Cabang::where('aktif', true)->orderBy('nama')->pluck('nama', 'cabang_id'))->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
                 SelectFilter::make('diserahkan_ke_user_id')->label('PIC')->options(User::where('aktif', true)->when(! auth()->user()->hasGlobalBranchAccess(), fn ($q) => $q->where('cabang_id', auth()->user()->cabang_id))->orderBy('name')->pluck('name', 'id'))->searchable(),
                 TernaryFilter::make('has_whatsapp')->label('Masuk melalui WhatsApp')->queries(

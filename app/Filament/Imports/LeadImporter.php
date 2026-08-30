@@ -12,6 +12,7 @@ use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
 use App\Models\User;
+use App\Support\PhoneNormalizer;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -53,9 +54,11 @@ class LeadImporter extends Importer
                 ->label('Kota asal')
                 ->requiredMappingForNewRecordsOnly()
                 ->rules(['required', 'string', 'max:100']),
-            ImportColumn::make('kelas')
-                ->label('Kelas')
-                ->rules(['nullable', 'string', 'max:60', 'in:'.implode(',', CrmSetting::getArray('program_class_levels'))]),
+            ImportColumn::make('kelas_sekolah')
+                ->label('Kelas sekolah saat ini')
+                ->guess(['kelas', 'kelas_sekolah', 'kelas sekolah'])
+                ->requiredMappingForNewRecordsOnly()
+                ->rules(['required', 'string', 'max:60', 'in:'.implode(',', CrmSetting::getArray('school_class_levels'))]),
             ImportColumn::make('sekolah_npsn')
                 ->label('NPSN sekolah')
                 ->rules(['nullable', 'regex:/^\d{8}$/'])
@@ -66,7 +69,8 @@ class LeadImporter extends Importer
                 ->fillRecordUsing($ignore),
             ImportColumn::make('program_bimbel')
                 ->label('Program bimbel')
-                ->rules(['nullable', 'string', 'max:150'])
+                ->requiredMappingForNewRecordsOnly()
+                ->rules(['required', 'string', 'max:150'])
                 ->fillRecordUsing($ignore),
             ImportColumn::make('sumber_lead')
                 ->label('Sumber leads')
@@ -101,7 +105,8 @@ class LeadImporter extends Importer
             'no_wa.required' => 'Nomor WhatsApp wajib diisi.',
             'no_wa.regex' => 'Format nomor WhatsApp tidak valid. Gunakan 8–20 digit dan boleh diawali tanda +.',
             'kota_asal.required' => 'Kota asal wajib diisi.',
-            'kelas.in' => 'Kelas tidak tersedia pada pilihan tingkat kelas.',
+            'kelas_sekolah.required' => 'Kelas sekolah saat ini wajib diisi.',
+            'kelas_sekolah.in' => 'Kelas sekolah tidak tersedia pada pilihan tingkat kelas.',
             'sekolah_npsn.regex' => 'NPSN sekolah harus terdiri dari tepat 8 digit.',
             'sumber_lead.required' => 'Sumber leads wajib diisi.',
             'sumber_lead.in' => 'Sumber leads tidak valid.',
@@ -149,6 +154,22 @@ class LeadImporter extends Importer
             $errors['sumber_lead'] = 'Sumber leads wajib diisi untuk lead baru.';
         }
 
+        $phone = app(PhoneNormalizer::class)->normalize($this->data['no_wa'] ?? null);
+        $duplicatePhone = $phone
+            ? Lead::query()
+                ->where('no_wa_normalized', $phone)
+                ->when($this->record->exists, fn ($query) => $query->whereKeyNot($this->record->getKey()))
+                ->exists()
+            : false;
+
+        if ($duplicatePhone) {
+            $errors['no_wa'] = 'Nomor WhatsApp sudah digunakan oleh lead lain.';
+        }
+
+        if (blank($this->data['sekolah_npsn'] ?? null) && blank($this->data['sekolah_nama'] ?? null)) {
+            $errors['sekolah_nama'] = 'Sekolah wajib diisi menggunakan NPSN atau nama sekolah.';
+        }
+
         $branchName = trim((string) ($this->data['cabang'] ?? ''));
         $branch = Cabang::query()->where('aktif', true)->where('nama', $branchName)->first();
 
@@ -188,11 +209,11 @@ class LeadImporter extends Importer
         }
 
         $school = $npsn !== ''
-            ? Sekolah::query()->where('npsn', $npsn)->first()
-            : Sekolah::query()->where('nama_sekolah', $name)->first();
+            ? Sekolah::query()->where('aktif', true)->where('npsn', $npsn)->first()
+            : Sekolah::query()->where('aktif', true)->where('nama_sekolah', $name)->first();
 
         if (! $school) {
-            $errors[$npsn !== '' ? 'sekolah_npsn' : 'sekolah_nama'] = 'Sekolah tidak ditemukan. Tambahkan sekolah terlebih dahulu pada Master Data.';
+            $errors[$npsn !== '' ? 'sekolah_npsn' : 'sekolah_nama'] = 'Sekolah tidak ditemukan atau tidak aktif. Periksa Master Data Sekolah.';
 
             return null;
         }

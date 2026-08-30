@@ -16,16 +16,29 @@ use Throwable;
 class Dashboard extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';
+
     protected static ?string $navigationLabel = 'Dashboard';
+
     protected static string|\UnitEnum|null $navigationGroup = 'SIVMI CRM';
+
     protected static ?int $navigationSort = 1;
+
     protected static ?string $title = 'Dashboard';
+
     protected string $view = 'filament.pages.dashboard';
 
-    #[Url] public ?int $cabang = null;
-    #[Url] public int $tahun;
-    #[Url(keep: true)] public ?int $bulan = null;
-    #[Url] public ?int $pengguna = null;
+    #[Url]
+    public ?int $cabang = null;
+
+    #[Url]
+    public int $tahun;
+
+    #[Url(keep: true)]
+    public ?int $bulan = null;
+
+    #[Url]
+    public ?int $pengguna = null;
+
     public ?string $dashboardError = null;
 
     public function mount(): void
@@ -39,8 +52,12 @@ class Dashboard extends Page
             $this->bulan = now()->month;
         }
         $user = auth()->user();
-        if (! $user->hasGlobalBranchAccess()) $this->cabang = $user->cabang_id;
-        if ($user->hasRole(UserRole::Staff)) $this->pengguna = $user->id;
+        if (! $user->hasGlobalBranchAccess()) {
+            $this->cabang = $user->cabang_id;
+        }
+        if ($user->hasRole(UserRole::Staff)) {
+            $this->pengguna = $user->id;
+        }
     }
 
     private function scope(Builder $query, string $date, ?string $branch = 'cabang_id', ?string $user = null): Builder
@@ -53,11 +70,14 @@ class Dashboard extends Page
     private function scopeRange(Builder $query, string $date, string $start, string $endExclusive, ?string $branch = 'cabang_id', ?string $user = null): Builder
     {
         $query->where($date, '>=', $start)->where($date, '<', $endExclusive);
-        if ($branch && $this->cabang) $query->where($branch, $this->cabang);
+        if ($branch && $this->cabang) {
+            $query->where($branch, $this->cabang);
+        }
         if ($user && $this->pengguna) {
             $query->where(fn (Builder $q) => $q->where($user, $this->pengguna)
                 ->when($user === 'diserahkan_ke_user_id', fn (Builder $leadQuery) => $leadQuery->orWhere('diinput_oleh_user_id', $this->pengguna)));
         }
+
         return $query;
     }
 
@@ -87,7 +107,9 @@ class Dashboard extends Page
 
     private function percentageChange(float|int $current, float|int $previous): ?float
     {
-        if ((float) $previous === 0.0) return (float) $current === 0.0 ? 0.0 : null;
+        if ((float) $previous === 0.0) {
+            return (float) $current === 0.0 ? 0.0 : null;
+        }
 
         return round((($current - $previous) / abs($previous)) * 100, 1);
     }
@@ -116,14 +138,22 @@ class Dashboard extends Page
     private function queryDashboardData(): array
     {
         $viewer = auth()->user();
-        if (! $viewer->hasGlobalBranchAccess()) $this->cabang = $viewer->cabang_id;
-        if ($viewer->hasRole(UserRole::Staff)) $this->pengguna = $viewer->id;
+        if (! $viewer->hasGlobalBranchAccess()) {
+            $this->cabang = $viewer->cabang_id;
+        }
+        if ($viewer->hasRole(UserRole::Staff)) {
+            $this->pengguna = $viewer->id;
+        }
         $leads = $this->scope(DB::table('leads'), 'tanggal_masuk', 'cabang_id', 'diserahkan_ke_user_id');
         $registrations = $this->scope(DB::table('pendaftaran'), 'tanggal_daftar', 'pendaftaran.cabang_id');
-        if ($this->pengguna) $registrations->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        if ($this->pengguna) {
+            $registrations->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        }
         $payments = DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi']);
         $this->scope($payments, 'tanggal_pembayaran', 'pendaftaran.cabang_id');
-        if ($this->pengguna) $payments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        if ($this->pengguna) {
+            $payments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        }
         $followups = DB::table('followup_riwayat')->join('leads', 'leads.lead_id', '=', 'followup_riwayat.lead_id');
         $this->scope($followups, 'followup_riwayat.tanggal_followup', 'leads.cabang_id', 'followup_riwayat.user_id');
         $todayPayments = clone $payments;
@@ -172,7 +202,9 @@ class Dashboard extends Page
         $compactBreakdown = function ($items, int $maximum = 7) {
             $items = $items->sortByDesc('total')->values();
 
-            if ($items->count() <= $maximum) return $items;
+            if ($items->count() <= $maximum) {
+                return $items;
+            }
 
             return $items->take($maximum - 1)->push((object) [
                 'label' => 'Lainnya',
@@ -207,7 +239,7 @@ class Dashboard extends Page
             'kategori_program' => ['label' => 'Kategori', 'empty' => 'Belum ada kategori'],
             'tipe_program' => ['label' => 'Tipe program', 'empty' => 'Belum ada tipe program'],
             'metode_belajar' => ['label' => 'Metode belajar', 'empty' => 'Belum ada metode belajar'],
-            'program_kelas' => ['label' => 'Kelas program', 'empty' => 'Belum ada kelas program'],
+            'program_kelas' => ['label' => 'Paket program', 'empty' => 'Belum ada paket program'],
             'jenjang_program' => ['label' => 'Jenjang', 'empty' => 'Belum ada jenjang'],
         ];
         $programLeadDimensions = collect($programDimensionDefinitions)->map(function (array $definition, string $column) use ($programLeadRows, $compactBreakdown): array {
@@ -278,17 +310,27 @@ class Dashboard extends Page
             ? range(1, now()->setDate($this->tahun, $this->bulan, 1)->daysInMonth)
             : range(1, 12);
         [$periodStart, $periodEndExclusive] = $this->periodRange();
-        $ranking = DB::table('users')->leftJoin('leads', function ($join) use ($periodStart, $periodEndExclusive) { $join->on('leads.diserahkan_ke_user_id', '=', 'users.id')->where('leads.tanggal_masuk', '>=', $periodStart)->where('leads.tanggal_masuk', '<', $periodEndExclusive); })->when($this->cabang, fn ($q) => $q->where('users.cabang_id', $this->cabang))->when($this->pengguna, fn ($q) => $q->where('users.id', $this->pengguna))->whereIn('users.role', [UserRole::Staff->value, UserRole::AdminCabang->value])->groupBy('users.id', 'users.name')->selectRaw("users.name, COUNT(leads.lead_id) leads, SUM(CASE WHEN leads.status_lead = 'Daftar' THEN 1 ELSE 0 END) registrations")->orderByDesc('registrations')->orderByDesc('leads')->limit(5)->get()->map(function (object $person): object { $person->conversion = $person->leads > 0 ? round($person->registrations / $person->leads * 100, 1) : 0; return $person; });
+        $ranking = DB::table('users')->leftJoin('leads', function ($join) use ($periodStart, $periodEndExclusive) {
+            $join->on('leads.diserahkan_ke_user_id', '=', 'users.id')->where('leads.tanggal_masuk', '>=', $periodStart)->where('leads.tanggal_masuk', '<', $periodEndExclusive);
+        })->when($this->cabang, fn ($q) => $q->where('users.cabang_id', $this->cabang))->when($this->pengguna, fn ($q) => $q->where('users.id', $this->pengguna))->whereIn('users.role', [UserRole::Staff->value, UserRole::AdminCabang->value])->groupBy('users.id', 'users.name')->selectRaw("users.name, COUNT(leads.lead_id) leads, SUM(CASE WHEN leads.status_lead = 'Daftar' THEN 1 ELSE 0 END) registrations")->orderByDesc('registrations')->orderByDesc('leads')->limit(5)->get()->map(function (object $person): object {
+            $person->conversion = $person->leads > 0 ? round($person->registrations / $person->leads * 100, 1) : 0;
+
+            return $person;
+        });
         $activities = DB::table('leads')->leftJoin('users', 'users.id', '=', 'leads.diserahkan_ke_user_id')->where('leads.tanggal_masuk', '>=', $periodStart)->where('leads.tanggal_masuk', '<', $periodEndExclusive)->when($this->cabang, fn ($q) => $q->where('leads.cabang_id', $this->cabang))->when($this->pengguna, fn ($q) => $q->where(fn ($leadQuery) => $leadQuery->where('leads.diserahkan_ke_user_id', $this->pengguna)->orWhere('leads.diinput_oleh_user_id', $this->pengguna)))->select('leads.nama', 'leads.status_lead', 'leads.created_at', 'users.name as petugas')->latest('leads.created_at')->limit(6)->get();
         $stats = ['leads_today' => (clone $leads)->whereDate('tanggal_masuk', today())->count(), 'followups_today' => (clone $followups)->whereDate('tanggal_followup', today())->count(), 'new_students' => (clone $registrations)->whereDate('tanggal_daftar', today())->count(), 'revenue_today' => (float) $todayPayments->whereDate('tanggal_pembayaran', today())->sum('nominal'), 'leads' => (clone $leads)->count(), 'registrations' => (clone $registrations)->count(), 'students' => (clone $registrations)->where('status_pendaftaran', 'Aktif')->count(), 'revenue' => (float) (clone $payments)->sum('nominal')];
         $stats['conversion'] = $stats['leads'] > 0 ? round($stats['registrations'] / $stats['leads'] * 100, 1) : 0;
         [$previousStart, $previousEndExclusive] = $this->previousPeriodRange();
         $previousLeads = $this->scopeRange(DB::table('leads'), 'tanggal_masuk', $previousStart, $previousEndExclusive, 'cabang_id', 'diserahkan_ke_user_id');
         $previousRegistrations = $this->scopeRange(DB::table('pendaftaran'), 'tanggal_daftar', $previousStart, $previousEndExclusive, 'pendaftaran.cabang_id');
-        if ($this->pengguna) $previousRegistrations->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        if ($this->pengguna) {
+            $previousRegistrations->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        }
         $previousPayments = DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi']);
         $this->scopeRange($previousPayments, 'tanggal_pembayaran', $previousStart, $previousEndExclusive, 'pendaftaran.cabang_id');
-        if ($this->pengguna) $previousPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        if ($this->pengguna) {
+            $previousPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        }
         $previousStats = [
             'leads' => (clone $previousLeads)->count(),
             'registrations' => (clone $previousRegistrations)->count(),
@@ -303,7 +345,9 @@ class Dashboard extends Page
         $targetPace = $periodStartDate->gte(now()->startOfDay()) ? 0 : min(100, round($elapsedDays / max(1, $periodStartDate->diffInDays($periodEndDate)) * 100));
         $pendingPayments = DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereNotIn('status_pembayaran', ['Lunas', 'Terverifikasi']);
         $this->scope($pendingPayments, 'pembayaran.tanggal_pembayaran', 'pendaftaran.cabang_id');
-        if ($this->pengguna) $pendingPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        if ($this->pengguna) {
+            $pendingPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        }
 
         return ['branches' => Cabang::where('aktif', true)->when(! $viewer->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($viewer->cabang_id))->orderBy('nama')->get(), 'users' => User::when($this->cabang, fn ($q) => $q->where('cabang_id', $this->cabang))->when($viewer->hasRole(UserRole::Staff), fn ($q) => $q->whereKey($viewer->id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->where('aktif', true)->orderBy('name')->get(), 'dashboardTagline' => CrmSetting::getValue('dashboard_tagline'), 'stats' => $stats, 'previousStats' => $previousStats, 'comparisons' => $comparisons, 'target' => $target, 'targetPace' => $targetPace, 'ranking' => $ranking, 'activities' => $activities, 'days' => $periods, 'trendLeads' => collect($periods)->map(fn ($period) => $trendLeads[$period] ?? 0), 'trendRegs' => collect($periods)->map(fn ($period) => $trendRegs[$period] ?? 0), 'leadFunnel' => $leadFunnel, 'leadSources' => $leadSources, 'programLeadKpis' => $programLeadKpis, 'programLeadDimensions' => $programLeadDimensions, 'topSchools' => $topSchools, 'topCities' => $topCities, 'pending' => ['followup' => (clone $followups)->whereNotNull('tanggal_followup_berikutnya')->where('tanggal_followup_berikutnya', '<=', now())->count(), 'payments' => $pendingPayments->count(), 'new_leads' => (clone $leads)->where('status_lead', LeadStatus::Cold->value)->count()]];
     }
@@ -345,7 +389,7 @@ class Dashboard extends Page
                 'kategori_program' => ['label' => 'Kategori', 'items' => collect()],
                 'tipe_program' => ['label' => 'Tipe program', 'items' => collect()],
                 'metode_belajar' => ['label' => 'Metode belajar', 'items' => collect()],
-                'program_kelas' => ['label' => 'Kelas program', 'items' => collect()],
+                'program_kelas' => ['label' => 'Paket program', 'items' => collect()],
                 'jenjang_program' => ['label' => 'Jenjang', 'items' => collect()],
             ]),
             'topSchools' => collect(),

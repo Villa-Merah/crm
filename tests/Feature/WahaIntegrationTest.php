@@ -22,6 +22,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Mockery\MockInterface;
 use RuntimeException;
@@ -105,18 +106,22 @@ class WahaIntegrationTest extends TestCase
         $this->assertSame($staff->getKey(), $lead->diserahkan_ke_user_id);
     }
 
-    public function test_multiple_matching_leads_are_marked_as_conflict(): void
+    public function test_duplicate_normalized_lead_phone_is_rejected(): void
     {
-        [$branch, $staff, $account] = $this->account();
+        [$branch, $staff] = $this->account();
         Lead::create($this->leadData($branch, $staff, 'Student One', '08123456789'));
-        Lead::create($this->leadData($branch, $staff, 'Student Two', '+62 812-3456-789'));
 
-        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-conflict'))->assertAccepted();
+        try {
+            Lead::create($this->leadData($branch, $staff, 'Student Two', '+62 812-3456-789'));
+            $this->fail('Nomor WhatsApp ter-normalisasi yang sama seharusnya ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                'Nomor WhatsApp sudah digunakan oleh lead lain. Periksa data lead yang sudah ada.',
+                $exception->errors()['no_wa'][0],
+            );
+        }
 
-        $conversation = WhatsAppConversation::query()->sole();
-        $this->assertNull($conversation->lead_id);
-        $this->assertSame(WhatsAppMatchStatus::Conflict, $conversation->match_status);
-        $this->assertDatabaseCount('leads', 2);
+        $this->assertDatabaseCount('leads', 1);
     }
 
     public function test_matching_number_from_another_branch_requires_manual_review(): void

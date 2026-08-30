@@ -46,7 +46,7 @@ class LeadController extends Controller
                 return $builder->where(function (Builder $nested) use ($search, $phone): void {
                     $nested->where('nama', 'like', "%{$search}%")
                         ->orWhere('kota_asal', 'like', "%{$search}%")
-                        ->orWhere('kelas', 'like', "%{$search}%")
+                        ->orWhere('kelas_sekolah', 'like', "%{$search}%")
                         ->when($phone !== '', fn (Builder $phoneQuery): Builder => $phoneQuery->orWhere('no_wa_normalized', 'like', "%{$phone}%"));
                 });
             })
@@ -121,11 +121,19 @@ class LeadController extends Controller
             $data['diserahkan_ke_user_id'] = $client->user_id;
         }
 
+        if (! isset($data['diserahkan_ke_user_id'])) {
+            if ((int) $client->user->cabang_id !== (int) $branchId) {
+                return ApiResponse::error($request, 'invalid_pic', 'PIC aktif dari cabang lead wajib ditentukan.', 422, ['diserahkan_ke_user_id' => ['PIC aktif dari cabang lead wajib ditentukan.']]);
+            }
+
+            $data['diserahkan_ke_user_id'] = $client->user_id;
+        }
+
         $lead = DB::transaction(fn (): Lead => Lead::create([
             'nama' => $data['nama'],
             'no_wa' => $data['no_wa'],
             'kota_asal' => $data['kota_asal'] ?? null,
-            'kelas' => $data['kelas'] ?? null,
+            'kelas_sekolah' => $data['kelas_sekolah'],
             'sekolah_id' => $data['sekolah_id'] ?? null,
             'minat_program_id' => $data['minat_program_id'] ?? null,
             'sumber_lead' => $data['sumber_lead'] ?? null,

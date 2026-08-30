@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Filament\Resources\Pendaftarans\Pages\CreatePendaftaran;
-use App\Filament\Resources\Pendaftarans\PendaftaranResource;
 use App\Filament\Resources\Pembayarans\Pages\CreatePembayaran;
 use App\Filament\Resources\Pembayarans\PembayaranResource;
+use App\Filament\Resources\Pendaftarans\Pages\CreatePendaftaran;
+use App\Filament\Resources\Pendaftarans\PendaftaranResource;
 use App\Models\Cabang;
 use App\Models\Lead;
 use App\Models\Pembayaran;
@@ -148,6 +148,6 @@ class RegistrationPaymentTest extends TestCase
 
     private function leadData(Cabang $branch, User $user, string $name): array
     {
-        return ['nama' => $name, 'no_wa' => '08123456789', 'cabang_id' => $branch->cabang_id, 'status_lead' => 'Hot', 'diinput_oleh_user_id' => $user->id, 'diserahkan_ke_user_id' => $user->id, 'tanggal_masuk' => today()];
+        return ['nama' => $name, 'no_wa' => '08'.str_pad((string) sprintf('%u', crc32($name)), 10, '0', STR_PAD_LEFT), 'cabang_id' => $branch->cabang_id, 'status_lead' => 'Hot', 'diinput_oleh_user_id' => $user->id, 'diserahkan_ke_user_id' => $user->id, 'tanggal_masuk' => today()];
     }
 }

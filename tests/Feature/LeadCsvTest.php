@@ -38,7 +38,7 @@ class LeadCsvTest extends TestCase
         $lead = Lead::sole();
         $this->assertSame('Alya Putri', $lead->nama);
         $this->assertSame('Bandung', $lead->kota_asal);
-        $this->assertSame('XII', $lead->kelas);
+        $this->assertSame('XII', $lead->kelas_sekolah);
         $this->assertSame($branch->getKey(), $lead->cabang_id);
         $this->assertSame($school->getKey(), $lead->sekolah_id);
         $this->assertSame($program->getKey(), $lead->minat_program_id);
@@ -135,7 +135,7 @@ class LeadCsvTest extends TestCase
             'nama' => '=HYPERLINK("https://example.test")',
             'no_wa' => '+6281234567890',
             'kota_asal' => '  Bandung  ',
-            'kelas' => 'XII',
+            'kelas_sekolah' => 'XII',
             'sekolah_id' => $school->getKey(),
             'minat_program_id' => $program->getKey(),
             'cabang_id' => $branch->getKey(),
@@ -167,10 +167,10 @@ class LeadCsvTest extends TestCase
         $otherBranch = Cabang::create(['kode_cabang' => 'JAKPUS', 'nama' => 'JakPus', 'kota' => 'Jakarta', 'aktif' => true]);
         $otherPic = User::factory()->create(['cabang_id' => $otherBranch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
 
-        foreach ([[$branch, $pic], [$otherBranch, $otherPic]] as [$leadBranch, $leadPic]) {
+        foreach ([[$branch, $pic, '081234567890'], [$otherBranch, $otherPic, '081234567891']] as [$leadBranch, $leadPic, $phone]) {
             Lead::create([
                 'nama' => 'Lead '.$leadBranch->nama,
-                'no_wa' => '081234567890',
+                'no_wa' => $phone,
                 'cabang_id' => $leadBranch->getKey(),
                 'status_lead' => 'Cold',
                 'diinput_oleh_user_id' => $leadPic->getKey(),
@@ -191,7 +191,7 @@ class LeadCsvTest extends TestCase
         ob_start();
         $response->sendContent();
         $content = ob_get_clean();
-        $this->assertStringContainsString('lead_id,nama,no_wa,kota_asal,kelas,sekolah_npsn', $content);
+        $this->assertStringContainsString('lead_id,nama,no_wa,kota_asal,kelas_sekolah,sekolah_npsn', $content);
         $this->assertStringContainsString('program_bimbel,sumber_lead,status_lead', $content);
         $this->assertStringContainsString('Alya Putri', $content);
 
@@ -248,10 +248,10 @@ class LeadCsvTest extends TestCase
             'nama' => 'Alya Putri',
             'no_wa' => '+6281234567890',
             'kota_asal' => 'Bandung',
-            'kelas' => 'XII',
+            'kelas_sekolah' => 'XII',
             'sekolah_npsn' => '',
-            'sekolah_nama' => '',
-            'program_bimbel' => '',
+            'sekolah_nama' => 'SMA Contoh Nusantara',
+            'program_bimbel' => 'SR GOLD ONLINE',
             'sumber_lead' => 'Instagram',
             'status_lead' => 'Warm',
             'cabang' => 'Bandung',

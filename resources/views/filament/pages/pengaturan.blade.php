@@ -16,6 +16,15 @@
             </section>
 
             <section class="dashboard-card p-5 md:p-6">
+                <div class="flex items-start gap-3"><span class="rounded-xl bg-cyan-50 p-2.5 text-cyan-600"><x-heroicon-o-user-group class="h-5 w-5" /></span><div><h3 class="font-bold text-slate-900">Data calon siswa</h3><p class="mt-1 text-xs text-slate-500">Daftar kelas sekolah ini berdiri sendiri dan tidak mengubah paket atau angkatan Program Bimbel.</p></div></div>
+                <label class="mt-6 block text-sm font-semibold text-slate-700">Kelas sekolah
+                    <textarea wire:model="schoolClassLevels" rows="6" maxlength="1500" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 font-mono text-sm" required></textarea>
+                    <span class="mt-1 block text-xs font-normal text-slate-400">Tulis satu opsi per baris. Contoh: X, XI, XII, Alumni/Gap Year.</span>
+                    @error('schoolClassLevels')<span class="mt-1 block text-xs text-rose-600">{{ $message }}</span>@enderror
+                </label>
+            </section>
+
+            <section class="dashboard-card p-5 md:p-6">
                 <div class="flex items-start gap-3"><span class="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><x-heroicon-o-lifebuoy class="h-5 w-5" /></span><div><h3 class="font-bold text-slate-900">Kontak dukungan</h3><p class="mt-1 text-xs text-slate-500">Informasi kontak internal untuk bantuan penggunaan CRM.</p></div></div>
                 <div class="mt-6 grid gap-5 md:grid-cols-2">
                     <label class="text-sm font-semibold text-slate-700">Email dukungan<input wire:model="supportEmail" type="email" maxlength="255" placeholder="dukungan@organisasi.id" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 text-sm">@error('supportEmail')<span class="mt-1 block text-xs text-rose-600">{{ $message }}</span>@enderror</label>
@@ -36,11 +45,11 @@
                 <div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                     @foreach([
                         ['programCategories', 'Kategori program', 'Contoh: SR, AR'],
-                        ['programClasses', 'Kelas program', 'Contoh: Platinum, Gold'],
+                        ['programClasses', 'Paket program', 'Contoh: Platinum, Gold'],
                         ['programTypes', 'Tipe program', 'Contoh: Reguler, Intensif'],
                         ['programLearningMethods', 'Metode belajar', 'Contoh: Tatap Muka, Online'],
                         ['programLevels', 'Jenjang program', 'Contoh: SD, SMP, SMA'],
-                        ['programClassLevels', 'Tingkat kelas', 'Contoh: I, II, III'],
+                        ['programClassLevels', 'Tingkat target program', 'Contoh: I, II, III'],
                     ] as [$model, $label, $hint])
                         <label class="text-sm font-semibold text-slate-700">{{ $label }}
                             <textarea wire:model="{{ $model }}" rows="6" maxlength="1500" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 font-mono text-sm" required></textarea>

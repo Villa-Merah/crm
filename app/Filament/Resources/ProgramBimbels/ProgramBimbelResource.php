@@ -47,9 +47,9 @@ class ProgramBimbelResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Klasifikasi program')->description('Nama program dibuat otomatis dari Kategori + Kelas program + Metode belajar. Contoh: SR GOLD ONLINE.')->columns(['default' => 1, 'md' => 2, 'xl' => 3])->schema([
+            Section::make('Klasifikasi program')->description('Nama program dibuat otomatis dari Kategori + Paket program + Metode belajar. Contoh: SR GOLD ONLINE.')->columns(['default' => 1, 'md' => 2, 'xl' => 3])->schema([
                 Select::make('kategori_program')->label('Kategori')->options(static::settingOptions('program_categories'))->required(),
-                Select::make('program_kelas')->label('Kelas program')->options(static::settingOptions('program_classes'))->required(),
+                Select::make('program_kelas')->label('Paket program')->options(static::settingOptions('program_classes'))->required(),
                 Select::make('tipe_program')->label('Tipe program')->options(static::settingOptions('program_types'))->required(),
                 Select::make('metode_belajar')->label('Metode belajar')->options(static::settingOptions('program_learning_methods'))->required(),
                 Select::make('jenjang_program')->label('Jenjang')->options(static::settingOptions('program_levels'))->required(),

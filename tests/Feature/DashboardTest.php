@@ -120,7 +120,7 @@ class DashboardTest extends TestCase
             ->assertSee('Kategori')
             ->assertSee('Tipe program')
             ->assertSee('Metode belajar')
-            ->assertSee('Kelas program')
+            ->assertSee('Paket program')
             ->assertSee('Jenjang')
             ->assertSee('SR GOLD ONLINE')
             ->assertSee('W SILVER TATAP MUKA')
@@ -145,6 +145,6 @@ class DashboardTest extends TestCase
 
     private function leadData(Cabang $branch, User $user, string $name, $date = null): array
     {
-        return ['nama' => $name, 'no_wa' => '08123456789', 'cabang_id' => $branch->cabang_id, 'status_lead' => 'Cold', 'diinput_oleh_user_id' => $user->id, 'diserahkan_ke_user_id' => $user->id, 'tanggal_masuk' => $date ?? today()];
+        return ['nama' => $name, 'no_wa' => '08'.str_pad((string) sprintf('%u', crc32($name)), 10, '0', STR_PAD_LEFT), 'cabang_id' => $branch->cabang_id, 'status_lead' => 'Cold', 'diinput_oleh_user_id' => $user->id, 'diserahkan_ke_user_id' => $user->id, 'tanggal_masuk' => $date ?? today()];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\V1;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Models\CrmSetting;
+use App\Rules\UniqueNormalizedLeadPhone;
 use App\Support\ApiResponse;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -22,17 +23,24 @@ class StoreLeadRequest extends FormRequest
     {
         return [
             'nama' => ['required', 'string', 'max:150'],
-            'no_wa' => ['required', 'string', 'max:20'],
-            'kota_asal' => ['nullable', 'string', 'max:100'],
-            'kelas' => ['nullable', 'string', 'max:60', Rule::in(CrmSetting::getArray('program_class_levels'))],
+            'no_wa' => ['required', 'string', 'max:20', new UniqueNormalizedLeadPhone],
+            'kota_asal' => ['required', 'string', 'max:100'],
+            'kelas_sekolah' => ['required', 'string', 'max:60', Rule::in(CrmSetting::getArray('school_class_levels'))],
             'cabang_id' => ['nullable', 'integer', 'exists:cabang,cabang_id'],
-            'sekolah_id' => ['nullable', 'integer', 'exists:sekolah,sekolah_id'],
-            'minat_program_id' => ['nullable', 'integer', 'exists:program_bimbel,program_bimbel_id'],
-            'sumber_lead' => ['nullable', Rule::enum(LeadSource::class)],
+            'sekolah_id' => ['required', 'integer', Rule::exists('sekolah', 'sekolah_id')->where('aktif', true)],
+            'minat_program_id' => ['required', 'integer', Rule::exists('program_bimbel', 'program_bimbel_id')->where('aktif', true)],
+            'sumber_lead' => ['required', Rule::enum(LeadSource::class)],
             'status_lead' => ['sometimes', Rule::enum(LeadStatus::class)],
             'diserahkan_ke_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'tanggal_masuk' => ['sometimes', 'date_format:Y-m-d'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('kelas_sekolah') && $this->has('kelas')) {
+            $this->merge(['kelas_sekolah' => $this->input('kelas')]);
+        }
     }
 
     protected function failedValidation(Validator $validator): never

@@ -8,6 +8,7 @@ use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class Lead extends Model
 {
@@ -77,15 +78,28 @@ class Lead extends Model
                 $lead->no_wa_normalized = app(PhoneNormalizer::class)->normalize($lead->no_wa);
             }
 
+            if ($lead->no_wa_normalized && ($lead->isDirty('no_wa') || $lead->isDirty('no_wa_normalized'))) {
+                $duplicateExists = static::query()
+                    ->where('no_wa_normalized', $lead->no_wa_normalized)
+                    ->when($lead->exists, fn (Builder $query): Builder => $query->whereKeyNot($lead->getKey()))
+                    ->exists();
+
+                if ($duplicateExists) {
+                    throw ValidationException::withMessages([
+                        'no_wa' => 'Nomor WhatsApp sudah digunakan oleh lead lain. Periksa data lead yang sudah ada.',
+                    ]);
+                }
+            }
+
             if ($lead->isDirty('kota_asal')) {
                 $lead->kota_asal = filled($lead->kota_asal)
                     ? Str::squish((string) $lead->kota_asal)
                     : null;
             }
 
-            if ($lead->isDirty('kelas')) {
-                $lead->kelas = filled($lead->kelas)
-                    ? Str::squish((string) $lead->kelas)
+            if ($lead->isDirty('kelas_sekolah')) {
+                $lead->kelas_sekolah = filled($lead->kelas_sekolah)
+                    ? Str::squish((string) $lead->kelas_sekolah)
                     : null;
             }
         });

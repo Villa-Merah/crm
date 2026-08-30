@@ -3,8 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
-use App\Models\CrmSetting;
 use App\Models\ActivityLog;
+use App\Models\CrmSetting;
+use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -12,23 +13,41 @@ use Filament\Pages\Page;
 class Pengaturan extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
+
     protected static ?string $navigationLabel = 'Pengaturan';
+
     protected static string|\UnitEnum|null $navigationGroup = 'MASTER DATA';
+
     protected static ?int $navigationSort = 7;
+
     protected static ?string $title = 'Pengaturan';
+
     protected string $view = 'filament.pages.pengaturan';
 
     public string $appName = '';
+
     public string $organizationName = '';
+
     public string $dashboardTagline = '';
+
     public ?string $supportEmail = null;
+
     public ?string $supportPhone = null;
+
     public bool $staffReportExport = false;
+
+    public string $schoolClassLevels = '';
+
     public string $programCategories = '';
+
     public string $programClasses = '';
+
     public string $programTypes = '';
+
     public string $programLearningMethods = '';
+
     public string $programLevels = '';
+
     public string $programClassLevels = '';
 
     public static function canAccess(): bool
@@ -45,6 +64,7 @@ class Pengaturan extends Page
         $this->supportEmail = CrmSetting::getValue('support_email');
         $this->supportPhone = CrmSetting::getValue('support_phone');
         $this->staffReportExport = CrmSetting::getBoolean('staff_report_export');
+        $this->schoolClassLevels = implode("\n", CrmSetting::getArray('school_class_levels'));
         $this->programCategories = implode("\n", CrmSetting::getArray('program_categories'));
         $this->programClasses = implode("\n", CrmSetting::getArray('program_classes'));
         $this->programTypes = implode("\n", CrmSetting::getArray('program_types'));
@@ -63,6 +83,7 @@ class Pengaturan extends Page
             'supportEmail' => ['nullable', 'email', 'max:255'],
             'supportPhone' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+()\-\s]*$/'],
             'staffReportExport' => ['boolean'],
+            'schoolClassLevels' => ['required', 'string', 'max:1500'],
             'programCategories' => ['required', 'string', 'max:1500'],
             'programClasses' => ['required', 'string', 'max:1500'],
             'programTypes' => ['required', 'string', 'max:1500'],
@@ -70,6 +91,20 @@ class Pengaturan extends Page
             'programLevels' => ['required', 'string', 'max:1500'],
             'programClassLevels' => ['required', 'string', 'max:1500'],
         ], ['supportPhone.regex' => 'Nomor dukungan hanya boleh berisi angka dan simbol telepon.']);
+
+        $schoolClassLevels = $this->normalizeOptions($data['schoolClassLevels']);
+        if ($schoolClassLevels === [] || count($schoolClassLevels) > 30 || collect($schoolClassLevels)->contains(fn (string $option): bool => mb_strlen($option) > 60)) {
+            $this->addError('schoolClassLevels', 'Sediakan 1–30 opsi dan batasi setiap opsi maksimal 60 karakter.');
+
+            return;
+        }
+        $usedSchoolClasses = Lead::query()->whereNotNull('kelas_sekolah')->distinct()->pluck('kelas_sekolah')->filter()->all();
+        $missingSchoolClasses = array_values(array_diff($usedSchoolClasses, $schoolClassLevels));
+        if ($missingSchoolClasses !== []) {
+            $this->addError('schoolClassLevels', 'Opsi masih dipakai oleh lead: '.implode(', ', $missingSchoolClasses).'.');
+
+            return;
+        }
 
         $programSettings = [
             'programCategories' => ['key' => 'program_categories', 'column' => 'kategori_program'],
@@ -85,14 +120,17 @@ class Pengaturan extends Page
             $values = $this->normalizeOptions($data[$property]);
             if ($values === []) {
                 $this->addError($property, 'Minimal satu opsi harus tersedia.');
+
                 return;
             }
             if (count($values) > 30) {
                 $this->addError($property, 'Maksimal 30 opsi dapat disimpan.');
+
                 return;
             }
             if (collect($values)->contains(fn (string $option): bool => mb_strlen($option) > 60)) {
                 $this->addError($property, 'Setiap opsi maksimal 60 karakter.');
+
                 return;
             }
 
@@ -100,6 +138,7 @@ class Pengaturan extends Page
             $missingValues = array_values(array_diff($usedValues, $values));
             if ($missingValues !== []) {
                 $this->addError($property, 'Opsi masih dipakai oleh program: '.implode(', ', $missingValues).'.');
+
                 return;
             }
 
@@ -113,10 +152,11 @@ class Pengaturan extends Page
             'support_email' => filled($data['supportEmail']) ? trim($data['supportEmail']) : null,
             'support_phone' => filled($data['supportPhone']) ? trim($data['supportPhone']) : null,
             'staff_report_export' => $data['staffReportExport'],
+            'school_class_levels' => $schoolClassLevels,
             ...$normalizedProgramSettings,
         ], auth()->id());
 
-        ActivityLog::create(['user_id' => auth()->id(), 'event' => 'updated', 'description' => 'Pengaturan aplikasi diperbarui', 'properties' => ['fields' => array_merge(['app_name', 'organization_name', 'dashboard_tagline', 'support_email', 'support_phone', 'staff_report_export'], array_column($programSettings, 'key'))], 'ip_address' => request()->ip(), 'user_agent' => str(request()->userAgent())->limit(500)->toString(), 'created_at' => now()]);
+        ActivityLog::create(['user_id' => auth()->id(), 'event' => 'updated', 'description' => 'Pengaturan aplikasi diperbarui', 'properties' => ['fields' => array_merge(['app_name', 'organization_name', 'dashboard_tagline', 'support_email', 'support_phone', 'staff_report_export', 'school_class_levels'], array_column($programSettings, 'key'))], 'ip_address' => request()->ip(), 'user_agent' => str(request()->userAgent())->limit(500)->toString(), 'created_at' => now()]);
 
         Notification::make()->title('Pengaturan berhasil disimpan')->body('Perubahan langsung diterapkan pada panel SIVMI CRM.')->success()->send();
     }

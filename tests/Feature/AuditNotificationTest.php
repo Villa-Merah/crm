@@ -50,6 +50,21 @@ class AuditNotificationTest extends TestCase
         $this->assertSame(1, count($notification->data['actions']));
     }
 
+    public function test_school_class_change_is_recorded_with_old_and_new_values(): void
+    {
+        $branch = $this->branch('BDG', 'Bandung');
+        $staff = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $this->actingAs($staff);
+        $lead = Lead::create([...$this->leadData($branch, $staff, 'Lead Kelas'), 'kelas_sekolah' => 'XI']);
+
+        $lead->update(['kelas_sekolah' => 'XII']);
+
+        $history = ActivityLog::whereMorphedTo('subject', $lead)->where('event', 'class_changed')->sole();
+        $this->assertSame('XI', $history->properties['old']);
+        $this->assertSame('XII', $history->properties['new']);
+        $this->assertSame('kelas_sekolah', $history->properties['field']);
+    }
+
     public function test_reminder_command_is_idempotent_for_followups_and_payments(): void
     {
         $branch = $this->branch('BDG', 'Bandung');
@@ -103,6 +118,7 @@ class AuditNotificationTest extends TestCase
     {
         $program = ProgramBimbel::create(['nama_program' => 'Program Audit', 'jenjang_program' => 'SMA', 'biaya_pendidikan' => 5000000, 'aktif' => true]);
         $registration = Pendaftaran::create(['lead_id' => $lead->getKey(), 'program_bimbel_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'tanggal_daftar' => today(), 'status_pendaftaran' => 'Aktif']);
+
         return Pembayaran::create(['pendaftaran_id' => $registration->getKey(), 'tanggal_pembayaran' => now(), 'nominal' => 1000000, 'metode_pembayaran' => 'Transfer Bank', 'status_pembayaran' => 'Menunggu']);
     }
 }

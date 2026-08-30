@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Pendaftarans;
 
+use App\Filament\Resources\Pembayarans\PembayaranResource;
 use App\Filament\Resources\Pendaftarans\Pages\CreatePendaftaran;
 use App\Filament\Resources\Pendaftarans\Pages\EditPendaftaran;
 use App\Filament\Resources\Pendaftarans\Pages\ListPendaftarans;
-use App\Filament\Resources\Pembayarans\PembayaranResource;
 use App\Models\Lead;
 use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
@@ -30,12 +30,19 @@ use Illuminate\Database\Eloquent\Model;
 class PendaftaranResource extends Resource
 {
     protected static ?string $model = Pendaftaran::class;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentCheck;
+
     protected static string|\UnitEnum|null $navigationGroup = 'MASTER DATA';
+
     protected static ?string $navigationLabel = 'Pendaftaran';
+
     protected static ?string $pluralModelLabel = 'Pendaftaran';
+
     protected static ?string $modelLabel = 'pendaftaran';
+
     protected static ?string $slug = 'pendaftaran';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
@@ -47,7 +54,7 @@ class PendaftaranResource extends Resource
                 Select::make('lead_id')->label('Calon siswa')->searchable()->getSearchResultsUsing(fn (string $search) => Lead::query()->visibleTo($viewer)->whereDoesntHave('pendaftaran')->where('nama', 'like', "%{$search}%")->orderBy('nama')->limit(50)->pluck('nama', 'lead_id'))->getOptionLabelUsing(fn ($value) => Lead::query()->visibleTo($viewer)->whereKey($value)->value('nama'))->required()->unique(ignoreRecord: true)->disabled(fn (string $operation): bool => $operation === 'edit')->dehydrated(),
                 Select::make('program_bimbel_id')->label('Program bimbel')->options(ProgramBimbel::query()->where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable()->preload()->required(),
                 DatePicker::make('tanggal_daftar')->label('Tanggal daftar')->default(today())->required()->maxDate(today()),
-                TextInput::make('kelas_angkatan')->label('Kelas/angkatan')->maxLength(100)->placeholder('Contoh: Angkatan 2026'),
+                TextInput::make('kelas_angkatan')->label('Kelas/angkatan program')->maxLength(100)->placeholder('Contoh: Angkatan 2026'),
                 Select::make('status_pendaftaran')->label('Status')->options(['Menunggu' => 'Menunggu', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan'])->default('Aktif')->required(),
                 Hidden::make('cabang_id')->default($viewer->cabang_id),
                 Textarea::make('catatan')->label('Catatan')->rows(4)->maxLength(1500)->columnSpanFull(),
@@ -60,8 +67,10 @@ class PendaftaranResource extends Resource
         return $table->defaultSort('tanggal_daftar', 'desc')->columns([
             TextColumn::make('lead.nama')->label('Siswa')->description(fn (Pendaftaran $record) => $record->lead?->no_wa)->weight('semibold')->searchable(),
             TextColumn::make('programBimbel.nama_program')->label('Program')->wrap()->searchable(),
-            TextColumn::make('kelas_angkatan')->label('Angkatan')->placeholder('-')->toggleable(),
-            TextColumn::make('status_pendaftaran')->label('Status')->badge()->color(fn (string $state) => match ($state) { 'Aktif' => 'success', 'Menunggu' => 'warning', 'Dibatalkan' => 'danger', default => 'gray' }),
+            TextColumn::make('kelas_angkatan')->label('Kelas/angkatan program')->placeholder('-')->toggleable(),
+            TextColumn::make('status_pendaftaran')->label('Status')->badge()->color(fn (string $state) => match ($state) {
+                'Aktif' => 'success', 'Menunggu' => 'warning', 'Dibatalkan' => 'danger', default => 'gray'
+            }),
             TextColumn::make('pembayaran_terverifikasi_sum')->label('Terbayar')->money('IDR', locale: 'id')->placeholder('Rp 0')->sortable(),
             TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
             TextColumn::make('tanggal_daftar')->label('Tanggal daftar')->date('d M Y')->sortable(),
