@@ -9,6 +9,10 @@ use App\Filament\Resources\Sekolahs\Pages\EditSekolah;
 use App\Filament\Resources\Sekolahs\Pages\ListSekolahs;
 use App\Models\Sekolah;
 use BackedEnum;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -23,6 +27,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 class SekolahResource extends Resource
@@ -73,9 +78,42 @@ class SekolahResource extends Resource
         ])->filters([
             SelectFilter::make('status_sekolah')->label('Status')->options(['Negeri' => 'Negeri', 'Swasta' => 'Swasta', 'Lainnya' => 'Lainnya']),
             SelectFilter::make('kluster_sekolah')->label('Kluster')->options(SchoolGrade::options()),
+            SelectFilter::make('kota')->label('Kota/Kabupaten')->options(fn (): array => Sekolah::query()->whereNotNull('kota')->where('kota', '!=', '')->distinct()->orderBy('kota')->pluck('kota', 'kota')->all())->searchable(),
+            SelectFilter::make('provinsi')->label('Provinsi')->options(fn (): array => Sekolah::query()->whereNotNull('provinsi')->where('provinsi', '!=', '')->distinct()->orderBy('provinsi')->pluck('provinsi', 'provinsi')->all())->searchable(),
             TernaryFilter::make('aktif')->label('Status aktif'),
         ])->recordActions([
             EditAction::make()->visible(fn () => auth()->user()->hasRole(UserRole::Superadmin) || auth()->user()->hasRole(UserRole::AdminCabang)),
+            DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn (Sekolah $record): bool => static::canDelete($record))
+                ->requiresConfirmation(),
+        ])->toolbarActions([
+            BulkActionGroup::make([
+                BulkAction::make('ubahTerpilih')
+                    ->label('Ubah data terpilih')
+                    ->icon('heroicon-o-pencil-square')
+                    ->visible(fn (): bool => static::canCreate())
+                    ->form([
+                        Select::make('status_sekolah')->label('Ubah status sekolah')->options(['Negeri' => 'Negeri', 'Swasta' => 'Swasta', 'Lainnya' => 'Lainnya'])->placeholder('Jangan ubah'),
+                        Select::make('kluster_sekolah')->label('Ubah kluster')->options(SchoolGrade::options())->placeholder('Jangan ubah'),
+                        Select::make('aktif')->label('Ubah status aktif')->options(['1' => 'Aktif', '0' => 'Tidak aktif'])->placeholder('Jangan ubah'),
+                        TextInput::make('kota')->label('Ubah Kota/Kabupaten')->placeholder('Kosongkan jika tidak diubah')->maxLength(100),
+                        TextInput::make('provinsi')->label('Ubah Provinsi')->placeholder('Kosongkan jika tidak diubah')->maxLength(100),
+                    ])
+                    ->action(function (Collection $records, array $data): void {
+                        $updates = collect($data)
+                            ->filter(fn ($value): bool => filled($value))
+                            ->all();
+
+                        if ($updates !== []) {
+                            Sekolah::query()->whereKey($records->modelKeys())->update($updates);
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                DeleteBulkAction::make()
+                    ->label('Hapus data terpilih')
+                    ->visible(fn (): bool => static::canCreate()),
+            ]),
         ])->emptyStateHeading('Belum ada sekolah')->emptyStateDescription('Tambahkan sekolah asal calon siswa.');
     }
 
@@ -96,7 +134,7 @@ class SekolahResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return false;
+        return static::canCreate() && ! $record->leads()->exists();
     }
 
     public static function getPages(): array
