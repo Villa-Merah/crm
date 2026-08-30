@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Models\CrmSetting;
 use App\Support\ApiResponse;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,6 +24,7 @@ class StoreLeadRequest extends FormRequest
             'nama' => ['required', 'string', 'max:150'],
             'no_wa' => ['required', 'string', 'max:20'],
             'kota_asal' => ['nullable', 'string', 'max:100'],
+            'kelas' => ['nullable', 'string', 'max:60', Rule::in(CrmSetting::getArray('program_class_levels'))],
             'cabang_id' => ['nullable', 'integer', 'exists:cabang,cabang_id'],
             'sekolah_id' => ['nullable', 'integer', 'exists:sekolah,sekolah_id'],
             'minat_program_id' => ['nullable', 'integer', 'exists:program_bimbel,program_bimbel_id'],

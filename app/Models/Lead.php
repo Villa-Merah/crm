@@ -82,6 +82,12 @@ class Lead extends Model
                     ? Str::squish((string) $lead->kota_asal)
                     : null;
             }
+
+            if ($lead->isDirty('kelas')) {
+                $lead->kelas = filled($lead->kelas)
+                    ? Str::squish((string) $lead->kelas)
+                    : null;
+            }
         });
     }
 

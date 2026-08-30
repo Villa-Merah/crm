@@ -16,6 +16,7 @@ class LeadInfolist
             Section::make('Profil calon siswa')->columns(['default' => 1, 'md' => 2])->schema([
                 TextEntry::make('nama')->label('Nama lengkap')->weight('bold'),
                 TextEntry::make('no_wa')->label('Nomor WhatsApp')->copyable()->icon('heroicon-o-phone'),
+                TextEntry::make('kelas')->label('Kelas')->placeholder('-'),
                 TextEntry::make('sekolah.nama_sekolah')->label('Sekolah')->placeholder('-'),
                 TextEntry::make('minatProgram.nama_program')->label('Program yang diminati')->placeholder('-'),
             ]),

@@ -38,6 +38,7 @@ class LeadCsvTest extends TestCase
         $lead = Lead::sole();
         $this->assertSame('Alya Putri', $lead->nama);
         $this->assertSame('Bandung', $lead->kota_asal);
+        $this->assertSame('XII', $lead->kelas);
         $this->assertSame($branch->getKey(), $lead->cabang_id);
         $this->assertSame($school->getKey(), $lead->sekolah_id);
         $this->assertSame($program->getKey(), $lead->minat_program_id);
@@ -65,6 +66,26 @@ class LeadCsvTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $importer($this->row(['sumber_lead' => 'Marketplace']));
+    }
+
+    public function test_import_validation_errors_are_clear_in_indonesian(): void
+    {
+        [, $admin] = $this->fixtures();
+        $importer = new LeadImporter($this->importFor($admin), $this->columnMap(), []);
+
+        try {
+            $importer($this->row([
+                'no_wa' => 'nomor-salah',
+                'kota_asal' => '',
+            ]));
+            $this->fail('Baris dengan nomor WhatsApp dan kota asal tidak valid seharusnya ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                'Format nomor WhatsApp tidak valid. Gunakan 8–20 digit dan boleh diawali tanda +.',
+                $exception->errors()['no_wa'][0],
+            );
+            $this->assertSame('Kota asal wajib diisi.', $exception->errors()['kota_asal'][0]);
+        }
     }
 
     public function test_import_rejects_cross_branch_pic_and_read_only_user(): void
@@ -114,6 +135,7 @@ class LeadCsvTest extends TestCase
             'nama' => '=HYPERLINK("https://example.test")',
             'no_wa' => '+6281234567890',
             'kota_asal' => '  Bandung  ',
+            'kelas' => 'XII',
             'sekolah_id' => $school->getKey(),
             'minat_program_id' => $program->getKey(),
             'cabang_id' => $branch->getKey(),
@@ -131,11 +153,12 @@ class LeadCsvTest extends TestCase
         $this->assertStringStartsWith("'=HYPERLINK", $data[1]);
         $this->assertSame("'+6281234567890", $data[2]);
         $this->assertSame('Bandung', $data[3]);
-        $this->assertSame($school->npsn, $data[4]);
-        $this->assertSame('Facebook', $data[7]);
-        $this->assertSame($branch->nama, $data[9]);
-        $this->assertSame($pic->email, $data[10]);
-        $this->assertSame('2026-08-21', $data[11]);
+        $this->assertSame('XII', $data[4]);
+        $this->assertSame($school->npsn, $data[5]);
+        $this->assertSame('Facebook', $data[8]);
+        $this->assertSame($branch->nama, $data[10]);
+        $this->assertSame($pic->email, $data[11]);
+        $this->assertSame('2026-08-21', $data[12]);
     }
 
     public function test_export_query_is_scoped_to_the_authenticated_users_branch(): void
@@ -168,7 +191,7 @@ class LeadCsvTest extends TestCase
         ob_start();
         $response->sendContent();
         $content = ob_get_clean();
-        $this->assertStringContainsString('lead_id,nama,no_wa,kota_asal,sekolah_npsn', $content);
+        $this->assertStringContainsString('lead_id,nama,no_wa,kota_asal,kelas,sekolah_npsn', $content);
         $this->assertStringContainsString('program_bimbel,sumber_lead,status_lead', $content);
         $this->assertStringContainsString('Alya Putri', $content);
 
@@ -225,6 +248,7 @@ class LeadCsvTest extends TestCase
             'nama' => 'Alya Putri',
             'no_wa' => '+6281234567890',
             'kota_asal' => 'Bandung',
+            'kelas' => 'XII',
             'sekolah_npsn' => '',
             'sekolah_nama' => '',
             'program_bimbel' => '',

@@ -29,6 +29,7 @@ class LeadManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Data calon siswa')
             ->assertSee('Kota asal')
+            ->assertSee('Kelas')
             ->assertSee('Cold')
             ->assertSee('Warm')
             ->assertSee('Hot')

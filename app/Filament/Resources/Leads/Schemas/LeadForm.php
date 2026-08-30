@@ -7,6 +7,7 @@ use App\Enums\LeadStatus;
 use App\Enums\SchoolNamePrefix;
 use App\Enums\UserRole;
 use App\Models\Cabang;
+use App\Models\CrmSetting;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
 use App\Models\User;
@@ -34,6 +35,14 @@ class LeadForm
                     TextInput::make('nama')->label('Nama lengkap')->required()->maxLength(150),
                     TextInput::make('no_wa')->label('Nomor WhatsApp')->tel()->required()->maxLength(20)->placeholder('08xxxxxxxxxx'),
                     TextInput::make('kota_asal')->label('Kota asal')->required()->maxLength(100)->placeholder('Contoh: Bandung'),
+                    Select::make('kelas')
+                        ->label('Kelas')
+                        ->options(fn (): array => collect(CrmSetting::getArray('program_class_levels'))
+                            ->mapWithKeys(fn (string $class): array => [$class => $class])
+                            ->all())
+                        ->placeholder('Pilih kelas')
+                        ->searchable()
+                        ->preload(),
                     Select::make('sekolah_id')
                         ->label('Sekolah')
                         ->options(fn (): array => Sekolah::query()

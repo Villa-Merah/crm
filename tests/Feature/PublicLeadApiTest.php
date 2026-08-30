@@ -65,6 +65,7 @@ class PublicLeadApiTest extends TestCase
             'nama' => 'Lead dari API',
             'no_wa' => '081234567890',
             'kota_asal' => 'Bandung',
+            'kelas' => 'XII',
             'status_lead' => 'Cold',
             'sumber_lead' => 'Instagram',
             'tanggal_masuk' => '2026-08-25',
@@ -76,6 +77,7 @@ class PublicLeadApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.nama', 'Lead dari API')
             ->assertJsonPath('data.kota_asal', 'Bandung')
+            ->assertJsonPath('data.kelas', 'XII')
             ->assertJsonPath('data.cabang.kode', 'BDG');
 
         $this->withToken($token)

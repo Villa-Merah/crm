@@ -7,6 +7,7 @@ use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Enums\UserRole;
 use App\Models\Cabang;
+use App\Models\CrmSetting;
 use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
@@ -52,6 +53,9 @@ class LeadImporter extends Importer
                 ->label('Kota asal')
                 ->requiredMappingForNewRecordsOnly()
                 ->rules(['required', 'string', 'max:100']),
+            ImportColumn::make('kelas')
+                ->label('Kelas')
+                ->rules(['nullable', 'string', 'max:60', 'in:'.implode(',', CrmSetting::getArray('program_class_levels'))]),
             ImportColumn::make('sekolah_npsn')
                 ->label('NPSN sekolah')
                 ->rules(['nullable', 'regex:/^\d{8}$/'])
@@ -86,6 +90,29 @@ class LeadImporter extends Importer
                 ->label('Tanggal masuk')
                 ->requiredMappingForNewRecordsOnly()
                 ->rules(['required', 'date_format:Y-m-d', 'before_or_equal:today']),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function getValidationMessages(): array
+    {
+        return [
+            'nama.required' => 'Nama calon siswa wajib diisi.',
+            'no_wa.required' => 'Nomor WhatsApp wajib diisi.',
+            'no_wa.regex' => 'Format nomor WhatsApp tidak valid. Gunakan 8–20 digit dan boleh diawali tanda +.',
+            'kota_asal.required' => 'Kota asal wajib diisi.',
+            'kelas.in' => 'Kelas tidak tersedia pada pilihan tingkat kelas.',
+            'sekolah_npsn.regex' => 'NPSN sekolah harus terdiri dari tepat 8 digit.',
+            'sumber_lead.required' => 'Sumber leads wajib diisi.',
+            'sumber_lead.in' => 'Sumber leads tidak valid.',
+            'status_lead.required' => 'Status lead wajib diisi.',
+            'status_lead.in' => 'Status lead tidak valid.',
+            'cabang.required' => 'Cabang wajib diisi.',
+            'pic_email.required' => 'Email PIC wajib diisi.',
+            'pic_email.email' => 'Format email PIC tidak valid.',
+            'tanggal_masuk.required' => 'Tanggal masuk wajib diisi.',
+            'tanggal_masuk.date_format' => 'Tanggal masuk harus menggunakan format YYYY-MM-DD.',
+            'tanggal_masuk.before_or_equal' => 'Tanggal masuk tidak boleh melewati hari ini.',
         ];
     }
 
