@@ -36,6 +36,9 @@ class ProgramTargetTest extends TestCase
         $program->update(['metode_belajar' => 'Online']);
         $this->assertSame('SR GOLD ONLINE', $program->nama_program);
 
+        $program->update(['metode_belajar' => 'Tatap Muka']);
+        $this->assertSame('SR GOLD', $program->nama_program);
+
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
         $direksi = User::factory()->create(['role' => UserRole::Direksi, 'aktif' => true]);
         $this->actingAs($superadmin)->get('/admin/program-bimbel')->assertOk()->assertSee($program->nama_program);

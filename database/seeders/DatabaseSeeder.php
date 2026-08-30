@@ -57,7 +57,11 @@ class DatabaseSeeder extends Seeder
             DB::table('program_bimbel')->insert([
                 'kategori_program' => $kategori, 'program_kelas' => $kelas, 'tipe_program' => $tipe,
                 'metode_belajar' => $metode, 'jenjang_program' => $jenjang, 'tingkat_kelas' => $tingkat,
-                'nama_program' => mb_strtoupper(collect([$kategori, $kelas, $metode])->implode(' ')),
+                'nama_program' => mb_strtoupper(collect([
+                    $kategori,
+                    $kelas,
+                    mb_strtolower(trim($metode)) === 'tatap muka' ? null : $metode,
+                ])->filter()->implode(' ')),
                 'biaya_pendaftaran' => $biayaDaftar, 'biaya_pendidikan' => $biayaPendidikan,
                 'diskon_pendidikan' => $diskon, 'jumlah_pertemuan' => $pertemuan,
                 'fasilitas_program' => $fasilitas, 'aktif' => true, 'created_at' => $now, 'updated_at' => $now,

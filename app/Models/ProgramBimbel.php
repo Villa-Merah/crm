@@ -26,13 +26,14 @@ class ProgramBimbel extends Model
     protected static function booted(): void
     {
         static::saving(function (self $program): void {
+            $learningMethod = trim((string) $program->metode_belajar);
             $components = collect([
                 $program->kategori_program,
                 $program->program_kelas,
-                $program->metode_belajar,
-            ])->filter();
+                mb_strtolower($learningMethod) === 'tatap muka' ? null : $learningMethod,
+            ])->filter(fn ($value) => filled($value));
 
-            if ($components->count() === 3) {
+            if ($components->count() >= 2) {
                 $program->nama_program = mb_strtoupper($components->implode(' '));
             }
         });

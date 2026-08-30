@@ -123,7 +123,7 @@ class DashboardTest extends TestCase
             ->assertSee('Paket program')
             ->assertSee('Jenjang')
             ->assertSee('SR GOLD ONLINE')
-            ->assertSee('W SILVER TATAP MUKA')
+            ->assertSee('W SILVER')
             ->assertSee('Intensif')
             ->assertSee('Reguler')
             ->assertSee('SMA')
