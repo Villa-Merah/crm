@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Dashboard;
-use App\Models\CrmSetting;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -43,7 +42,9 @@ class AdminPanelProvider extends PanelProvider
                 'danger' => Color::hex('#F43F5E'),
                 'purple' => Color::hex('#A855F7'),
             ])
-            ->brandName(fn (): string => (string) CrmSetting::getValue('app_name', 'SIVMI CRM'))
+            ->brandName('CRM_VILLA MERAH')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('1.75rem')
             ->defaultThemeMode(ThemeMode::Light)
             ->darkMode(false)
             ->themeSwitcher(false)

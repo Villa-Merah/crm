@@ -23,6 +23,21 @@ body { background: var(--sivmi-background); color: #0f172a; }
 }
 .fi-sidebar-header { background: transparent; box-shadow: none; }
 .fi-sidebar .fi-logo { color: #fff !important; }
+.sivmi-brand-lockup {
+    display: block;
+    height: 100%;
+    min-width: 0;
+    line-height: 1.75rem;
+}
+.sivmi-brand-name {
+    overflow: hidden;
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 750;
+    letter-spacing: -.015em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .fi-sidebar .fi-sidebar-group-label { color: rgb(255 255 255 / 58%); font-weight: 700; letter-spacing: .035em; }
 .fi-sidebar .fi-sidebar-item-btn {
     border-radius: 12px;
