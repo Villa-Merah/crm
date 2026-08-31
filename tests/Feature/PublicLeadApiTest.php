@@ -9,6 +9,7 @@ use App\Models\Cabang;
 use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
+use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -80,6 +81,8 @@ class PublicLeadApiTest extends TestCase
             ->assertJsonPath('data.nama', 'Lead dari API')
             ->assertJsonPath('data.kota_asal', 'Bandung')
             ->assertJsonPath('data.kelas_sekolah', 'XII')
+            ->assertJsonPath('data.sumber', 'Instagram')
+            ->assertJsonPath('data.sumber_lead_id', SumberLead::query()->where('nama', 'Instagram')->value('sumber_lead_id'))
             ->assertJsonPath('data.cabang.kode', 'BDG');
 
         $this->withToken($token)

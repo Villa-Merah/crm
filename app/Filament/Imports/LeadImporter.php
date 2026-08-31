@@ -3,7 +3,6 @@
 namespace App\Filament\Imports;
 
 use App\Enums\LeadEntryChannel;
-use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Enums\UserRole;
 use App\Models\Cabang;
@@ -11,6 +10,7 @@ use App\Models\CrmSetting;
 use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
+use App\Models\SumberLead;
 use App\Models\User;
 use App\Support\PhoneNormalizer;
 use Filament\Actions\Imports\ImportColumn;
@@ -71,7 +71,8 @@ class LeadImporter extends Importer
                 ->fillRecordUsing($ignore),
             ImportColumn::make('sumber_lead')
                 ->label('Sumber leads')
-                ->rules(['nullable', 'in:'.implode(',', array_column(LeadSource::cases(), 'value'))]),
+                ->rules(['nullable', 'string', 'max:100'])
+                ->fillRecordUsing($ignore),
             ImportColumn::make('status_lead')
                 ->label('Status lead')
                 ->rules(['nullable', 'in:'.implode(',', array_column(LeadStatus::cases(), 'value'))]),
@@ -101,7 +102,7 @@ class LeadImporter extends Importer
             'kelas_sekolah.in' => 'Kelas sekolah tidak tersedia pada pilihan tingkat kelas.',
             'sekolah_npsn.regex' => 'NPSN sekolah harus terdiri dari tepat 8 digit.',
             'sumber_lead.required' => 'Sumber leads wajib diisi.',
-            'sumber_lead.in' => 'Sumber leads tidak valid.',
+            'sumber_lead.max' => 'Sumber leads maksimal 100 karakter.',
             'status_lead.required' => 'Status lead wajib diisi.',
             'status_lead.in' => 'Status lead tidak valid.',
             'cabang.required' => 'Cabang wajib diisi.',
@@ -167,6 +168,7 @@ class LeadImporter extends Importer
 
         $school = $this->resolveSchool($errors);
         $program = $this->resolveProgram($errors);
+        $source = $this->resolveSource($errors);
         $pic = blank($this->data['pic_email'] ?? null) && $user->hasRole(UserRole::Staff)
             ? $user
             : $this->resolvePic($branch, $errors);
@@ -178,6 +180,7 @@ class LeadImporter extends Importer
         $this->record->cabang_id = $branch?->getKey();
         $this->record->sekolah_id = $school?->getKey();
         $this->record->minat_program_id = $program?->getKey();
+        $this->record->sumber_lead_id = $source?->getKey();
         $this->record->diserahkan_ke_user_id = $pic?->getKey();
 
         if (! $this->record->exists) {
@@ -229,6 +232,24 @@ class LeadImporter extends Importer
         }
 
         return $program;
+    }
+
+    /** @param array<string, string> $errors */
+    private function resolveSource(array &$errors): ?SumberLead
+    {
+        $name = trim((string) ($this->data['sumber_lead'] ?? ''));
+
+        if ($name === '') {
+            return null;
+        }
+
+        $source = SumberLead::findActiveByNameOrCode($name);
+
+        if (! $source) {
+            $errors['sumber_lead'] = 'Sumber leads tidak ditemukan atau tidak aktif. Periksa master sumber leads.';
+        }
+
+        return $source;
     }
 
     /** @param array<string, string> $errors */

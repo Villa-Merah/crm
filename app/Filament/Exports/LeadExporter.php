@@ -26,7 +26,7 @@ class LeadExporter extends Exporter
             ExportColumn::make('sekolah_npsn')->label('sekolah_npsn')->state(fn (Lead $record) => $record->sekolah?->npsn)->formatStateUsing($safe),
             ExportColumn::make('sekolah_nama')->label('sekolah_nama')->state(fn (Lead $record) => $record->sekolah?->nama_sekolah)->formatStateUsing($safe),
             ExportColumn::make('program_bimbel')->label('program_bimbel')->state(fn (Lead $record) => $record->minatProgram?->nama_program)->formatStateUsing($safe),
-            ExportColumn::make('sumber_lead')->label('sumber_lead')->formatStateUsing($safe),
+            ExportColumn::make('sumber_lead')->label('sumber_lead')->state(fn (Lead $record) => $record->sumberLeadMaster?->nama)->formatStateUsing($safe),
             ExportColumn::make('status_lead')->label('status_lead')->formatStateUsing($safe),
             ExportColumn::make('cabang')->label('cabang')->state(fn (Lead $record) => $record->cabang?->nama)->formatStateUsing($safe),
             ExportColumn::make('pic_email')->label('pic_email')->state(fn (Lead $record) => $record->diserahkanKe?->email)->formatStateUsing($safe),
@@ -41,7 +41,7 @@ class LeadExporter extends Exporter
         return $query
             ->when($user, fn (Builder $query): Builder => $query->visibleTo($user))
             ->when(! $user, fn (Builder $query): Builder => $query->whereRaw('1 = 0'))
-            ->with(['cabang', 'sekolah', 'minatProgram', 'diserahkanKe']);
+            ->with(['cabang', 'sekolah', 'minatProgram', 'sumberLeadMaster', 'diserahkanKe']);
     }
 
     public function getJobConnection(): ?string

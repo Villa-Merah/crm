@@ -40,7 +40,7 @@ class LeadMatcher
             'no_wa_normalized' => $phone,
             'sekolah_id' => null,
             'minat_program_id' => null,
-            'sumber_lead' => null,
+            'sumber_lead_id' => null,
             'kanal_masuk' => LeadEntryChannel::WhatsApp->value,
             'cabang_id' => $account->cabang_id,
             'status_lead' => LeadStatus::Cold->value,

@@ -284,19 +284,22 @@ class Dashboard extends Page
             'total' => (int) ($leadFunnelCounts[$status->value] ?? 0),
         ]);
         $sourceLeads = (clone $leads)
-            ->selectRaw("COALESCE(sumber_lead, 'Belum diisi') sumber, COUNT(*) total")
-            ->groupBy('sumber_lead')
+            ->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id')
+            ->selectRaw("COALESCE(sumber_leads.nama, 'Belum diisi') sumber, COUNT(*) total")
+            ->groupBy('leads.sumber_lead_id', 'sumber_leads.nama')
             ->orderByDesc('total')
             ->get();
         $sourceRegistrations = (clone $registrations)
             ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id')
-            ->selectRaw("COALESCE(leads.sumber_lead, 'Belum diisi') sumber, COUNT(*) total")
-            ->groupBy('leads.sumber_lead')
+            ->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id')
+            ->selectRaw("COALESCE(sumber_leads.nama, 'Belum diisi') sumber, COUNT(*) total")
+            ->groupBy('leads.sumber_lead_id', 'sumber_leads.nama')
             ->pluck('total', 'sumber');
         $sourceRevenue = (clone $payments)
             ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id')
-            ->selectRaw("COALESCE(leads.sumber_lead, 'Belum diisi') sumber, COALESCE(SUM(pembayaran.nominal), 0) total")
-            ->groupBy('leads.sumber_lead')
+            ->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id')
+            ->selectRaw("COALESCE(sumber_leads.nama, 'Belum diisi') sumber, COALESCE(SUM(pembayaran.nominal), 0) total")
+            ->groupBy('leads.sumber_lead_id', 'sumber_leads.nama')
             ->pluck('total', 'sumber');
         $leadSources = $sourceLeads->map(function (object $source) use ($sourceRegistrations, $sourceRevenue): object {
             $source->total = (int) $source->total;

@@ -7,6 +7,7 @@ use App\Enums\LeadStatus;
 use App\Enums\UserRole;
 use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -40,6 +41,27 @@ class Lead extends Model
     public function minatProgram()
     {
         return $this->belongsTo(ProgramBimbel::class, 'minat_program_id', 'program_bimbel_id');
+    }
+
+    public function sumberLeadMaster()
+    {
+        return $this->belongsTo(SumberLead::class, 'sumber_lead_id', 'sumber_lead_id');
+    }
+
+    /**
+     * Kompatibilitas untuk kode lama: nilai nama sumber tetap dapat dibaca/ditulis
+     * melalui atribut sumber_lead, sedangkan database hanya menyimpan ID.
+     */
+    protected function sumberLead(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->sumberLeadMaster?->nama,
+            set: fn ($value): array => [
+                'sumber_lead_id' => filled($value)
+                    ? SumberLead::findActiveByNameOrCode((string) $value)?->getKey()
+                    : null,
+            ],
+        );
     }
 
     public function diinputOleh()

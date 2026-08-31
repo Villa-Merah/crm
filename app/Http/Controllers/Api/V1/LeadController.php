@@ -12,6 +12,7 @@ use App\Http\Resources\Api\V1\LeadResource;
 use App\Models\ApiClient;
 use App\Models\Cabang;
 use App\Models\Lead;
+use App\Models\SumberLead;
 use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,7 @@ class LeadController extends Controller
         'cabang:cabang_id,kode_cabang,nama',
         'sekolah:sekolah_id,nama_sekolah',
         'minatProgram:program_bimbel_id,nama_program',
+        'sumberLeadMaster:sumber_lead_id,nama,kode,warna',
         'diserahkanKe:id,name',
     ];
 
@@ -39,7 +41,8 @@ class LeadController extends Controller
             ->when($client->cabang_id, fn (Builder $builder, int $branch): Builder => $builder->where('cabang_id', $branch))
             ->when(! $client->cabang_id && isset($validated['cabang_id']), fn (Builder $builder): Builder => $builder->where('cabang_id', $validated['cabang_id']))
             ->when($validated['status'] ?? null, fn (Builder $builder, string $status): Builder => $builder->where('status_lead', $status))
-            ->when($validated['sumber'] ?? null, fn (Builder $builder, string $source): Builder => $builder->where('sumber_lead', $source))
+            ->when($validated['sumber_lead_id'] ?? null, fn (Builder $builder, int $source): Builder => $builder->where('sumber_lead_id', $source))
+            ->when($validated['sumber'] ?? null, fn (Builder $builder, string $source): Builder => $builder->whereHas('sumberLeadMaster', fn (Builder $sourceQuery): Builder => $sourceQuery->where('nama', $source)))
             ->when($validated['search'] ?? null, function (Builder $builder, string $search): Builder {
                 $phone = preg_replace('/\D+/', '', $search);
 
@@ -102,6 +105,8 @@ class LeadController extends Controller
         }
 
         $branchId = $client->cabang_id ?: ($data['cabang_id'] ?? null);
+        $sourceId = $data['sumber_lead_id']
+            ?? (isset($data['sumber_lead']) ? SumberLead::findActiveByNameOrCode($data['sumber_lead'])?->getKey() : null);
 
         if ($branchId && ! Cabang::query()->whereKey($branchId)->where('aktif', true)->exists()) {
             return ApiResponse::error($request, 'invalid_branch', 'Cabang yang dipilih tidak aktif atau tidak ditemukan.', 422, ['cabang_id' => ['Cabang tidak valid.']]);
@@ -130,7 +135,7 @@ class LeadController extends Controller
             'kelas_sekolah' => $data['kelas_sekolah'] ?? null,
             'sekolah_id' => $data['sekolah_id'] ?? null,
             'minat_program_id' => $data['minat_program_id'] ?? null,
-            'sumber_lead' => $data['sumber_lead'] ?? null,
+            'sumber_lead_id' => $sourceId,
             'cabang_id' => $branchId,
             'status_lead' => $data['status_lead'] ?? LeadStatus::Cold->value,
             'diinput_oleh_user_id' => $client->user_id,

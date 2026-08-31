@@ -63,7 +63,7 @@ class LeadResource extends Resource
     {
         return parent::getEloquentQuery()
             ->visibleTo(auth()->user())
-            ->with(['cabang', 'sekolah', 'minatProgram', 'diserahkanKe'])
+            ->with(['cabang', 'sekolah', 'minatProgram', 'sumberLeadMaster', 'diserahkanKe'])
             ->withCount(['followups', 'whatsappConversations']);
     }
 

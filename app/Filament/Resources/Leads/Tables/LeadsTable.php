@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\Leads\Tables;
 
-use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Models\Cabang;
 use App\Models\CrmSetting;
 use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
+use App\Models\SumberLead;
 use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -30,7 +30,7 @@ class LeadsTable
                 TextColumn::make('kelas_sekolah')->label('Kelas sekolah')->placeholder('Belum diisi')->searchable()->sortable()->toggleable(),
                 TextColumn::make('sekolah.nama_sekolah')->label('Sekolah')->placeholder('Belum diisi')->searchable()->toggleable(),
                 TextColumn::make('minatProgram.nama_program')->label('Minat program')->placeholder('Belum dipilih')->wrap()->toggleable(),
-                TextColumn::make('sumber_lead')->label('Sumber')->placeholder('Belum diisi')->badge()->color(fn (?string $state): string => LeadSource::color($state))->toggleable(),
+                TextColumn::make('sumberLeadMaster.nama')->label('Sumber')->placeholder('Belum diisi')->badge()->color(fn ($record): string => $record->sumberLeadMaster?->warna ?? 'gray')->toggleable(),
                 TextColumn::make('status_lead')->label('Status')->badge()->color(fn (string $state): string => LeadStatus::color($state)),
                 TextColumn::make('diserahkanKe.name')->label('PIC')->placeholder('Belum ditugaskan')->searchable(),
                 TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess())->toggleable(),
@@ -40,7 +40,7 @@ class LeadsTable
             ])
             ->filters([
                 SelectFilter::make('status_lead')->label('Status')->options(LeadStatus::options()),
-                SelectFilter::make('sumber_lead')->label('Sumber leads')->options(LeadSource::options()),
+                SelectFilter::make('sumber_lead_id')->label('Sumber leads')->options(fn (): array => SumberLead::options()),
                 SelectFilter::make('kota_asal')
                     ->label('Kota asal')
                     ->options(fn (): array => Lead::query()

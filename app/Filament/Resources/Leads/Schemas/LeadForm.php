@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Leads\Schemas;
 
-use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Enums\UserRole;
 use App\Models\Cabang;
@@ -10,6 +9,7 @@ use App\Models\CrmSetting;
 use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
+use App\Models\SumberLead;
 use App\Models\User;
 use App\Rules\UniqueNormalizedLeadPhone;
 use App\Services\Schools\CreateSchoolFromLead;
@@ -91,7 +91,7 @@ class LeadForm
                 ->schema([
                     Select::make('cabang_id')->label('Cabang')->options(Cabang::query()->where('aktif', true)->when(! $user->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($user->cabang_id))->orderBy('nama')->pluck('nama', 'cabang_id'))->default($user->cabang_id)->disabled(! $user->hasGlobalBranchAccess())->dehydrated(),
                     Select::make('diserahkan_ke_user_id')->label('PIC')->options(User::query()->where('aktif', true)->when(! $user->hasGlobalBranchAccess(), fn ($q) => $q->where('cabang_id', $user->cabang_id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->orderBy('name')->pluck('name', 'id'))->default($user->hasRole(UserRole::Staff) ? $user->id : null)->disabled($user->hasRole(UserRole::Staff))->dehydrated()->searchable(),
-                    Select::make('sumber_lead')->label('Sumber leads')->options(LeadSource::options()),
+                    Select::make('sumber_lead_id')->label('Sumber leads')->options(fn (): array => SumberLead::options())->searchable()->preload(),
                     Select::make('status_lead')->label('Status')->options(LeadStatus::options())->default(LeadStatus::Cold->value),
                     DatePicker::make('tanggal_masuk')->label('Tanggal masuk')->default(today())->maxDate(today()),
                     Hidden::make('diinput_oleh_user_id')->default($user->id),

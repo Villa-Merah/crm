@@ -16,7 +16,8 @@ class LeadResource extends JsonResource
             'kota_asal' => $this->kota_asal,
             'kelas_sekolah' => $this->kelas_sekolah,
             'status' => $this->status_lead,
-            'sumber' => $this->sumber_lead,
+            'sumber_lead_id' => $this->sumber_lead_id,
+            'sumber' => $this->whenLoaded('sumberLeadMaster', fn (): ?string => $this->sumberLeadMaster?->nama),
             'tanggal_masuk' => $this->tanggal_masuk?->format('Y-m-d'),
             'cabang' => $this->whenLoaded('cabang', fn (): array => [
                 'id' => $this->cabang?->cabang_id,

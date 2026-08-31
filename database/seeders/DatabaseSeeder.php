@@ -22,12 +22,24 @@ class DatabaseSeeder extends Seeder
         }
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['target_kinerja_user', 'target_kinerja_cabang', 'pembayaran', 'pendaftaran', 'followup_riwayat', 'leads', 'program_bimbel', 'sekolah', 'users', 'cabang'] as $table) {
+        foreach (['target_kinerja_user', 'target_kinerja_cabang', 'pembayaran', 'pendaftaran', 'followup_riwayat', 'leads', 'sumber_leads', 'program_bimbel', 'sekolah', 'users', 'cabang'] as $table) {
             DB::table($table)->truncate();
         }
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         $faker = fake('id_ID');
         $now = now();
+        foreach (LeadSource::cases() as $index => $source) {
+            DB::table('sumber_leads')->insert([
+                'kode' => mb_strtolower($source->value),
+                'nama' => $source->value,
+                'warna' => LeadSource::color($source->value),
+                'urutan' => ($index + 1) * 10,
+                'aktif' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+        $sourceIds = DB::table('sumber_leads')->pluck('sumber_lead_id')->all();
         $cabangs = collect([
             ['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'kota' => 'Bandung', 'alamat' => 'Kota Bandung, Jawa Barat', 'no_telepon' => '0227000001', 'email' => 'bandung@sivmi.test'],
             ['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'kota' => 'Jakarta Selatan', 'alamat' => 'Jakarta Selatan, DKI Jakarta', 'no_telepon' => '0217000002', 'email' => 'jaksel@sivmi.test'],
@@ -71,7 +83,7 @@ class DatabaseSeeder extends Seeder
             $branch = $cabangs->random();
             $owner = $users->where('cabang_id', $branch->cabang_id)->random();
             $date = $faker->dateTimeBetween('-5 months', 'now');
-            $leadId = DB::table('leads')->insertGetId(['nama' => $faker->name(), 'no_wa' => $faker->phoneNumber(), 'kota_asal' => $faker->city(), 'sekolah_id' => random_int(1, 12), 'minat_program_id' => random_int(1, 4), 'sumber_lead' => $faker->randomElement(array_keys(LeadSource::options())), 'cabang_id' => $branch->cabang_id, 'status_lead' => $faker->randomElement(array_keys(LeadStatus::options())), 'diinput_oleh_user_id' => $owner->id, 'diserahkan_ke_user_id' => $owner->id, 'tanggal_masuk' => $date->format('Y-m-d'), 'created_at' => $date, 'updated_at' => $date]);
+            $leadId = DB::table('leads')->insertGetId(['nama' => $faker->name(), 'no_wa' => $faker->phoneNumber(), 'kota_asal' => $faker->city(), 'sekolah_id' => random_int(1, 12), 'minat_program_id' => random_int(1, 4), 'sumber_lead_id' => $faker->randomElement($sourceIds), 'cabang_id' => $branch->cabang_id, 'status_lead' => $faker->randomElement(array_keys(LeadStatus::options())), 'diinput_oleh_user_id' => $owner->id, 'diserahkan_ke_user_id' => $owner->id, 'tanggal_masuk' => $date->format('Y-m-d'), 'created_at' => $date, 'updated_at' => $date]);
             if ($faker->boolean(70)) {
                 DB::table('followup_riwayat')->insert(['lead_id' => $leadId, 'user_id' => $owner->id, 'tanggal_followup' => $date, 'metode_followup' => $faker->randomElement(['WhatsApp', 'Telepon', 'Tatap Muka']), 'status_kontak' => $faker->randomElement(['Terhubung', 'Tidak Terhubung']), 'tanggal_followup_berikutnya' => $faker->boolean(35) ? $faker->dateTimeBetween('now', '+14 days') : null, 'catatan' => 'Tindak lanjut minat program.', 'created_at' => $date, 'updated_at' => $date]);
             }

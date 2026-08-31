@@ -12,13 +12,36 @@ use App\Models\FollowupRiwayat;
 use App\Models\Lead;
 use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
+use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class LeadManagementTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_lead_source_is_stored_as_a_foreign_key_with_legacy_name_compatibility(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $source = SumberLead::query()->where('nama', 'Instagram')->sole();
+
+        $lead = Lead::create([
+            'nama' => 'Lead Instagram',
+            'no_wa' => '081234567898',
+            'sumber_lead' => 'Instagram',
+            'diinput_oleh_user_id' => $admin->getKey(),
+        ]);
+
+        $this->assertFalse(Schema::hasColumn('leads', 'sumber_lead'));
+        $this->assertSame($source->getKey(), $lead->sumber_lead_id);
+        $this->assertSame('Instagram', $lead->sumber_lead);
+        $this->assertDatabaseHas('leads', [
+            'lead_id' => $lead->getKey(),
+            'sumber_lead_id' => $source->getKey(),
+        ]);
+    }
 
     public function test_lead_can_be_created_with_only_name_and_whatsapp_number(): void
     {

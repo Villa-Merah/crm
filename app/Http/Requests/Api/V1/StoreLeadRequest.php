@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Models\CrmSetting;
 use App\Rules\UniqueNormalizedLeadPhone;
@@ -29,7 +28,8 @@ class StoreLeadRequest extends FormRequest
             'cabang_id' => ['nullable', 'integer', 'exists:cabang,cabang_id'],
             'sekolah_id' => ['nullable', 'integer', Rule::exists('sekolah', 'sekolah_id')->where('aktif', true)],
             'minat_program_id' => ['nullable', 'integer', Rule::exists('program_bimbel', 'program_bimbel_id')->where('aktif', true)],
-            'sumber_lead' => ['nullable', Rule::enum(LeadSource::class)],
+            'sumber_lead_id' => ['nullable', 'integer', Rule::exists('sumber_leads', 'sumber_lead_id')->where('aktif', true)],
+            'sumber_lead' => ['nullable', 'string', 'max:100', Rule::exists('sumber_leads', 'nama')->where('aktif', true)],
             'status_lead' => ['sometimes', Rule::enum(LeadStatus::class)],
             'diserahkan_ke_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'tanggal_masuk' => ['sometimes', 'date_format:Y-m-d'],
