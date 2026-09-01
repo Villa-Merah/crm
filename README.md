@@ -2,6 +2,8 @@
 
 CRM bimbingan belajar berbasis Laravel 12, Filament 5, Livewire, dan Tailwind CSS. Sistem mencakup dashboard kinerja, leads dan follow-up, pendaftaran, pembayaran, program bimbel, master data, RBAC per cabang, notifikasi, audit aktivitas, serta inbox WhatsApp melalui WAHA dengan engine GOWS.
 
+Baseline versi 2.1 (1 September 2026) menambahkan pencarian dan persistensi sekolah dari API Sekolah Indonesia, peta persebaran leads berbasis Leaflet/OpenStreetMap, serta pilih banyak dan aksi massal pada daftar Leads. Rincian perubahan dan UAT tambahan tersedia di [docs/PEMBARUAN-VERSI-TERBARU-2026-09-01.md](docs/PEMBARUAN-VERSI-TERBARU-2026-09-01.md).
+
 ## Kebutuhan
 
 - PHP 8.3 atau lebih baru beserta ekstensi Laravel yang diperlukan
@@ -38,7 +40,7 @@ npm run build
 
 Perintah test full Docker memasang `APP_ENV=testing` sebelum Laravel dibootstrap dan menggunakan SQLite in-memory, sehingga database development tidak berubah.
 
-Snapshot verifikasi full Docker terakhir pada 24 Agustus 2026: **72 test dan 448 assertion lulus**.
+Snapshot pengujian fitur terbaru: **20 test dan 155 assertion lulus** untuk integrasi API Sekolah, peta dashboard, resolver kota, dan aksi massal Leads. Quality gate penuh tetap harus dijalankan sebelum rilis produksi.
 
 ## Integrasi WhatsApp WAHA
 

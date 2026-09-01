@@ -7,6 +7,7 @@ Catatan:
 - Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.
 - Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.
 - Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.
+- Baseline 1 September 2026: akuisisi lead mencakup pencarian sekolah dari API, persistensi lokal, aksi massal Leads, dan analitik peta kota pada Dashboard.
 
 01 Akuisisi Lead dan Sekolah/
 └── app/
@@ -49,8 +50,11 @@ Catatan:
     │   └── Sekolah.php
     ├── Services/
     │   └── Schools/
-    │       └── CreateSchoolFromLead.php
+    │       ├── CreateSchoolFromLead.php
+    │       ├── SchoolApiClient.php
+    │       └── SyncSchoolFromApi.php
     └── Support/
+        ├── IndonesiaCityCoordinates.php
         ├── LeadCsvTemplate.php
         ├── PhoneNormalizer.php
         └── SekolahCsvTemplate.php

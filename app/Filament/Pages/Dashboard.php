@@ -11,6 +11,7 @@ use App\Support\IndonesiaCityCoordinates;
 use Filament\Pages\Page;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Attributes\Url;
 use Throwable;
 
@@ -310,23 +311,36 @@ class Dashboard extends Page
             'label' => $status->value,
             'total' => (int) ($leadFunnelCounts[$status->value] ?? 0),
         ]);
-        $sourceLeads = (clone $leads)
-            ->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id')
-            ->selectRaw("COALESCE(sumber_leads.nama, 'Belum diisi') sumber, COUNT(*) total")
-            ->groupBy('leads.sumber_lead_id', 'sumber_leads.nama')
+        $usesNormalizedLeadSources = Schema::hasTable('sumber_leads')
+            && Schema::hasColumn('leads', 'sumber_lead_id');
+        $sourceColumn = $usesNormalizedLeadSources ? 'sumber_leads.nama' : 'leads.sumber_lead';
+        $sourceGroupColumns = $usesNormalizedLeadSources
+            ? ['leads.sumber_lead_id', 'sumber_leads.nama']
+            : ['leads.sumber_lead'];
+        $sourceLeads = clone $leads;
+        $sourceRegistrations = (clone $registrations)
+            ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id');
+        $sourceRevenue = (clone $payments)
+            ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id');
+
+        if ($usesNormalizedLeadSources) {
+            $sourceLeads->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
+            $sourceRegistrations->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
+            $sourceRevenue->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
+        }
+
+        $sourceLeads = $sourceLeads
+            ->selectRaw("COALESCE({$sourceColumn}, 'Belum diisi') sumber, COUNT(*) total")
+            ->groupBy(...$sourceGroupColumns)
             ->orderByDesc('total')
             ->get();
-        $sourceRegistrations = (clone $registrations)
-            ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id')
-            ->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id')
-            ->selectRaw("COALESCE(sumber_leads.nama, 'Belum diisi') sumber, COUNT(*) total")
-            ->groupBy('leads.sumber_lead_id', 'sumber_leads.nama')
+        $sourceRegistrations = $sourceRegistrations
+            ->selectRaw("COALESCE({$sourceColumn}, 'Belum diisi') sumber, COUNT(*) total")
+            ->groupBy(...$sourceGroupColumns)
             ->pluck('total', 'sumber');
-        $sourceRevenue = (clone $payments)
-            ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id')
-            ->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id')
-            ->selectRaw("COALESCE(sumber_leads.nama, 'Belum diisi') sumber, COALESCE(SUM(pembayaran.nominal), 0) total")
-            ->groupBy('leads.sumber_lead_id', 'sumber_leads.nama')
+        $sourceRevenue = $sourceRevenue
+            ->selectRaw("COALESCE({$sourceColumn}, 'Belum diisi') sumber, COALESCE(SUM(pembayaran.nominal), 0) total")
+            ->groupBy(...$sourceGroupColumns)
             ->pluck('total', 'sumber');
         $leadSources = $sourceLeads->map(function (object $source) use ($sourceRegistrations, $sourceRevenue): object {
             $source->total = (int) $source->total;

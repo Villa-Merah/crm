@@ -4,6 +4,7 @@ STRUKTUR FOLDER DAN FILE SIVMI CRM
 Cakupan:
 - Source aplikasi Laravel, Filament, Livewire, Tailwind, REST API, dan WAHA.
 - Konfigurasi, migration, seeder, test, Docker, resource, route, dan entry point.
+- Baseline struktur diperbarui 1 September 2026 untuk API Sekolah, resolver koordinat kota, dan aksi massal Leads.
 
 Tidak dicantumkan:
 - Folder docs dan seluruh file dokumentasi (.md, .doc, .docx, .pdf).

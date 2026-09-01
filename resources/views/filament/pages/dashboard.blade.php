@@ -272,7 +272,7 @@
                             attributionControl: true,
                         }).setView([-2.5, 118], 5)
 
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             maxZoom: 18,
                             attribution: '&copy; OpenStreetMap contributors',
                         }).addTo(this.map)
@@ -394,6 +394,6 @@
 </x-filament-panels::page>
 
 @assets
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}?v=1.9.4">
+    <script src="{{ asset('vendor/leaflet/leaflet.js') }}?v=1.9.4" data-cfasync="false"></script>
 @endassets

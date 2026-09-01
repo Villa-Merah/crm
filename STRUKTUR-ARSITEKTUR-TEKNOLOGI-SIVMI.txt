@@ -7,6 +7,7 @@ Catatan:
 - Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.
 - Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.
 - Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.
+- Dependency eksternal baseline 2 September 2026: API Sekolah Indonesia melalui HTTPS, Leaflet 1.9.4 yang disajikan dari aset lokal aplikasi, dan tile OpenStreetMap untuk peta dashboard.
 
 01 Client dan Front-End Build/
 ├── .npmrc

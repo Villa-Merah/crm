@@ -137,7 +137,11 @@ class DashboardTest extends TestCase
             ->assertSee('Top 5 wilayah/kota')
             ->assertSee('Peta persebaran leads')
             ->assertSee('Cakupan seluruh leads')
-            ->assertSee('leaflet@1.9.4', false)
+            ->assertSee('/vendor/leaflet/leaflet.css?v=1.9.4', false)
+            ->assertSee('/vendor/leaflet/leaflet.js?v=1.9.4', false)
+            ->assertSee('data-cfasync="false"', false)
+            ->assertSee('https://tile.openstreetmap.org/{z}/{x}/{y}.png', false)
+            ->assertDontSee('unpkg.com/leaflet', false)
             ->assertSee('SMA Prestasi Bandung')
             ->assertSee('SMP Harapan Cimahi')
             ->assertSee('Bandung')
@@ -165,6 +169,14 @@ class DashboardTest extends TestCase
             ->assertSee('2 terpetakan')
             ->assertSee('66.7%')
             ->assertSee('1 leads belum memiliki kota asal maupun kota sekolah.');
+    }
+
+    public function test_leaflet_distribution_is_available_locally(): void
+    {
+        $this->assertFileExists(public_path('vendor/leaflet/leaflet.css'));
+        $this->assertFileExists(public_path('vendor/leaflet/leaflet.js'));
+        $this->assertFileExists(public_path('vendor/leaflet/images/marker-icon.png'));
+        $this->assertFileExists(public_path('vendor/leaflet/LICENSE'));
     }
 
     private function leadData(Cabang $branch, User $user, string $name, $date = null): array

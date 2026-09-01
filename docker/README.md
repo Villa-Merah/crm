@@ -12,6 +12,8 @@ dalam mode development.
 Panduan konfigurasi session, API key, webhook, QR, dan troubleshooting WAHA
 tersedia di `docs/PANDUAN-KONFIGURASI-WAHA.md`.
 
+Baseline versi 2.1 juga memerlukan akses keluar HTTPS menuju API Sekolah Indonesia dan tile OpenStreetMap. Library Leaflet disajikan dari `public/vendor/leaflet`, sehingga tidak bergantung pada CDN. Konfigurasi `SCHOOL_API_*` harus tersedia pada `docker/.env`; ringkasan lengkap berada di `docs/PEMBARUAN-VERSI-TERBARU-2026-09-01.md`.
+
 Untuk skenario Laravel sudah berada di shared hosting tetapi WAHA/GOWS tetap
 berjalan pada Docker lokal melalui Cloudflare Tunnel, gunakan runbook
 `docs/PANDUAN-WAHA-SETELAH-DEPLOY-SHARED-HOSTING.md`.
