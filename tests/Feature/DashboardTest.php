@@ -171,6 +171,24 @@ class DashboardTest extends TestCase
             ->assertSee('1 leads belum memiliki kota asal maupun kota sekolah.');
     }
 
+    public function test_location_map_combines_the_same_effective_city_from_different_schools(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $bandungSchool = Sekolah::create(['nama_sekolah' => 'Sekolah Bandung', 'kota' => 'Bandung', 'aktif' => true]);
+        $cimahiSchool = Sekolah::create(['nama_sekolah' => 'Sekolah Cimahi', 'kota' => 'Cimahi', 'aktif' => true]);
+
+        Lead::create([...$this->leadData($branch, $staff, 'Lead Bandung sekolah Bandung'), 'kota_asal' => 'Bandung', 'sekolah_id' => $bandungSchool->sekolah_id]);
+        Lead::create([...$this->leadData($branch, $staff, 'Lead Bandung sekolah Cimahi'), 'kota_asal' => 'Bandung', 'sekolah_id' => $cimahiSchool->sekolah_id]);
+
+        $this->actingAs($admin)->get('/admin/dashboard?cabang='.$branch->cabang_id.'&tahun='.now()->year.'&bulan='.now()->month)
+            ->assertOk()
+            ->assertSee('Bandung · 2')
+            ->assertSee('2 terpetakan')
+            ->assertSee('100%');
+    }
+
     public function test_leaflet_distribution_is_available_locally(): void
     {
         $this->assertFileExists(public_path('vendor/leaflet/leaflet.css'));

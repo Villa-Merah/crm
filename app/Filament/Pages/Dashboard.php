@@ -267,14 +267,17 @@ class Dashboard extends Page
             ->limit(5)
             ->get();
         $cityExpression = "COALESCE(NULLIF(TRIM(leads.kota_asal), ''), NULLIF(TRIM(sekolah.kota), ''))";
-        $cityRows = (clone $leads)
+        $leadLocations = (clone $leads)
             ->leftJoin('sekolah', 'sekolah.sekolah_id', '=', 'leads.sekolah_id')
-            ->whereRaw("{$cityExpression} IS NOT NULL")
-            ->groupByRaw($cityExpression)
-            ->selectRaw("{$cityExpression} kota")
-            ->selectRaw('COUNT(leads.lead_id) total')
+            ->selectRaw("leads.lead_id, {$cityExpression} kota");
+        $cityRows = DB::query()
+            ->fromSub($leadLocations, 'lead_locations')
+            ->whereNotNull('kota')
+            ->groupBy('kota')
+            ->select('kota')
+            ->selectRaw('COUNT(lead_id) total')
             ->orderByDesc('total')
-            ->orderByRaw($cityExpression)
+            ->orderBy('kota')
             ->get();
         $topCities = $cityRows->take(5);
         $leadMapPoints = $cityRows
