@@ -43,4 +43,12 @@ return [
         'timeout' => (int) env('WAHA_TIMEOUT', 15),
     ],
 
+    'school_api' => [
+        'enabled' => (bool) env('SCHOOL_API_ENABLED', true),
+        'base_url' => env('SCHOOL_API_URL', 'https://sekolah.devapi.id/sekolah'),
+        'timeout' => (int) env('SCHOOL_API_TIMEOUT', 5),
+        'cache_ttl' => (int) env('SCHOOL_API_CACHE_TTL', 86400),
+        'result_limit' => (int) env('SCHOOL_API_RESULT_LIMIT', 20),
+    ],
+
 ];

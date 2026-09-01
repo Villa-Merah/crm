@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Leads\Schemas;
 
 use App\Enums\LeadStatus;
 use App\Enums\UserRole;
+use App\Filament\Support\SchoolApiActions;
 use App\Models\Cabang;
 use App\Models\CrmSetting;
 use App\Models\Lead;
@@ -18,6 +19,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -72,9 +74,9 @@ class LeadForm
                                 ->maxLength(190),
                             TextInput::make('npsn')
                                 ->label('NPSN')
-                                ->helperText('Opsional. Jika diisi, gunakan 8 digit.')
+                                ->helperText('Opsional. Jika diisi, gunakan 8 karakter huruf/angka.')
                                 ->length(8)
-                                ->regex('/^\d{8}$/')
+                                ->regex('/^[A-Za-z0-9]{8}$/')
                                 ->unique(Sekolah::class, 'npsn'),
                             TextInput::make('kota')
                                 ->label('Kota/Kabupaten')
@@ -84,6 +86,8 @@ class LeadForm
                                 ->maxLength(100),
                         ])
                         ->createOptionUsing(fn (array $data): int => app(CreateSchoolFromLead::class)->create($data)->getKey()),
+                    Actions::make([SchoolApiActions::selectSchoolForLead()])
+                        ->columnSpanFull(),
                     Select::make('minat_program_id')->label('Program yang diminati')->options(ProgramBimbel::query()->where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable()->preload(),
                 ]),
             Section::make('Penanganan lead')

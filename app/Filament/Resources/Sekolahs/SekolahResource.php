@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\Sekolahs;
 
-use App\Enums\UserRole;
 use App\Enums\SchoolGrade;
+use App\Enums\UserRole;
 use App\Filament\Resources\Sekolahs\Pages\CreateSekolah;
 use App\Filament\Resources\Sekolahs\Pages\EditSekolah;
 use App\Filament\Resources\Sekolahs\Pages\ListSekolahs;
+use App\Filament\Support\SchoolApiActions;
 use App\Models\Sekolah;
 use BackedEnum;
 use Filament\Actions\BulkAction;
@@ -14,11 +15,13 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -33,21 +36,36 @@ use Illuminate\Database\Eloquent\Model;
 class SekolahResource extends Resource
 {
     protected static ?string $model = Sekolah::class;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
+
     protected static string|\UnitEnum|null $navigationGroup = 'MASTER DATA';
+
     protected static ?string $navigationLabel = 'Sekolah';
+
     protected static ?string $pluralModelLabel = 'Sekolah';
+
     protected static ?string $modelLabel = 'sekolah';
+
     protected static ?string $slug = 'sekolah';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            Section::make('Pencarian data resmi')
+                ->description('Cari berdasarkan nama atau NPSN. Data yang dipilih akan mengisi form dan tetap disimpan di database CRM.')
+                ->schema([
+                    Actions::make([SchoolApiActions::fillSchoolForm()])->fullWidth(),
+                ])
+                ->visible(fn (): bool => (bool) config('services.school_api.enabled')),
             Section::make('Identitas sekolah')->columns(['default' => 1, 'md' => 2])->schema([
-                TextInput::make('npsn')->label('NPSN')->helperText('Opsional. Jika diisi, gunakan 8 digit NPSN.')->length(8)->regex('/^\d{8}$/')->unique(ignoreRecord: true),
+                TextInput::make('npsn')->label('NPSN')->helperText('Opsional. Gunakan 8 karakter huruf/angka sesuai data resmi.')->length(8)->regex('/^[A-Za-z0-9]{8}$/')->unique(ignoreRecord: true),
                 TextInput::make('nama_sekolah')->label('Nama sekolah')->required()->maxLength(200),
                 Select::make('status_sekolah')->label('Status sekolah')->options(['Negeri' => 'Negeri', 'Swasta' => 'Swasta', 'Lainnya' => 'Lainnya'])->default('Lainnya'),
+                TextInput::make('bentuk_pendidikan')->label('Bentuk pendidikan')->maxLength(50)->placeholder('Contoh: SMA, SMP, PKBM'),
+                TextInput::make('akreditasi')->label('Akreditasi')->maxLength(20),
                 Select::make('kluster_sekolah')
                     ->label('Kluster sekolah')
                     ->options(SchoolGrade::options())
@@ -55,11 +73,14 @@ class SekolahResource extends Resource
                     ->live()
                     ->placeholder('Belum ditentukan'),
                 Toggle::make('aktif')->label('Sekolah aktif')->default(true),
+                Hidden::make('sumber_data')->default('manual'),
+                Hidden::make('api_last_synced_at'),
             ]),
             Section::make('Lokasi')->columns(['default' => 1, 'md' => 2])->schema([
                 TextInput::make('kecamatan')->label('Kecamatan')->maxLength(100),
                 TextInput::make('kota')->label('Kota/Kabupaten')->maxLength(100),
                 TextInput::make('provinsi')->label('Provinsi')->maxLength(100),
+                TextInput::make('kode_wilayah')->label('Kode wilayah')->maxLength(20),
                 Textarea::make('alamat')->label('Alamat')->rows(3)->columnSpanFull(),
             ]),
         ]);
@@ -71,10 +92,13 @@ class SekolahResource extends Resource
             TextColumn::make('npsn')->label('NPSN')->placeholder('-')->searchable()->toggleable(),
             TextColumn::make('nama_sekolah')->label('Sekolah')->weight('semibold')->searchable()->sortable(),
             TextColumn::make('status_sekolah')->label('Status')->badge()->color(fn (string $state) => $state === 'Negeri' ? 'info' : ($state === 'Swasta' ? 'warning' : 'gray')),
+            TextColumn::make('bentuk_pendidikan')->label('Bentuk')->placeholder('-')->toggleable(),
+            TextColumn::make('akreditasi')->label('Akreditasi')->placeholder('-')->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('kota')->label('Kota/Kabupaten')->searchable()->sortable(),
             TextColumn::make('kluster_sekolah')->label('Kluster')->badge()->color(fn (?string $state): string => SchoolGrade::tryFrom($state)?->color() ?? 'gray')->placeholder('-'),
             TextColumn::make('leads_count')->counts('leads')->label('Leads')->badge()->color('primary'),
             IconColumn::make('aktif')->label('Aktif')->boolean(),
+            TextColumn::make('sumber_data')->label('Sumber')->badge()->formatStateUsing(fn (?string $state): string => $state === 'api-sekolah' ? 'API' : 'Manual')->toggleable(isToggledHiddenByDefault: true),
         ])->filters([
             SelectFilter::make('status_sekolah')->label('Status')->options(['Negeri' => 'Negeri', 'Swasta' => 'Swasta', 'Lainnya' => 'Lainnya']),
             SelectFilter::make('kluster_sekolah')->label('Kluster')->options(SchoolGrade::options()),

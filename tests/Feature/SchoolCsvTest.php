@@ -55,6 +55,16 @@ class SchoolCsvTest extends TestCase
         $this->assertSame('SMA Nusantara Utama', $school->nama_sekolah);
     }
 
+    public function test_import_accepts_an_alphanumeric_npsn(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::AdminCabang, 'aktif' => true]);
+        $importer = new SekolahImporter($this->importFor($admin), $this->columnMap(), []);
+
+        $importer($this->row(['npsn' => 'p9984383', 'nama_sekolah' => 'PKBM Madani']));
+
+        $this->assertDatabaseHas('sekolah', ['npsn' => 'P9984383', 'nama_sekolah' => 'PKBM Madani']);
+    }
+
     public function test_import_validates_npsn_and_rejects_read_only_role(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
@@ -110,6 +120,7 @@ class SchoolCsvTest extends TestCase
 
         $admin = User::factory()->create(['role' => UserRole::AdminCabang, 'aktif' => true]);
         $this->actingAs($admin)->get('/admin/sekolah')->assertOk()->assertSee('Contoh CSV')->assertSee('Impor CSV')->assertSee('Ekspor CSV');
+        $this->actingAs($admin)->get('/admin/sekolah/create')->assertOk()->assertSee('Cari dari API Sekolah Indonesia');
 
         $direksi = User::factory()->create(['role' => UserRole::Direksi, 'aktif' => true]);
         $this->actingAs($direksi)->get('/admin/sekolah')->assertOk()->assertSee('Contoh CSV')->assertDontSee('Impor CSV')->assertSee('Ekspor CSV');

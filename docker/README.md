@@ -12,6 +12,10 @@ dalam mode development.
 Panduan konfigurasi session, API key, webhook, QR, dan troubleshooting WAHA
 tersedia di `docs/PANDUAN-KONFIGURASI-WAHA.md`.
 
+Untuk skenario Laravel sudah berada di shared hosting tetapi WAHA/GOWS tetap
+berjalan pada Docker lokal melalui Cloudflare Tunnel, gunakan runbook
+`docs/PANDUAN-WAHA-SETELAH-DEPLOY-SHARED-HOSTING.md`.
+
 ## Menjalankan aplikasi
 
 Cara yang direkomendasikan pada Windows PowerShell 5.1 maupun PowerShell 7:

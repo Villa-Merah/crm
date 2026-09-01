@@ -29,6 +29,24 @@ class CreateSchoolFromLeadTest extends TestCase
         $this->assertTrue($school->aktif);
     }
 
+    public function test_it_accepts_and_normalizes_an_alphanumeric_npsn(): void
+    {
+        $school = app(CreateSchoolFromLead::class)->create([
+            'nama_sekolah_baru' => 'PKBM Madani',
+            'npsn' => 'p9984383',
+        ]);
+
+        $this->assertSame('P9984383', $school->npsn);
+
+        $sameSchool = app(CreateSchoolFromLead::class)->create([
+            'nama_sekolah_baru' => 'PKBM Madani Baru',
+            'npsn' => 'P9984383',
+        ]);
+
+        $this->assertTrue($school->is($sameSchool));
+        $this->assertSame(1, Sekolah::where('npsn', 'P9984383')->count());
+    }
+
     public function test_it_creates_a_school_with_a_normalized_supported_prefix(): void
     {
         $school = app(CreateSchoolFromLead::class)->create([
@@ -116,6 +134,7 @@ class CreateSchoolFromLeadTest extends TestCase
 
         $component = Livewire::actingAs($staff)
             ->test(CreateLead::class)
+            ->assertSee('Cari dari API Sekolah Indonesia')
             ->assertFormComponentActionExists('sekolah_id', 'createOption')
             ->mountFormComponentAction('sekolah_id', 'createOption')
             ->set('mountedActions.0.data', [

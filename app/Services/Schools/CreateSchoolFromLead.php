@@ -37,14 +37,19 @@ class CreateSchoolFromLead
         $city = filled($data['kota'] ?? null)
             ? Str::title(Str::squish((string) $data['kota']))
             : null;
-        $existing = Sekolah::query()
-            ->whereRaw('UPPER(TRIM(nama_sekolah)) = ?', [$fullName])
-            ->when(
-                $city,
-                fn ($query) => $query->whereRaw('UPPER(TRIM(kota)) = ?', [Str::upper($city)]),
-                fn ($query) => $query->whereNull('kota'),
-            )
-            ->first();
+        $npsn = filled($data['npsn'] ?? null)
+            ? Str::upper(trim((string) $data['npsn']))
+            : null;
+        $existing = $npsn
+            ? Sekolah::query()->where('npsn', $npsn)->first()
+            : Sekolah::query()
+                ->whereRaw('UPPER(TRIM(nama_sekolah)) = ?', [$fullName])
+                ->when(
+                    $city,
+                    fn ($query) => $query->whereRaw('UPPER(TRIM(kota)) = ?', [Str::upper($city)]),
+                    fn ($query) => $query->whereNull('kota'),
+                )
+                ->first();
 
         if ($existing) {
             if (! $existing->aktif) {
@@ -56,7 +61,7 @@ class CreateSchoolFromLead
 
         return Sekolah::create([
             'nama_sekolah' => $fullName,
-            'npsn' => filled($data['npsn'] ?? null) ? trim((string) $data['npsn']) : null,
+            'npsn' => $npsn,
             'status_sekolah' => $prefix?->schoolStatus() ?? $this->inferSchoolStatus($fullName),
             'kota' => $city,
             'provinsi' => filled($data['provinsi'] ?? null) ? Str::title(Str::squish((string) $data['provinsi'])) : null,
