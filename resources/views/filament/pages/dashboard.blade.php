@@ -247,29 +247,117 @@
                 </div>
             </div>
 
-            <div class="dashboard-card p-5 md:p-6">
-                <div class="flex items-start justify-between gap-3">
-                    <div><h3 class="font-bold text-slate-900">Top 5 wilayah/kota</h3><p class="mt-1 text-xs text-slate-500">Asal sekolah leads terbanyak pada periode terpilih</p></div>
-                    <div class="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><x-heroicon-o-map-pin class="h-5 w-5" /></div>
+            <div
+                class="dashboard-card overflow-hidden"
+                wire:key="lead-location-map-{{ md5($leadMapPoints->toJson()) }}"
+                data-points="{{ $leadMapPoints->toJson() }}"
+                x-data="{
+                    map: null,
+                    points: [],
+                    loadFailed: false,
+                    async init() {
+                        this.points = JSON.parse(this.$el.dataset.points || '[]')
+                        for (let attempt = 0; attempt < 80 && !window.L; attempt++) {
+                            await new Promise((resolve) => setTimeout(resolve, 100))
+                        }
+                        if (!window.L) {
+                            this.loadFailed = true
+                            return
+                        }
+                        if (!this.$refs.map || this.map || this.points.length === 0) return
+
+                        this.map = L.map(this.$refs.map, {
+                            scrollWheelZoom: false,
+                            zoomControl: true,
+                            attributionControl: true,
+                        }).setView([-2.5, 118], 5)
+
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 18,
+                            attribution: '&copy; OpenStreetMap contributors',
+                        }).addTo(this.map)
+
+                        const bounds = []
+                        this.points.forEach((point) => {
+                            const radius = Math.min(28, 7 + Math.sqrt(point.total) * 3)
+                            const marker = L.circleMarker([point.latitude, point.longitude], {
+                                radius,
+                                color: '#047857',
+                                weight: 2,
+                                fillColor: '#10b981',
+                                fillOpacity: 0.72,
+                            }).addTo(this.map)
+
+                            const popup = document.createElement('div')
+                            const city = document.createElement('strong')
+                            const metric = document.createElement('p')
+                            city.textContent = point.city
+                            metric.textContent = new Intl.NumberFormat('id-ID').format(point.total) + ' leads'
+                            metric.style.margin = '4px 0 0'
+                            popup.append(city, metric)
+                            marker.bindPopup(popup)
+
+                            const tooltip = document.createElement('span')
+                            tooltip.textContent = point.city + ': ' + new Intl.NumberFormat('id-ID').format(point.total)
+                            marker.bindTooltip(tooltip)
+                            bounds.push([point.latitude, point.longitude])
+                        })
+
+                        if (bounds.length === 1) this.map.setView(bounds[0], 9)
+                        if (bounds.length > 1) this.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 9 })
+                        setTimeout(() => this.map?.invalidateSize(), 150)
+                    },
+                    destroy() {
+                        this.map?.remove()
+                        this.map = null
+                    },
+                }"
+            >
+                <div class="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-start sm:justify-between md:px-6">
+                    <div>
+                        <h3 class="font-bold text-slate-900">Peta persebaran leads</h3>
+                        <p class="mt-1 text-xs text-slate-500">Kota asal lead; kota sekolah digunakan jika kota asal belum diisi</p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{{ number_format($mappedLeadCount, 0, ',', '.') }} terpetakan</span>
+                        <div class="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><x-heroicon-o-map-pin class="h-5 w-5" /></div>
+                    </div>
                 </div>
-                <div class="mt-5 space-y-4">
-                    @forelse($topCities as $city)
-                        @php
-                            $cityPct = $stats['leads'] > 0 ? round($city->total / $stats['leads'] * 100) : 0;
-                        @endphp
-                        <div>
-                            <div class="mb-2 flex items-center gap-3">
-                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $loop->first ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-700' }} text-xs font-bold">{{ $loop->iteration }}</span>
-                                <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700" title="{{ $city->kota }}">{{ $city->kota }}</span>
-                                <span class="text-xs text-slate-400">{{ $cityPct }}%</span>
-                                <b class="w-16 text-right text-sm text-slate-800">{{ number_format($city->total, 0, ',', '.') }}</b>
-                            </div>
-                            <div class="ml-11 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ max(2, $cityPct) }}%"></div></div>
+
+                @if($leadMapPoints->isNotEmpty())
+                    <div class="relative">
+                        <div wire:ignore x-ref="map" class="w-full bg-slate-100" style="height: 360px; min-height: 360px; isolation: isolate" role="img" aria-label="Peta jumlah leads berdasarkan kota"></div>
+                        <div x-cloak x-show="loadFailed" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50 p-8 text-center">
+                            <x-heroicon-o-globe-alt class="h-10 w-10 text-slate-300"/>
+                            <p class="mt-3 font-semibold text-slate-600">Layanan peta belum dapat dimuat</p>
+                            <p class="mt-1 max-w-sm text-xs leading-5 text-slate-400">Data lokasi tetap tersedia. Periksa akses browser ke CDN Leaflet dan tile OpenStreetMap.</p>
                         </div>
-                    @empty
-                        <div class="flex min-h-56 flex-col items-center justify-center rounded-xl bg-slate-50 text-center"><x-heroicon-o-map-pin class="h-9 w-9 text-slate-300"/><p class="mt-3 font-semibold text-slate-600">Belum ada data wilayah</p><p class="mt-1 text-xs text-slate-400">Kota atau kabupaten asal sekolah belum tersedia.</p></div>
-                    @endforelse
-                </div>
+                    </div>
+                    <div class="border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-[11px] text-slate-500 md:px-6">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span>Ukuran lingkaran menunjukkan jumlah leads pada filter aktif.</span>
+                            <span>Cakupan seluruh leads: <b class="text-slate-700">{{ $mapCoverage }}%</b></span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap items-center gap-2" aria-label="Top 5 wilayah atau kota">
+                            <span class="font-bold text-slate-600">Top 5 wilayah/kota:</span>
+                            @foreach($topCities as $city)
+                                <span class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">{{ $city->kota }} · {{ number_format($city->total, 0, ',', '.') }}</span>
+                            @endforeach
+                        </div>
+                        @if($unlocatedLeadCount > 0)
+                            <p class="mt-2 text-slate-500">{{ number_format($unlocatedLeadCount, 0, ',', '.') }} leads belum memiliki kota asal maupun kota sekolah.</p>
+                        @endif
+                        @if($unmappedCities->isNotEmpty())
+                            <p class="mt-2 text-amber-700">Belum dikenali: {{ $unmappedCities->take(4)->join(', ') }}{{ $unmappedCities->count() > 4 ? ' dan '.($unmappedCities->count() - 4).' wilayah lainnya' : '' }}.</p>
+                        @endif
+                    </div>
+                @else
+                    <div class="flex min-h-[360px] flex-col items-center justify-center bg-slate-50 p-8 text-center">
+                        <x-heroicon-o-map-pin class="h-10 w-10 text-slate-300"/>
+                        <p class="mt-3 font-semibold text-slate-600">Belum ada lokasi yang dapat dipetakan</p>
+                        <p class="mt-1 max-w-sm text-xs leading-5 text-slate-400">Isi kota asal lead atau kota sekolah, kemudian pilih periode yang memiliki data.</p>
+                    </div>
+                @endif
             </div>
         </section>
 
@@ -304,3 +392,8 @@
         </section>
     </div>
 </x-filament-panels::page>
+
+@assets
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+@endassets

@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Models\Cabang;
 use App\Models\CrmSetting;
 use App\Models\User;
+use App\Support\IndonesiaCityCoordinates;
 use Filament\Pages\Page;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -264,17 +265,43 @@ class Dashboard extends Page
             ->orderBy('sekolah.nama_sekolah')
             ->limit(5)
             ->get();
-        $topCities = (clone $leads)
-            ->join('sekolah', 'sekolah.sekolah_id', '=', 'leads.sekolah_id')
-            ->whereNotNull('sekolah.kota')
-            ->where('sekolah.kota', '<>', '')
-            ->groupBy('sekolah.kota')
-            ->select('sekolah.kota')
+        $cityExpression = "COALESCE(NULLIF(TRIM(leads.kota_asal), ''), NULLIF(TRIM(sekolah.kota), ''))";
+        $cityRows = (clone $leads)
+            ->leftJoin('sekolah', 'sekolah.sekolah_id', '=', 'leads.sekolah_id')
+            ->whereRaw("{$cityExpression} IS NOT NULL")
+            ->groupByRaw($cityExpression)
+            ->selectRaw("{$cityExpression} kota")
             ->selectRaw('COUNT(leads.lead_id) total')
             ->orderByDesc('total')
-            ->orderBy('sekolah.kota')
-            ->limit(5)
+            ->orderByRaw($cityExpression)
             ->get();
+        $topCities = $cityRows->take(5);
+        $leadMapPoints = $cityRows
+            ->map(function (object $row): ?array {
+                $coordinates = IndonesiaCityCoordinates::find($row->kota);
+
+                if (! $coordinates) {
+                    return null;
+                }
+
+                return [
+                    'city' => (string) $row->kota,
+                    'latitude' => $coordinates['latitude'],
+                    'longitude' => $coordinates['longitude'],
+                    'total' => (int) $row->total,
+                ];
+            })
+            ->filter()
+            ->values();
+        $mappedLeadCount = (int) $leadMapPoints->sum('total');
+        $locatedLeadCount = (int) $cityRows->sum('total');
+        $totalLeadCountForMap = (int) (clone $leads)->count();
+        $mapCoverage = $totalLeadCountForMap > 0 ? round($mappedLeadCount / $totalLeadCountForMap * 100, 1) : 0;
+        $unlocatedLeadCount = max(0, $totalLeadCountForMap - $locatedLeadCount);
+        $unmappedCities = $cityRows
+            ->reject(fn (object $row): bool => IndonesiaCityCoordinates::find($row->kota) !== null)
+            ->pluck('kota')
+            ->values();
         $leadFunnelCounts = (clone $leads)
             ->selectRaw('status_lead, COUNT(*) total')
             ->groupBy('status_lead')
@@ -352,7 +379,7 @@ class Dashboard extends Page
             $pendingPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
 
-        return ['branches' => Cabang::where('aktif', true)->when(! $viewer->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($viewer->cabang_id))->orderBy('nama')->get(), 'users' => User::when($this->cabang, fn ($q) => $q->where('cabang_id', $this->cabang))->when($viewer->hasRole(UserRole::Staff), fn ($q) => $q->whereKey($viewer->id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->where('aktif', true)->orderBy('name')->get(), 'dashboardTagline' => CrmSetting::getValue('dashboard_tagline'), 'stats' => $stats, 'previousStats' => $previousStats, 'comparisons' => $comparisons, 'target' => $target, 'targetPace' => $targetPace, 'ranking' => $ranking, 'activities' => $activities, 'days' => $periods, 'trendLeads' => collect($periods)->map(fn ($period) => $trendLeads[$period] ?? 0), 'trendRegs' => collect($periods)->map(fn ($period) => $trendRegs[$period] ?? 0), 'leadFunnel' => $leadFunnel, 'leadSources' => $leadSources, 'programLeadKpis' => $programLeadKpis, 'programLeadDimensions' => $programLeadDimensions, 'topSchools' => $topSchools, 'topCities' => $topCities, 'pending' => ['followup' => (clone $followups)->whereNotNull('tanggal_followup_berikutnya')->where('tanggal_followup_berikutnya', '<=', now())->count(), 'payments' => $pendingPayments->count(), 'new_leads' => (clone $leads)->where('status_lead', LeadStatus::Cold->value)->count()]];
+        return ['branches' => Cabang::where('aktif', true)->when(! $viewer->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($viewer->cabang_id))->orderBy('nama')->get(), 'users' => User::when($this->cabang, fn ($q) => $q->where('cabang_id', $this->cabang))->when($viewer->hasRole(UserRole::Staff), fn ($q) => $q->whereKey($viewer->id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->where('aktif', true)->orderBy('name')->get(), 'dashboardTagline' => CrmSetting::getValue('dashboard_tagline'), 'stats' => $stats, 'previousStats' => $previousStats, 'comparisons' => $comparisons, 'target' => $target, 'targetPace' => $targetPace, 'ranking' => $ranking, 'activities' => $activities, 'days' => $periods, 'trendLeads' => collect($periods)->map(fn ($period) => $trendLeads[$period] ?? 0), 'trendRegs' => collect($periods)->map(fn ($period) => $trendRegs[$period] ?? 0), 'leadFunnel' => $leadFunnel, 'leadSources' => $leadSources, 'programLeadKpis' => $programLeadKpis, 'programLeadDimensions' => $programLeadDimensions, 'topSchools' => $topSchools, 'topCities' => $topCities, 'leadMapPoints' => $leadMapPoints, 'mappedLeadCount' => $mappedLeadCount, 'locatedLeadCount' => $locatedLeadCount, 'mapCoverage' => $mapCoverage, 'unlocatedLeadCount' => $unlocatedLeadCount, 'unmappedCities' => $unmappedCities, 'pending' => ['followup' => (clone $followups)->whereNotNull('tanggal_followup_berikutnya')->where('tanggal_followup_berikutnya', '<=', now())->count(), 'payments' => $pendingPayments->count(), 'new_leads' => (clone $leads)->where('status_lead', LeadStatus::Cold->value)->count()]];
     }
 
     private function emptyDashboardData(): array
@@ -397,6 +424,12 @@ class Dashboard extends Page
             ]),
             'topSchools' => collect(),
             'topCities' => collect(),
+            'leadMapPoints' => collect(),
+            'mappedLeadCount' => 0,
+            'locatedLeadCount' => 0,
+            'mapCoverage' => 0,
+            'unlocatedLeadCount' => 0,
+            'unmappedCities' => collect(),
             'pending' => ['followup' => 0, 'payments' => 0, 'new_leads' => 0],
         ];
     }

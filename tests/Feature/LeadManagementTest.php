@@ -7,15 +7,18 @@ use App\Enums\LeadStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\FollowupRiwayats\FollowupRiwayatResource;
 use App\Filament\Resources\Leads\LeadResource;
+use App\Filament\Resources\Leads\Pages\ListLeads;
 use App\Models\Cabang;
 use App\Models\FollowupRiwayat;
 use App\Models\Lead;
 use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
+use App\Models\Sekolah;
 use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class LeadManagementTest extends TestCase
@@ -84,6 +87,71 @@ class LeadManagementTest extends TestCase
         $this->actingAs($admin)->get('/admin/follow-up')->assertOk()->assertSee('Follow-up');
     }
 
+    public function test_superadmin_can_bulk_edit_selected_leads(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $school = Sekolah::create(['nama_sekolah' => 'SMA Bulk Leads', 'kota' => 'Bandung', 'aktif' => true]);
+        $program = ProgramBimbel::create(['nama_program' => 'Program Bulk', 'jenjang_program' => 'SMA', 'biaya_pendidikan' => 1000000, 'aktif' => true]);
+        $source = SumberLead::query()->where('nama', 'Instagram')->sole();
+        $first = Lead::create($this->leadData($branch, $staff, 'Lead Bulk Satu'));
+        $second = Lead::create($this->leadData($branch, $staff, 'Lead Bulk Dua'));
+
+        Livewire::actingAs($superadmin)
+            ->test(ListLeads::class)
+            ->assertTableBulkActionExists('ubahTerpilih')
+            ->assertTableBulkActionExists('delete')
+            ->callTableBulkAction('ubahTerpilih', [$first, $second], [
+                'status_lead' => LeadStatus::Hot->value,
+                'sumber_lead_id' => $source->getKey(),
+                'kota_asal' => 'Bandung',
+                'kelas_sekolah' => 'XII',
+                'sekolah_id' => $school->getKey(),
+                'minat_program_id' => $program->getKey(),
+                'diserahkan_ke_user_id' => $staff->getKey(),
+            ]);
+
+        foreach ([$first, $second] as $lead) {
+            $lead->refresh();
+            $this->assertSame(LeadStatus::Hot->value, $lead->status_lead);
+            $this->assertSame($source->getKey(), $lead->sumber_lead_id);
+            $this->assertSame('Bandung', $lead->kota_asal);
+            $this->assertSame('XII', $lead->kelas_sekolah);
+            $this->assertSame($school->getKey(), $lead->sekolah_id);
+            $this->assertSame($program->getKey(), $lead->minat_program_id);
+            $this->assertSame($staff->getKey(), $lead->diserahkan_ke_user_id);
+        }
+    }
+
+    public function test_bulk_delete_skips_a_lead_that_already_has_registration(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'aktif' => true]);
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = ProgramBimbel::create(['nama_program' => 'Program Terdaftar', 'jenjang_program' => 'SMA', 'biaya_pendidikan' => 1000000, 'aktif' => true]);
+        $deletable = Lead::create($this->leadData($branch, $staff, 'Lead Boleh Dihapus'));
+        $protected = Lead::create($this->leadData($branch, $staff, 'Lead Sudah Daftar'));
+        Pendaftaran::create([
+            'lead_id' => $protected->getKey(),
+            'program_bimbel_id' => $program->getKey(),
+            'cabang_id' => $branch->getKey(),
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Aktif',
+        ]);
+
+        $this->actingAs($superadmin);
+        $this->assertTrue(LeadResource::canDelete($deletable));
+        $this->assertFalse(LeadResource::canDelete($protected));
+
+        Livewire::actingAs($superadmin)
+            ->test(ListLeads::class)
+            ->callTableBulkAction('delete', [$deletable, $protected]);
+
+        $this->assertDatabaseMissing('leads', ['lead_id' => $deletable->getKey()]);
+        $this->assertDatabaseHas('leads', ['lead_id' => $protected->getKey()]);
+    }
+
     public function test_staff_only_sees_assigned_leads_from_own_branch(): void
     {
         $branchA = Cabang::create(['kode_cabang' => 'A', 'nama' => 'Cabang A', 'aktif' => true]);
@@ -135,6 +203,10 @@ class LeadManagementTest extends TestCase
         $this->assertFalse(LeadResource::canEdit($leadA));
         $this->assertFalse(FollowupRiwayatResource::canCreate());
         $this->get('/admin/leads/create')->assertForbidden();
+        Livewire::actingAs($direksi)
+            ->test(ListLeads::class)
+            ->assertTableBulkActionHidden('ubahTerpilih')
+            ->assertTableBulkActionHidden('delete');
     }
 
     public function test_lead_status_options_and_automatic_transitions_are_consistent(): void

@@ -135,12 +135,36 @@ class DashboardTest extends TestCase
             ->assertSee('Hot')
             ->assertSee('Top 5 sekolah')
             ->assertSee('Top 5 wilayah/kota')
+            ->assertSee('Peta persebaran leads')
+            ->assertSee('Cakupan seluruh leads')
+            ->assertSee('leaflet@1.9.4', false)
             ->assertSee('SMA Prestasi Bandung')
             ->assertSee('SMP Harapan Cimahi')
             ->assertSee('Bandung')
             ->assertSee('Cimahi')
             ->assertSee('67%')
             ->assertSee('33%');
+    }
+
+    public function test_location_map_prefers_lead_city_and_falls_back_to_school_city(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'aktif' => true]);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $school = Sekolah::create(['nama_sekolah' => 'Sekolah Peta Bandung', 'kota' => 'Bandung', 'aktif' => true]);
+
+        Lead::create([...$this->leadData($branch, $staff, 'Lead asal Jakarta'), 'kota_asal' => 'Jakarta Selatan', 'sekolah_id' => $school->sekolah_id]);
+        Lead::create([...$this->leadData($branch, $staff, 'Lead fallback sekolah'), 'sekolah_id' => $school->sekolah_id]);
+        Lead::create($this->leadData($branch, $staff, 'Lead tanpa lokasi'));
+
+        $this->actingAs($admin)->get('/admin/dashboard?cabang='.$branch->cabang_id.'&tahun='.now()->year.'&bulan='.now()->month)
+            ->assertOk()
+            ->assertSee('Peta persebaran leads')
+            ->assertSee('Jakarta Selatan')
+            ->assertSee('Bandung')
+            ->assertSee('2 terpetakan')
+            ->assertSee('66.7%')
+            ->assertSee('1 leads belum memiliki kota asal maupun kota sekolah.');
     }
 
     private function leadData(Cabang $branch, User $user, string $name, $date = null): array

@@ -69,7 +69,8 @@ class LeadResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasRole(UserRole::Superadmin) ?? false;
+        return (auth()->user()?->hasRole(UserRole::Superadmin) ?? false)
+            && ! $record->pendaftaran()->exists();
     }
 
     public static function canCreate(): bool
