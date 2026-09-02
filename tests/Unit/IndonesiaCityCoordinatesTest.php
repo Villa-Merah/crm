@@ -45,4 +45,29 @@ class IndonesiaCityCoordinatesTest extends TestCase
             $this->assertNotNull(IndonesiaCityCoordinates::find($city), $city.' belum mempunyai koordinat.');
         }
     }
+
+    public function test_it_maps_new_production_regions_and_spelling_variants(): void
+    {
+        $locations = [
+            'Banten',
+            'Kabupaten Lembata',
+            'Lewoleba',
+            'Sumedang',
+            'Sumatera Utara',
+            'Sumatra Utara',
+            'North Sumatra',
+        ];
+
+        foreach ($locations as $location) {
+            $this->assertNotNull(
+                IndonesiaCityCoordinates::find($location),
+                $location.' belum mempunyai koordinat.',
+            );
+        }
+
+        $this->assertSame(
+            IndonesiaCityCoordinates::find('Sumatera Utara'),
+            IndonesiaCityCoordinates::find('Sumatra Utara'),
+        );
+    }
 }
