@@ -52,9 +52,9 @@ class CreateApiClient extends Command
             ->values()
             ->all();
 
-        $allowed = ['*', 'leads:read', 'leads:write'];
+        $allowed = ['*', 'leads:read', 'leads:write', 'students:read'];
         if ($abilities === [] || array_diff($abilities, $allowed) !== []) {
-            $this->error('Ability tidak valid. Pilihan: *, leads:read, leads:write.');
+            $this->error('Ability tidak valid. Pilihan: *, leads:read, leads:write, students:read.');
 
             return self::FAILURE;
         }

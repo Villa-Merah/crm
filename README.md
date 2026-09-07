@@ -2,7 +2,9 @@
 
 CRM bimbingan belajar berbasis Laravel 12, Filament 5, Livewire, dan Tailwind CSS. Sistem mencakup dashboard kinerja, leads dan follow-up, pendaftaran, pembayaran, program bimbel, master data, RBAC per cabang, notifikasi, audit aktivitas, serta inbox WhatsApp melalui WAHA dengan engine GOWS.
 
-Baseline versi 2.1 (1 September 2026) menambahkan pencarian dan persistensi sekolah dari API Sekolah Indonesia, peta persebaran leads berbasis Leaflet/OpenStreetMap, serta pilih banyak dan aksi massal pada daftar Leads. Rincian perubahan dan UAT tambahan tersedia di [docs/PEMBARUAN-VERSI-TERBARU-2026-09-01.md](docs/PEMBARUAN-VERSI-TERBARU-2026-09-01.md).
+RBAC mencakup Superadmin, Admin Cabang, Staff, Keuangan, dan Direksi. Staff membuat pendaftaran dan mencatat pembayaran awal, Keuangan mengelola verifikasi pembayaran dalam scope cabang, sedangkan Admin Cabang dan Superadmin memiliki akses baca pada modul Pendaftaran dan Pembayaran.
+
+Baseline versi 2.3 (8 September 2026) mencakup pencarian dan persistensi sekolah dari API Sekolah Indonesia, peta persebaran leads berbasis Leaflet/OpenStreetMap, aksi massal Leads, REST API data siswa, serta pemisahan tugas transaksi melalui role Keuangan. Rincian perubahan dan UAT tambahan tersedia di [docs/PEMBARUAN-VERSI-TERBARU-2026-09-08.md](docs/PEMBARUAN-VERSI-TERBARU-2026-09-08.md).
 
 ## Kebutuhan
 
@@ -40,7 +42,7 @@ npm run build
 
 Perintah test full Docker memasang `APP_ENV=testing` sebelum Laravel dibootstrap dan menggunakan SQLite in-memory, sehingga database development tidak berubah.
 
-Snapshot pengujian fitur terbaru: **20 test dan 155 assertion lulus** untuk integrasi API Sekolah, peta dashboard, resolver kota, dan aksi massal Leads. Quality gate penuh tetap harus dijalankan sebelum rilis produksi.
+Snapshot pengujian role terbaru: **10 test dan 146 assertion lulus** untuk aturan Pendaftaran, Pembayaran, master data, scope cabang, dan role Keuangan. Pada quality gate penuh terakhir, **115 dari 117 test lulus**; dua kegagalan fixture lama pada Settings dan Report masih harus diperbaiki sebelum rilis produksi.
 
 ## Integrasi WhatsApp WAHA
 
@@ -52,6 +54,8 @@ Pada mode full Docker, Laravel berkomunikasi dengan WAHA melalui hostname servic
 
 Queue worker wajib aktif. Tanpa worker, webhook tetap tercatat tetapi Inbox WhatsApp dan lead tidak diperbarui sampai antrean diproses.
 
-Health endpoint tersedia di `/up`. Panduan instalasi full Docker (dengan referensi Laragon legacy) berada di [docs/PANDUAN-INSTALASI-PERTAMA-LARAGON-DOCKER.md](docs/PANDUAN-INSTALASI-PERTAMA-LARAGON-DOCKER.md), dokumentasi Docker development berada di [docker/README.md](docker/README.md), konfigurasi WAHA berada di [docs/PANDUAN-KONFIGURASI-WAHA.md](docs/PANDUAN-KONFIGURASI-WAHA.md), dan prosedur produksi berada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Dokumen sistem terbaru adalah [Dokumentasi SIVMI CRM v1.6](docs/Dokumentasi%20dan%20Pengembangan%20Sistem%20CRM%20SIVMI%20v1.6%20-%20Sementara.docx), sedangkan seluruh diagram terbaru tersedia dalam [Diagram Gabungan SIVMI CRM v1.4](docs/Diagram%20Gabungan%20SIVMI%20CRM%20v1.4.drawio).
+Health endpoint tersedia di `/up`. Panduan instalasi full Docker (dengan referensi Laragon legacy) berada di [docs/PANDUAN-INSTALASI-PERTAMA-LARAGON-DOCKER.md](docs/PANDUAN-INSTALASI-PERTAMA-LARAGON-DOCKER.md), dokumentasi Docker development berada di [docker/README.md](docker/README.md), konfigurasi WAHA berada di [docs/PANDUAN-KONFIGURASI-WAHA.md](docs/PANDUAN-KONFIGURASI-WAHA.md), dan prosedur produksi berada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Dokumen sistem terbaru adalah [Dokumentasi Project SIVMI CRM v2.3](docs/DOKUMENTASI-PROJECT-SIVMI-CRM-v2.3.docx). Diagram proses dan RBAC terbaru tersedia dalam [Diagram Project CRM Villa Merah v1.1](docs/CRM_DIAGRAM_PROJECT_VILLA_MERAH_v1.1.drawio), sedangkan struktur data terbaru tersedia dalam [ERD CRM Villa Merah 8 September 2026](docs/ERD_CRM_VILLA_MERAH_TERBARU_2026-09-08.drawio).
+
+Integrasi data siswa ke sistem lain menggunakan endpoint baca `GET /api/v1/students` dengan API client ber-ability `students:read`. Konfigurasi server, token, scope cabang, request/response, keamanan, pengujian, dan rancangan push otomatis dijelaskan dalam [Panduan Integrasi API Data Siswa](docs/PANDUAN-INTEGRASI-API-DATA-SISWA.md).
 
 Jangan commit `.env`, kredensial, dump database, atau data siswa ke repository.

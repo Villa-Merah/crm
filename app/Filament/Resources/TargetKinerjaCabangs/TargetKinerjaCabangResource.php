@@ -27,12 +27,19 @@ use Illuminate\Database\Eloquent\Model;
 class TargetKinerjaCabangResource extends Resource
 {
     protected static ?string $model = TargetKinerjaCabang::class;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBarSquare;
+
     protected static string|\UnitEnum|null $navigationGroup = 'SIVMI CRM';
+
     protected static ?string $navigationLabel = 'Target Kinerja';
+
     protected static ?string $pluralModelLabel = 'Target Kinerja';
+
     protected static ?string $modelLabel = 'target kinerja';
+
     protected static ?string $slug = 'target-kinerja';
+
     protected static ?int $navigationSort = 7;
 
     public static function months(): array
@@ -64,7 +71,9 @@ class TargetKinerjaCabangResource extends Resource
         return $table->defaultSort('tahun', 'desc')->columns([
             TextColumn::make('cabang.nama')->label('Cabang')->weight('semibold')->sortable()->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
             TextColumn::make('bulan')->label('Periode')->formatStateUsing(fn (int $state, TargetKinerjaCabang $record) => static::months()[$state].' '.$record->tahun)->sortable(),
-            TextColumn::make('status')->label('Status')->badge()->color(fn (string $state) => match ($state) { 'Aktif' => 'success', 'Selesai' => 'info', default => 'gray' }),
+            TextColumn::make('status')->label('Status')->badge()->color(fn (string $state) => match ($state) {
+                'Aktif' => 'success', 'Selesai' => 'info', default => 'gray'
+            }),
             TextColumn::make('target_omzet')->label('Target omzet cabang')->money('IDR', locale: 'id')->sortable(),
             TextColumn::make('target_siswa')->label('Target siswa cabang')->suffix(' siswa')->sortable(),
             TextColumn::make('allocated_omzet')->label(fn () => auth()->user()->hasRole(UserRole::Staff) ? 'Target omzet saya' : 'Omzet dialokasikan')->money('IDR', locale: 'id')->placeholder('Rp 0'),
@@ -92,12 +101,30 @@ class TargetKinerjaCabangResource extends Resource
         return auth()->user()?->hasRole(UserRole::Superadmin) || auth()->user()?->hasRole(UserRole::AdminCabang);
     }
 
-    public static function canViewAny(): bool { return auth()->check(); }
-    public static function canCreate(): bool { return static::canManage(); }
-    public static function canEdit(Model $record): bool { return static::canManage(); }
-    public static function canDelete(Model $record): bool { return false; }
+    public static function canViewAny(): bool
+    {
+        return auth()->check() && ! auth()->user()->hasRole(UserRole::Keuangan);
+    }
 
-    public static function getRelations(): array { return [TargetsUserRelationManager::class]; }
+    public static function canCreate(): bool
+    {
+        return static::canManage();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canManage();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function getRelations(): array
+    {
+        return [TargetsUserRelationManager::class];
+    }
 
     public static function getPages(): array
     {

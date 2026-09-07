@@ -40,6 +40,26 @@ class User extends Authenticatable implements FilamentUser
         return $this->role->canManageOperationalData();
     }
 
+    public function canViewSalesData(): bool
+    {
+        return $this->role->canViewSalesData();
+    }
+
+    public function canManageRegistrations(): bool
+    {
+        return $this->role->canManageRegistrations();
+    }
+
+    public function canRecordPayments(): bool
+    {
+        return $this->role->canRecordPayments();
+    }
+
+    public function canVerifyPayments(): bool
+    {
+        return $this->role->canVerifyPayments();
+    }
+
     public function cabang()
     {
         return $this->belongsTo(Cabang::class, 'cabang_id', 'cabang_id');

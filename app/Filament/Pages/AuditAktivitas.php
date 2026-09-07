@@ -49,8 +49,14 @@ class AuditAktivitas extends Page
 
     public ?string $auditError = null;
 
+    public static function canAccess(): bool
+    {
+        return auth()->check() && ! auth()->user()->hasRole(UserRole::Keuangan);
+    }
+
     public function mount(): void
     {
+        abort_unless(static::canAccess(), 403);
         $this->enforceScope();
     }
 

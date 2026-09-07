@@ -7,7 +7,7 @@ Catatan:
 - Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.
 - Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.
 - Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.
-- Baseline 1 September 2026: akuisisi lead mencakup pencarian sekolah dari API, persistensi lokal, aksi massal Leads, dan analitik peta kota pada Dashboard.
+- Baseline 8 September 2026: lima role termasuk Keuangan, Admin/Superadmin baca-saja pada Pendaftaran dan Pembayaran, serta REST API data siswa.
 
 01 Akuisisi Lead dan Sekolah/
 └── app/
@@ -54,7 +54,6 @@ Catatan:
     │       ├── SchoolApiClient.php
     │       └── SyncSchoolFromApi.php
     └── Support/
-        ├── IndonesiaCityCoordinates.php
         ├── LeadCsvTemplate.php
         ├── PhoneNormalizer.php
         └── SekolahCsvTemplate.php
@@ -246,7 +245,8 @@ Catatan:
 │   │   ├── Controllers/
 │   │   │   └── Api/
 │   │   │       └── V1/
-│   │   │           └── LeadController.php
+│   │   │           ├── LeadController.php
+│   │   │           └── StudentController.php
 │   │   ├── Middleware/
 │   │   │   ├── AuthenticatePublicApi.php
 │   │   │   └── EnsureApiIdempotency.php
@@ -254,11 +254,13 @@ Catatan:
 │   │   │   └── Api/
 │   │   │       └── V1/
 │   │   │           ├── ListLeadRequest.php
+│   │   │           ├── ListStudentRequest.php
 │   │   │           └── StoreLeadRequest.php
 │   │   └── Resources/
 │   │       └── Api/
 │   │           └── V1/
-│   │               └── LeadResource.php
+│   │               ├── LeadResource.php
+│   │               └── StudentResource.php
 │   ├── Models/
 │   │   ├── ApiClient.php
 │   │   └── ApiIdempotencyKey.php
@@ -290,12 +292,21 @@ Catatan:
 │   │   ├── 2026_08_21_000002_simplify_program_names.php
 │   │   ├── 2026_08_24_000001_add_sumber_lead_to_leads_table.php
 │   │   ├── 2026_08_24_000002_create_whatsapp_integration_tables.php
-│   │   └── 2026_08_25_000001_create_public_api_tables.php
+│   │   ├── 2026_08_25_000001_create_public_api_tables.php
+│   │   ├── 2026_08_28_000001_add_kota_asal_to_leads_table.php
+│   │   ├── 2026_08_30_000001_add_kelas_to_leads_table.php
+│   │   ├── 2026_08_30_000002_rename_lead_class_for_data_quality.php
+│   │   ├── 2026_08_30_000003_hide_in_person_method_from_program_names.php
+│   │   ├── 2026_08_30_000004_allow_unassigned_leads.php
+│   │   ├── 2026_08_31_000001_allow_minimal_school_data.php
+│   │   ├── 2026_09_01_000001_add_school_api_metadata_to_sekolah_table.php
+│   │   └── 2026_09_01_000001_normalize_lead_sources.php
 │   └── seeders/
 │       └── DatabaseSeeder.php
 └── tests/
     ├── Feature/
     │   ├── AuditNotificationTest.php
+    │   ├── BackupRestoreTest.php
     │   ├── CreateSchoolFromLeadTest.php
     │   ├── DashboardTest.php
     │   ├── ExampleTest.php
@@ -305,14 +316,17 @@ Catatan:
     │   ├── ProfileTest.php
     │   ├── ProgramTargetTest.php
     │   ├── PublicLeadApiTest.php
+    │   ├── PublicStudentApiTest.php
     │   ├── RegistrationPaymentTest.php
     │   ├── ReportTest.php
+    │   ├── SchoolApiIntegrationTest.php
     │   ├── SchoolCsvTest.php
     │   ├── SettingsTest.php
     │   └── WahaIntegrationTest.php
     ├── TestCase.php
     └── Unit/
         ├── DatabaseIsolationTest.php
-        └── ExampleTest.php
+        ├── ExampleTest.php
+        └── IndonesiaCityCoordinatesTest.php
 
-Total referensi file pada seluruh kelompok: 157
+Total referensi file pada seluruh kelompok: 174

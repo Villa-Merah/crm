@@ -4,7 +4,7 @@ STRUKTUR FOLDER DAN FILE SIVMI CRM
 Cakupan:
 - Source aplikasi Laravel, Filament, Livewire, Tailwind, REST API, dan WAHA.
 - Konfigurasi, migration, seeder, test, Docker, resource, route, dan entry point.
-- Baseline struktur diperbarui 1 September 2026 untuk API Sekolah, resolver koordinat kota, dan aksi massal Leads.
+- Baseline struktur 8 September 2026 mencakup role Keuangan dan REST API data siswa.
 
 Tidak dicantumkan:
 - Folder docs dan seluruh file dokumentasi (.md, .doc, .docx, .pdf).
@@ -41,96 +41,104 @@ sivmi.crm/
 │   │   │   ├── Auth/
 │   │   │   │   └── EditProfile.php
 │   │   │   ├── AuditAktivitas.php
+│   │   │   ├── BackupRestore.php
 │   │   │   ├── Dashboard.php
 │   │   │   ├── Laporan.php
 │   │   │   └── Pengaturan.php
-│   │   └── Resources/
-│   │       ├── Cabangs/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateCabang.php
-│   │       │   │   ├── EditCabang.php
-│   │       │   │   └── ListCabangs.php
-│   │       │   └── CabangResource.php
-│   │       ├── FollowupRiwayats/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateFollowupRiwayat.php
-│   │       │   │   ├── EditFollowupRiwayat.php
-│   │       │   │   └── ListFollowupRiwayats.php
-│   │       │   ├── Schemas/
-│   │       │   │   └── FollowupRiwayatForm.php
-│   │       │   ├── Tables/
-│   │       │   │   └── FollowupRiwayatsTable.php
-│   │       │   └── FollowupRiwayatResource.php
-│   │       ├── Leads/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateLead.php
-│   │       │   │   ├── EditLead.php
-│   │       │   │   ├── ListLeads.php
-│   │       │   │   └── ViewLead.php
-│   │       │   ├── RelationManagers/
-│   │       │   │   └── FollowupsRelationManager.php
-│   │       │   ├── Schemas/
-│   │       │   │   ├── LeadForm.php
-│   │       │   │   └── LeadInfolist.php
-│   │       │   ├── Tables/
-│   │       │   │   └── LeadsTable.php
-│   │       │   └── LeadResource.php
-│   │       ├── Pembayarans/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreatePembayaran.php
-│   │       │   │   ├── EditPembayaran.php
-│   │       │   │   └── ListPembayarans.php
-│   │       │   └── PembayaranResource.php
-│   │       ├── Pendaftarans/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreatePendaftaran.php
-│   │       │   │   ├── EditPendaftaran.php
-│   │       │   │   └── ListPendaftarans.php
-│   │       │   └── PendaftaranResource.php
-│   │       ├── ProgramBimbels/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateProgramBimbel.php
-│   │       │   │   ├── EditProgramBimbel.php
-│   │       │   │   └── ListProgramBimbels.php
-│   │       │   └── ProgramBimbelResource.php
-│   │       ├── Sekolahs/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateSekolah.php
-│   │       │   │   ├── EditSekolah.php
-│   │       │   │   └── ListSekolahs.php
-│   │       │   └── SekolahResource.php
-│   │       ├── TargetKinerjaCabangs/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateTargetKinerjaCabang.php
-│   │       │   │   ├── EditTargetKinerjaCabang.php
-│   │       │   │   └── ListTargetKinerjaCabangs.php
-│   │       │   ├── RelationManagers/
-│   │       │   │   └── TargetsUserRelationManager.php
-│   │       │   └── TargetKinerjaCabangResource.php
-│   │       ├── Users/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateUser.php
-│   │       │   │   ├── EditUser.php
-│   │       │   │   └── ListUsers.php
-│   │       │   └── UserResource.php
-│   │       ├── WhatsAppAccounts/
-│   │       │   ├── Pages/
-│   │       │   │   ├── CreateWhatsAppAccount.php
-│   │       │   │   ├── EditWhatsAppAccount.php
-│   │       │   │   └── ListWhatsAppAccounts.php
-│   │       │   └── WhatsAppAccountResource.php
-│   │       └── WhatsAppConversations/
-│   │           ├── Pages/
-│   │           │   ├── ListWhatsAppConversations.php
-│   │           │   └── ViewWhatsAppConversation.php
-│   │           └── WhatsAppConversationResource.php
+│   │   ├── Resources/
+│   │   │   ├── Cabangs/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateCabang.php
+│   │   │   │   │   ├── EditCabang.php
+│   │   │   │   │   └── ListCabangs.php
+│   │   │   │   └── CabangResource.php
+│   │   │   ├── FollowupRiwayats/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateFollowupRiwayat.php
+│   │   │   │   │   ├── EditFollowupRiwayat.php
+│   │   │   │   │   └── ListFollowupRiwayats.php
+│   │   │   │   ├── Schemas/
+│   │   │   │   │   └── FollowupRiwayatForm.php
+│   │   │   │   ├── Tables/
+│   │   │   │   │   └── FollowupRiwayatsTable.php
+│   │   │   │   └── FollowupRiwayatResource.php
+│   │   │   ├── Leads/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateLead.php
+│   │   │   │   │   ├── EditLead.php
+│   │   │   │   │   ├── ListLeads.php
+│   │   │   │   │   └── ViewLead.php
+│   │   │   │   ├── RelationManagers/
+│   │   │   │   │   └── FollowupsRelationManager.php
+│   │   │   │   ├── Schemas/
+│   │   │   │   │   ├── LeadForm.php
+│   │   │   │   │   └── LeadInfolist.php
+│   │   │   │   ├── Tables/
+│   │   │   │   │   └── LeadsTable.php
+│   │   │   │   └── LeadResource.php
+│   │   │   ├── Pembayarans/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreatePembayaran.php
+│   │   │   │   │   ├── EditPembayaran.php
+│   │   │   │   │   └── ListPembayarans.php
+│   │   │   │   └── PembayaranResource.php
+│   │   │   ├── Pendaftarans/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreatePendaftaran.php
+│   │   │   │   │   ├── EditPendaftaran.php
+│   │   │   │   │   └── ListPendaftarans.php
+│   │   │   │   └── PendaftaranResource.php
+│   │   │   ├── ProgramBimbels/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateProgramBimbel.php
+│   │   │   │   │   ├── EditProgramBimbel.php
+│   │   │   │   │   └── ListProgramBimbels.php
+│   │   │   │   └── ProgramBimbelResource.php
+│   │   │   ├── Sekolahs/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateSekolah.php
+│   │   │   │   │   ├── EditSekolah.php
+│   │   │   │   │   └── ListSekolahs.php
+│   │   │   │   └── SekolahResource.php
+│   │   │   ├── TargetKinerjaCabangs/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateTargetKinerjaCabang.php
+│   │   │   │   │   ├── EditTargetKinerjaCabang.php
+│   │   │   │   │   └── ListTargetKinerjaCabangs.php
+│   │   │   │   ├── RelationManagers/
+│   │   │   │   │   └── TargetsUserRelationManager.php
+│   │   │   │   └── TargetKinerjaCabangResource.php
+│   │   │   ├── Users/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateUser.php
+│   │   │   │   │   ├── EditUser.php
+│   │   │   │   │   └── ListUsers.php
+│   │   │   │   └── UserResource.php
+│   │   │   ├── WhatsAppAccounts/
+│   │   │   │   ├── Pages/
+│   │   │   │   │   ├── CreateWhatsAppAccount.php
+│   │   │   │   │   ├── EditWhatsAppAccount.php
+│   │   │   │   │   └── ListWhatsAppAccounts.php
+│   │   │   │   └── WhatsAppAccountResource.php
+│   │   │   └── WhatsAppConversations/
+│   │   │       ├── Pages/
+│   │   │       │   ├── ListWhatsAppConversations.php
+│   │   │       │   └── ViewWhatsAppConversation.php
+│   │   │       └── WhatsAppConversationResource.php
+│   │   ├── Support/
+│   │   │   └── SchoolApiActions.php
+│   │   └── Widgets/
+│   │       ├── WhatsAppHealthOverview.php
+│   │       └── WhatsAppOperationsOverview.php
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Api/
 │   │   │   │   └── V1/
-│   │   │   │       └── LeadController.php
+│   │   │   │       ├── LeadController.php
+│   │   │   │       └── StudentController.php
 │   │   │   ├── Webhooks/
 │   │   │   │   └── WahaWebhookController.php
+│   │   │   ├── BackupDownloadController.php
 │   │   │   ├── Controller.php
 │   │   │   ├── WhatsAppMediaController.php
 │   │   │   └── WhatsAppQrController.php
@@ -142,11 +150,13 @@ sivmi.crm/
 │   │   │   └── Api/
 │   │   │       └── V1/
 │   │   │           ├── ListLeadRequest.php
+│   │   │           ├── ListStudentRequest.php
 │   │   │           └── StoreLeadRequest.php
 │   │   └── Resources/
 │   │       └── Api/
 │   │           └── V1/
-│   │               └── LeadResource.php
+│   │               ├── LeadResource.php
+│   │               └── StudentResource.php
 │   ├── Jobs/
 │   │   └── ProcessWahaWebhook.php
 │   ├── Models/
@@ -161,6 +171,7 @@ sivmi.crm/
 │   │   ├── Pendaftaran.php
 │   │   ├── ProgramBimbel.php
 │   │   ├── Sekolah.php
+│   │   ├── SumberLead.php
 │   │   ├── TargetKinerjaCabang.php
 │   │   ├── TargetKinerjaUser.php
 │   │   ├── User.php
@@ -175,9 +186,15 @@ sivmi.crm/
 │   │   ├── Filament/
 │   │   │   └── AdminPanelProvider.php
 │   │   └── AppServiceProvider.php
+│   ├── Rules/
+│   │   └── UniqueNormalizedLeadPhone.php
 │   ├── Services/
+│   │   ├── Backup/
+│   │   │   └── DatabaseBackupService.php
 │   │   ├── Schools/
-│   │   │   └── CreateSchoolFromLead.php
+│   │   │   ├── CreateSchoolFromLead.php
+│   │   │   ├── SchoolApiClient.php
+│   │   │   └── SyncSchoolFromApi.php
 │   │   └── WhatsApp/
 │   │       ├── LeadMatcher.php
 │   │       ├── WahaClient.php
@@ -186,6 +203,7 @@ sivmi.crm/
 │   └── Support/
 │       ├── ApiResponse.php
 │       ├── CrmNotifier.php
+│       ├── IndonesiaCityCoordinates.php
 │       ├── LeadCsvTemplate.php
 │       ├── PhoneNormalizer.php
 │       └── SekolahCsvTemplate.php
@@ -201,6 +219,7 @@ sivmi.crm/
 ├── config/
 │   ├── app.php
 │   ├── auth.php
+│   ├── backup.php
 │   ├── cache.php
 │   ├── database.php
 │   ├── filesystems.php
@@ -230,7 +249,15 @@ sivmi.crm/
 │   │   ├── 2026_08_21_000002_simplify_program_names.php
 │   │   ├── 2026_08_24_000001_add_sumber_lead_to_leads_table.php
 │   │   ├── 2026_08_24_000002_create_whatsapp_integration_tables.php
-│   │   └── 2026_08_25_000001_create_public_api_tables.php
+│   │   ├── 2026_08_25_000001_create_public_api_tables.php
+│   │   ├── 2026_08_28_000001_add_kota_asal_to_leads_table.php
+│   │   ├── 2026_08_30_000001_add_kelas_to_leads_table.php
+│   │   ├── 2026_08_30_000002_rename_lead_class_for_data_quality.php
+│   │   ├── 2026_08_30_000003_hide_in_person_method_from_program_names.php
+│   │   ├── 2026_08_30_000004_allow_unassigned_leads.php
+│   │   ├── 2026_08_31_000001_allow_minimal_school_data.php
+│   │   ├── 2026_09_01_000001_add_school_api_metadata_to_sekolah_table.php
+│   │   └── 2026_09_01_000001_normalize_lead_sources.php
 │   ├── seeders/
 │   │   └── DatabaseSeeder.php
 │   ├── .gitignore
@@ -253,6 +280,9 @@ sivmi.crm/
 │   ├── status-full.ps1
 │   ├── stop-full.ps1
 │   └── test-full.ps1
+├── lang/
+│   └── id/
+│       └── validation.php
 ├── public/
 │   ├── css/
 │   │   └── filament/  [asset vendor Filament; isi tidak dicantumkan]
@@ -260,7 +290,19 @@ sivmi.crm/
 │   │   └── filament/  [asset vendor Filament; isi tidak dicantumkan]
 │   ├── js/
 │   │   └── filament/  [asset vendor Filament; isi tidak dicantumkan]
+│   ├── vendor/
+│   │   └── leaflet/
+│   │       ├── images/
+│   │       │   ├── layers-2x.png
+│   │       │   ├── layers.png
+│   │       │   ├── marker-icon-2x.png
+│   │       │   ├── marker-icon.png
+│   │       │   └── marker-shadow.png
+│   │       ├── leaflet.css
+│   │       ├── leaflet.js
+│   │       └── LICENSE
 │   ├── .htaccess
+│   ├── build.zip
 │   ├── build/  [hasil build Vite; isi tidak dicantumkan]
 │   ├── favicon.ico
 │   ├── fonts-manifest.dev.json
@@ -277,20 +319,26 @@ sivmi.crm/
 │   │   └── app.js
 │   └── views/
 │       ├── filament/
+│       │   ├── components/
+│       │   │   └── brand-logo.blade.php
 │       │   ├── pages/
 │       │   │   ├── audit-aktivitas.blade.php
+│       │   │   ├── backup-restore.blade.php
 │       │   │   ├── dashboard.blade.php
 │       │   │   ├── laporan.blade.php
 │       │   │   └── pengaturan.blade.php
 │       │   ├── partials/
 │       │   │   ├── sidebar-state.blade.php
 │       │   │   └── topbar-tools.blade.php
-│       │   └── resources/
-│       │       └── whatsapp-conversations/
-│       │           └── pages/
-│       │               ├── partials/
-│       │               │   └── chat-styles.blade.php
-│       │               └── view-whatsapp-conversation.blade.php
+│       │   ├── resources/
+│       │   │   └── whatsapp-conversations/
+│       │   │       └── pages/
+│       │   │           ├── partials/
+│       │   │           │   └── chat-styles.blade.php
+│       │   │           └── view-whatsapp-conversation.blade.php
+│       │   └── widgets/
+│       │       ├── whatsapp-health-overview.blade.php
+│       │       └── whatsapp-operations-overview.blade.php
 │       ├── integrations/
 │       │   └── waha/
 │       │       └── qr-unavailable.blade.php
@@ -302,6 +350,19 @@ sivmi.crm/
 ├── storage/
 │   ├── app/
 │   │   ├── private/
+│   │   │   ├── backups/
+│   │   │   │   └── database/
+│   │   │   │       ├── sivmi-crm-20260827-074518-manual-f6mwli.sql
+│   │   │   │       └── sivmi-crm-20260827-163813-manual-dtg9ov.sql
+│   │   │   ├── livewire-tmp/
+│   │   │   │   ├── uQuXZyKMUc4i5gD3ciDVOBkwGq9mSdqJt4XfqSD9.png
+│   │   │   │   └── uQuXZyKMUc4i5gD3ciDVOBkwGq9mSdqJt4XfqSD9.png.json
+│   │   │   ├── whatsapp-media/
+│   │   │   │   └── 2026/
+│   │   │   │       └── 09/
+│   │   │   │           ├── 0a74b1b2-d065-415c-9aa3-786de9dfdcd0.png
+│   │   │   │           ├── a58389ab-6b5b-4573-8adb-b60b8569ef06.jpg
+│   │   │   │           └── bfa4b000-8c24-4d4b-92bc-b0ff52c56c5b.jpg
 │   │   │   └── .gitignore
 │   │   ├── public/
 │   │   │   └── .gitignore
@@ -312,6 +373,7 @@ sivmi.crm/
 ├── tests/
 │   ├── Feature/
 │   │   ├── AuditNotificationTest.php
+│   │   ├── BackupRestoreTest.php
 │   │   ├── CreateSchoolFromLeadTest.php
 │   │   ├── DashboardTest.php
 │   │   ├── ExampleTest.php
@@ -321,24 +383,33 @@ sivmi.crm/
 │   │   ├── ProfileTest.php
 │   │   ├── ProgramTargetTest.php
 │   │   ├── PublicLeadApiTest.php
+│   │   ├── PublicStudentApiTest.php
 │   │   ├── RegistrationPaymentTest.php
 │   │   ├── ReportTest.php
+│   │   ├── SchoolApiIntegrationTest.php
 │   │   ├── SchoolCsvTest.php
 │   │   ├── SettingsTest.php
 │   │   └── WahaIntegrationTest.php
 │   ├── Unit/
 │   │   ├── DatabaseIsolationTest.php
-│   │   └── ExampleTest.php
+│   │   ├── ExampleTest.php
+│   │   └── IndonesiaCityCoordinatesTest.php
 │   └── TestCase.php
 ├── tools/
 │   ├── audit_docx_reference.py
+│   ├── build_server_capacity_admin_5_20.py
 │   ├── build_sivmi_documentation.py
 │   ├── build_sivmi_drawio.php
+│   ├── build_testing_debugging_v21.py
 │   ├── export_docx_pdf.ps1
 │   ├── generate_architecture_structures.php
 │   ├── generate_project_structure.php
 │   ├── rasterize_pdf.py
-│   └── update_documentation_v1_5.py
+│   ├── render_pdf_qa.py
+│   ├── revise_working_doc_toc.py
+│   ├── update_documentation_v1_5.py
+│   ├── update_project_docx.py
+│   └── update_project_docx_v21.py
 ├── .dockerignore
 ├── .editorconfig
 ├── .env

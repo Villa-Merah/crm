@@ -15,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -54,8 +55,8 @@ class UserResource extends Resource
             Section::make('Profil pengguna')->columns(['default' => 1, 'md' => 2])->schema([
                 TextInput::make('name')->label('Nama lengkap')->required()->maxLength(150),
                 TextInput::make('email')->label('Email')->email()->required()->maxLength(255)->unique(ignoreRecord: true),
-                Select::make('role')->label('Peran')->options($roleOptions)->default(UserRole::Staff->value)->required()->disabled($viewer->hasRole(UserRole::AdminCabang))->dehydrated(),
-                Select::make('cabang_id')->label('Cabang')->options(Cabang::query()->where('aktif', true)->when($viewer->hasRole(UserRole::AdminCabang), fn (Builder $query) => $query->whereKey($viewer->cabang_id))->orderBy('nama')->pluck('nama', 'cabang_id'))->default($viewer->cabang_id)->disabled($viewer->hasRole(UserRole::AdminCabang))->dehydrated()->placeholder('Akses seluruh cabang'),
+                Select::make('role')->label('Peran')->options($roleOptions)->default(UserRole::Staff->value)->required()->live()->disabled($viewer->hasRole(UserRole::AdminCabang))->dehydrated(),
+                Select::make('cabang_id')->label('Cabang')->options(Cabang::query()->where('aktif', true)->when($viewer->hasRole(UserRole::AdminCabang), fn (Builder $query) => $query->whereKey($viewer->cabang_id))->orderBy('nama')->pluck('nama', 'cabang_id'))->default($viewer->cabang_id)->required(fn (Get $get): bool => ! in_array($get('role'), [UserRole::Superadmin->value, UserRole::Direksi->value], true))->disabled($viewer->hasRole(UserRole::AdminCabang))->dehydrated()->placeholder('Akses seluruh cabang'),
                 TextInput::make('password')->label('Kata sandi')->password()->revealable()->required(fn (string $operation): bool => $operation === 'create')->minLength(8)->afterStateHydrated(fn (TextInput $component) => $component->state(''))->dehydrated(fn (?string $state): bool => filled($state))->helperText('Kosongkan saat mengedit jika kata sandi tidak berubah.'),
                 Toggle::make('aktif')->label('Pengguna aktif')->default(true),
             ]),
@@ -67,7 +68,7 @@ class UserResource extends Resource
         return $table->defaultSort('name')->columns([
             TextColumn::make('name')->label('Pengguna')->description(fn (User $record) => $record->email)->weight('semibold')->searchable(['name', 'email'])->sortable(),
             TextColumn::make('role')->label('Peran')->badge()->formatStateUsing(fn (UserRole $state) => $state->label())->color(fn (UserRole $state) => match ($state) {
-                UserRole::Superadmin => 'danger', UserRole::Direksi => 'purple', UserRole::AdminCabang => 'info', UserRole::Staff => 'success'
+                UserRole::Superadmin => 'danger', UserRole::Direksi => 'purple', UserRole::AdminCabang => 'info', UserRole::Staff => 'success', UserRole::Keuangan => 'warning'
             }),
             TextColumn::make('cabang.nama')->label('Cabang')->placeholder('Semua cabang')->sortable(),
             TextColumn::make('leads_ditugaskan_count')->counts('leadsDitugaskan')->label('Leads')->badge()->color('primary'),

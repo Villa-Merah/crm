@@ -78,8 +78,8 @@ class PendaftaranResource extends Resource
             SelectFilter::make('status_pendaftaran')->label('Status')->options(['Menunggu' => 'Menunggu', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan']),
             SelectFilter::make('program_bimbel_id')->label('Program')->options(ProgramBimbel::where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable(),
         ])->recordActions([
-            Action::make('pembayaran')->label('Catat pembayaran')->icon('heroicon-o-banknotes')->color('success')->url(fn (Pendaftaran $record) => PembayaranResource::getUrl('create', ['pendaftaran' => $record->pendaftaran_id]))->visible(fn () => auth()->user()->canManageOperationalData()),
-            EditAction::make()->visible(fn () => auth()->user()->canManageOperationalData()),
+            Action::make('pembayaran')->label('Catat pembayaran')->icon('heroicon-o-banknotes')->color('success')->url(fn (Pendaftaran $record) => PembayaranResource::getUrl('create', ['pendaftaran' => $record->pendaftaran_id]))->visible(fn () => auth()->user()->canRecordPayments()),
+            EditAction::make()->visible(fn () => auth()->user()->canManageRegistrations()),
         ])->emptyStateHeading('Belum ada pendaftaran')->emptyStateDescription('Daftarkan lead yang telah siap menjadi siswa SIVMI.')->emptyStateIcon('heroicon-o-document-plus');
     }
 
@@ -92,12 +92,12 @@ class PendaftaranResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->canManageOperationalData() ?? false;
+        return auth()->user()?->canManageRegistrations() ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->canManageOperationalData() ?? false;
+        return auth()->user()?->canManageRegistrations() ?? false;
     }
 
     public static function canDelete(Model $record): bool

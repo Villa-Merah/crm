@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Filament\Resources\Cabangs\CabangResource;
-use App\Filament\Resources\Sekolahs\SekolahResource;
 use App\Filament\Resources\Sekolahs\Pages\ListSekolahs;
+use App\Filament\Resources\Sekolahs\SekolahResource;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\Cabang;
@@ -123,6 +123,40 @@ class MasterDataAccessTest extends TestCase
         $created = User::where('email', 'staff.baru@sivmi.test')->firstOrFail();
         $this->assertTrue($created->hasRole(UserRole::Staff));
         $this->assertSame($bandung->cabang_id, $created->cabang_id);
+    }
+
+    public function test_superadmin_can_create_keuangan_and_branch_is_required(): void
+    {
+        [$bandung] = $this->branches();
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+
+        Livewire::actingAs($superadmin)->test(CreateUser::class)
+            ->set('data', [
+                'name' => 'Keuangan Tanpa Cabang',
+                'email' => 'keuangan.tanpa.cabang@sivmi.test',
+                'password' => 'password123',
+                'role' => UserRole::Keuangan->value,
+                'cabang_id' => null,
+                'aktif' => true,
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['cabang_id']);
+
+        Livewire::actingAs($superadmin)->test(CreateUser::class)
+            ->set('data', [
+                'name' => 'Keuangan Bandung',
+                'email' => 'keuangan.bandung@sivmi.test',
+                'password' => 'password123',
+                'role' => UserRole::Keuangan->value,
+                'cabang_id' => $bandung->getKey(),
+                'aktif' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $keuangan = User::where('email', 'keuangan.bandung@sivmi.test')->firstOrFail();
+        $this->assertTrue($keuangan->hasRole(UserRole::Keuangan));
+        $this->assertSame($bandung->getKey(), $keuangan->cabang_id);
     }
 
     public function test_staff_and_direksi_have_read_only_master_data_access(): void

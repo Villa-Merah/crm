@@ -73,6 +73,11 @@ class LeadResource extends Resource
             && ! $record->pendaftaran()->exists();
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->canViewSalesData() ?? false;
+    }
+
     public static function canCreate(): bool
     {
         return auth()->user()?->canManageOperationalData() ?? false;

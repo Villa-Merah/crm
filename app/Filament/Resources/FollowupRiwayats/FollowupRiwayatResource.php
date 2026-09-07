@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FollowupRiwayats;
 
+use App\Enums\UserRole;
 use App\Filament\Resources\FollowupRiwayats\Pages\CreateFollowupRiwayat;
 use App\Filament\Resources\FollowupRiwayats\Pages\EditFollowupRiwayat;
 use App\Filament\Resources\FollowupRiwayats\Pages\ListFollowupRiwayats;
@@ -21,11 +22,17 @@ class FollowupRiwayatResource extends Resource
     protected static ?string $model = FollowupRiwayat::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
+
     protected static ?string $navigationLabel = 'Follow-up';
+
     protected static string|\UnitEnum|null $navigationGroup = 'SIVMI CRM';
+
     protected static ?string $modelLabel = 'follow-up';
+
     protected static ?string $pluralModelLabel = 'follow-up';
+
     protected static ?string $slug = 'follow-up';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
@@ -52,6 +59,11 @@ class FollowupRiwayatResource extends Resource
             ->with(['lead', 'user', 'lead.cabang']);
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->canViewSalesData() ?? false;
+    }
+
     public static function canCreate(): bool
     {
         return auth()->user()?->canManageOperationalData() ?? false;
@@ -64,7 +76,7 @@ class FollowupRiwayatResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasRole(\App\Enums\UserRole::Superadmin) ?? false;
+        return auth()->user()?->hasRole(UserRole::Superadmin) ?? false;
     }
 
     public static function getPages(): array

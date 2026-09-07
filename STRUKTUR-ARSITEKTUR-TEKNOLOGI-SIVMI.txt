@@ -7,7 +7,7 @@ Catatan:
 - Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.
 - Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.
 - Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.
-- Dependency eksternal baseline 2 September 2026: API Sekolah Indonesia melalui HTTPS, Leaflet 1.9.4 yang disajikan dari aset lokal aplikasi, dan tile OpenStreetMap untuk peta dashboard.
+- Baseline 8 September 2026: API Sekolah dan tile OpenStreetMap memerlukan HTTPS keluar; Leaflet disajikan lokal; API siswa memakai HTTPS dan Bearer token.
 
 01 Client dan Front-End Build/
 ├── .npmrc
@@ -23,20 +23,26 @@ Catatan:
 │   │   └── app.js
 │   └── views/
 │       ├── filament/
+│       │   ├── components/
+│       │   │   └── brand-logo.blade.php
 │       │   ├── pages/
 │       │   │   ├── audit-aktivitas.blade.php
+│       │   │   ├── backup-restore.blade.php
 │       │   │   ├── dashboard.blade.php
 │       │   │   ├── laporan.blade.php
 │       │   │   └── pengaturan.blade.php
 │       │   ├── partials/
 │       │   │   ├── sidebar-state.blade.php
 │       │   │   └── topbar-tools.blade.php
-│       │   └── resources/
-│       │       └── whatsapp-conversations/
-│       │           └── pages/
-│       │               ├── partials/
-│       │               │   └── chat-styles.blade.php
-│       │               └── view-whatsapp-conversation.blade.php
+│       │   ├── resources/
+│       │   │   └── whatsapp-conversations/
+│       │   │       └── pages/
+│       │   │           ├── partials/
+│       │   │           │   └── chat-styles.blade.php
+│       │   │           └── view-whatsapp-conversation.blade.php
+│       │   └── widgets/
+│       │       ├── whatsapp-health-overview.blade.php
+│       │       └── whatsapp-operations-overview.blade.php
 │       ├── integrations/
 │       │   └── waha/
 │       │       └── qr-unavailable.blade.php
@@ -100,7 +106,15 @@ Catatan:
     │   ├── 2026_08_21_000002_simplify_program_names.php
     │   ├── 2026_08_24_000001_add_sumber_lead_to_leads_table.php
     │   ├── 2026_08_24_000002_create_whatsapp_integration_tables.php
-    │   └── 2026_08_25_000001_create_public_api_tables.php
+    │   ├── 2026_08_25_000001_create_public_api_tables.php
+    │   ├── 2026_08_28_000001_add_kota_asal_to_leads_table.php
+    │   ├── 2026_08_30_000001_add_kelas_to_leads_table.php
+    │   ├── 2026_08_30_000002_rename_lead_class_for_data_quality.php
+    │   ├── 2026_08_30_000003_hide_in_person_method_from_program_names.php
+    │   ├── 2026_08_30_000004_allow_unassigned_leads.php
+    │   ├── 2026_08_31_000001_allow_minimal_school_data.php
+    │   ├── 2026_09_01_000001_add_school_api_metadata_to_sekolah_table.php
+    │   └── 2026_09_01_000001_normalize_lead_sources.php
     └── seeders/
         └── DatabaseSeeder.php
 
@@ -191,6 +205,7 @@ Catatan:
 └── tests/
     ├── Feature/
     │   ├── AuditNotificationTest.php
+    │   ├── BackupRestoreTest.php
     │   ├── CreateSchoolFromLeadTest.php
     │   ├── DashboardTest.php
     │   ├── ExampleTest.php
@@ -200,14 +215,17 @@ Catatan:
     │   ├── ProfileTest.php
     │   ├── ProgramTargetTest.php
     │   ├── PublicLeadApiTest.php
+    │   ├── PublicStudentApiTest.php
     │   ├── RegistrationPaymentTest.php
     │   ├── ReportTest.php
+    │   ├── SchoolApiIntegrationTest.php
     │   ├── SchoolCsvTest.php
     │   ├── SettingsTest.php
     │   └── WahaIntegrationTest.php
     ├── TestCase.php
     └── Unit/
         ├── DatabaseIsolationTest.php
-        └── ExampleTest.php
+        ├── ExampleTest.php
+        └── IndonesiaCityCoordinatesTest.php
 
-Total referensi file pada seluruh kelompok: 121
+Total referensi file pada seluruh kelompok: 137

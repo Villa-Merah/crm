@@ -26,12 +26,19 @@ use Illuminate\Database\Eloquent\Model;
 class CabangResource extends Resource
 {
     protected static ?string $model = Cabang::class;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
+
     protected static string|\UnitEnum|null $navigationGroup = 'MASTER DATA';
+
     protected static ?string $navigationLabel = 'Cabang';
+
     protected static ?string $pluralModelLabel = 'Cabang';
+
     protected static ?string $modelLabel = 'cabang';
+
     protected static ?string $slug = 'cabang';
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
@@ -76,7 +83,7 @@ class CabangResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->check();
+        return auth()->check() && ! auth()->user()->hasRole(UserRole::Keuangan);
     }
 
     public static function canCreate(): bool

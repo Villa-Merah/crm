@@ -24,6 +24,7 @@ $architectures = [
     'business' => [
         'title' => 'STRUKTUR BERDASARKAN ARSITEKTUR BISNIS SIVMI CRM',
         'description' => 'Pemetaan source menurut kapabilitas, proses bisnis, aktor, dan kontrol CRM.',
+        'baseline' => 'Baseline 8 September 2026: lima role termasuk Keuangan, Admin/Superadmin baca-saja pada Pendaftaran dan Pembayaran, serta REST API data siswa.',
         'groups' => [
             '01 Akuisisi Lead dan Sekolah' => [
                 'app/Enums/LeadEntryChannel.php', 'app/Enums/LeadSource.php',
@@ -98,6 +99,7 @@ $architectures = [
     'application' => [
         'title' => 'STRUKTUR BERDASARKAN ARSITEKTUR APLIKASI SIVMI CRM',
         'description' => 'Pemetaan source modular monolith menurut layer dan tanggung jawab aplikasi.',
+        'baseline' => 'Baseline 8 September 2026: StudentController, ListStudentRequest, StudentResource, students:read, dan kontrol RBAC transaksi menjadi bagian aplikasi aktif.',
         'groups' => [
             '01 Presentation - Filament, Livewire, Blade, dan Tailwind' => [
                 'app/Filament', 'resources/views', 'resources/css', 'resources/js',
@@ -140,6 +142,7 @@ $architectures = [
     'technology' => [
         'title' => 'STRUKTUR BERDASARKAN ARSITEKTUR TEKNOLOGI SIVMI CRM',
         'description' => 'Pemetaan file menurut node runtime, state, jaringan, deployment, dan operasi.',
+        'baseline' => 'Baseline 8 September 2026: API Sekolah dan tile OpenStreetMap memerlukan HTTPS keluar; Leaflet disajikan lokal; API siswa memakai HTTPS dan Bearer token.',
         'groups' => [
             '01 Client dan Front-End Build' => [
                 'resources/css', 'resources/js', 'resources/views',
@@ -295,6 +298,7 @@ function buildArchitectureFile(string $root, array $definition): array
         '- Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.',
         '- Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.',
         '- Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.',
+        '- ' . $definition['baseline'],
         '',
     ];
 
@@ -323,4 +327,3 @@ foreach ($architectures as $key => $definition) {
     file_put_contents($outputs[$key], implode(PHP_EOL, $lines) . PHP_EOL);
     echo 'Created: ' . $outputs[$key] . PHP_EOL;
 }
-

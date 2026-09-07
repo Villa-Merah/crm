@@ -21,10 +21,14 @@ class RegistrationPaymentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_operational_pages_render_and_direksi_is_read_only(): void
+    public function test_admin_superadmin_and_direksi_are_read_only_for_registration_and_payment(): void
     {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $admin = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::AdminCabang, 'aktif' => true]);
         $direksi = User::factory()->create(['role' => UserRole::Direksi, 'aktif' => true]);
+        $registration = $this->registration($branch, $admin, $this->program(), 'Siswa Read Only');
+        $payment = $this->payment($registration);
 
         $this->assertTrue($superadmin->canManageOperationalData());
         $this->assertTrue($superadmin->hasRole(UserRole::Superadmin));
@@ -40,11 +44,22 @@ class RegistrationPaymentTest extends TestCase
         $superadminNavigation->assertDontSee('Catat Pembayaran');
         $superadminNavigation->assertDontSee('Daftar Program');
         $superadminNavigation->assertDontSee('Program Baru');
+        $superadminNavigation->assertDontSee('/admin/pendaftaran/create', false);
+        $superadminNavigation->assertDontSee('/admin/pembayaran/create', false);
 
         $this->actingAs($superadmin)->get('/admin/pendaftaran')->assertOk()->assertSee('Pendaftaran');
-        $this->get('/admin/pendaftaran/create')->assertOk()->assertSee('Data pendaftaran');
+        $this->get('/admin/pendaftaran/create')->assertForbidden();
+        $this->get("/admin/pendaftaran/{$registration->getKey()}/edit")->assertForbidden();
         $this->get('/admin/pembayaran')->assertOk()->assertSee('Pembayaran');
-        $this->get('/admin/pembayaran/create')->assertOk()->assertSee('Data pembayaran');
+        $this->get('/admin/pembayaran/create')->assertForbidden();
+        $this->get("/admin/pembayaran/{$payment->getKey()}/edit")->assertForbidden();
+
+        $this->actingAs($admin)->get('/admin/pendaftaran')->assertOk();
+        $this->get('/admin/pembayaran')->assertOk();
+        $this->get('/admin/pendaftaran/create')->assertForbidden();
+        $this->get("/admin/pendaftaran/{$registration->getKey()}/edit")->assertForbidden();
+        $this->get('/admin/pembayaran/create')->assertForbidden();
+        $this->get("/admin/pembayaran/{$payment->getKey()}/edit")->assertForbidden();
 
         $this->actingAs($direksi)->get('/admin/dashboard')
             ->assertOk()
@@ -57,7 +72,64 @@ class RegistrationPaymentTest extends TestCase
         $this->get('/admin/pendaftaran')->assertOk();
         $this->get('/admin/pembayaran')->assertOk();
         $this->get('/admin/pendaftaran/create')->assertForbidden();
+        $this->get("/admin/pendaftaran/{$registration->getKey()}/edit")->assertForbidden();
         $this->get('/admin/pembayaran/create')->assertForbidden();
+        $this->get("/admin/pembayaran/{$payment->getKey()}/edit")->assertForbidden();
+    }
+
+    public function test_keuangan_only_manages_branch_payments_and_cannot_manage_registration_or_sales(): void
+    {
+        [$bandung, $jaksel] = $this->branches();
+        $keuangan = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Keuangan, 'aktif' => true]);
+        $staffBandung = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $staffJaksel = User::factory()->create(['cabang_id' => $jaksel->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = $this->program();
+        $registrationBandung = $this->registration($bandung, $staffBandung, $program, 'Siswa Bandung');
+        $registrationJaksel = $this->registration($jaksel, $staffJaksel, $program, 'Siswa Jakarta');
+        $paymentBandung = $this->payment($registrationBandung);
+        $this->payment($registrationJaksel);
+
+        $this->actingAs($keuangan);
+
+        $this->assertFalse($keuangan->canManageOperationalData());
+        $this->assertFalse($keuangan->canViewSalesData());
+        $this->assertFalse($keuangan->canManageRegistrations());
+        $this->assertTrue($keuangan->canRecordPayments());
+        $this->assertTrue($keuangan->canVerifyPayments());
+        $this->assertSame([$registrationBandung->getKey()], PendaftaranResource::getEloquentQuery()->pluck('pendaftaran_id')->all());
+        $this->assertSame([$paymentBandung->getKey()], PembayaranResource::getEloquentQuery()->pluck('pembayaran_id')->all());
+
+        $financeDashboard = $this->get('/admin/dashboard')->assertOk();
+        $financeDashboard->assertDontSee('/admin/leads', false);
+        $financeDashboard->assertDontSee('/admin/follow-up', false);
+        $financeDashboard->assertSee('/admin/pendaftaran', false);
+        $financeDashboard->assertSee('/admin/pembayaran/create', false);
+        $this->get('/admin/pendaftaran')->assertOk();
+        $this->get('/admin/pendaftaran/create')->assertForbidden();
+        $this->get('/admin/leads')->assertForbidden();
+        $this->get('/admin/follow-up')->assertForbidden();
+        $this->get('/admin/cabang')->assertForbidden();
+        $this->get('/admin/sekolah')->assertForbidden();
+        $this->get('/admin/program-bimbel')->assertForbidden();
+        $this->get('/admin/target-kinerja')->assertForbidden();
+        $this->get('/admin/audit-aktivitas')->assertForbidden();
+        $this->get('/admin/pembayaran')->assertOk();
+        $this->get('/admin/pembayaran/create')->assertOk();
+
+        Livewire::actingAs($keuangan)->test(CreatePembayaran::class)
+            ->set('data', [
+                'pendaftaran_id' => $registrationBandung->getKey(),
+                'tanggal_pembayaran' => now()->format('Y-m-d H:i:s'),
+                'nominal' => 750000,
+                'metode_pembayaran' => 'Transfer Bank',
+                'status_pembayaran' => 'Terverifikasi',
+            ])->call('create')->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('pembayaran', [
+            'pendaftaran_id' => $registrationBandung->getKey(),
+            'nominal' => 750000,
+            'status_pembayaran' => 'Terverifikasi',
+        ]);
     }
 
     public function test_staff_scope_only_contains_owned_registration_and_payment(): void

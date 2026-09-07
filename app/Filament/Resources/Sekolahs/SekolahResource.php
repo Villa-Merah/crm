@@ -143,7 +143,7 @@ class SekolahResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->check();
+        return auth()->check() && ! auth()->user()->hasRole(UserRole::Keuangan);
     }
 
     public static function canCreate(): bool

@@ -11,7 +11,7 @@ $root = dirname(__DIR__);
 $output = $root . DIRECTORY_SEPARATOR . 'STRUKTUR-FOLDER-DAN-FILE-SIVMI.txt';
 
 $excludedDirectories = [
-    '.git', '.tmp', 'docs', 'node_modules', 'vendor',
+    '.git', '.tmp', '.codex-pydeps', '.codex-deps', 'docs', 'node_modules', 'vendor',
     'storage/app/doc-qa', 'storage/app/doc-tools',
     'storage/doc-qa', 'storage/doc-tools',
     'storage/framework/cache', 'storage/framework/sessions',
@@ -160,6 +160,7 @@ $header = [
     'Cakupan:',
     '- Source aplikasi Laravel, Filament, Livewire, Tailwind, REST API, dan WAHA.',
     '- Konfigurasi, migration, seeder, test, Docker, resource, route, dan entry point.',
+    '- Baseline struktur 8 September 2026 mencakup role Keuangan dan REST API data siswa.',
     '',
     'Tidak dicantumkan:',
     '- Folder docs dan seluruh file dokumentasi (.md, .doc, .docx, .pdf).',

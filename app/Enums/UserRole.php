@@ -7,6 +7,7 @@ enum UserRole: string
     case Superadmin = 'superadmin';
     case AdminCabang = 'admin_cabang';
     case Staff = 'staff';
+    case Keuangan = 'keuangan';
     case Direksi = 'direksi';
 
     public function label(): string
@@ -15,6 +16,7 @@ enum UserRole: string
             self::Superadmin => 'Superadmin',
             self::AdminCabang => 'Admin Cabang',
             self::Staff => 'Staff',
+            self::Keuangan => 'Keuangan',
             self::Direksi => 'Direksi',
         };
     }
@@ -26,6 +28,26 @@ enum UserRole: string
 
     public function canManageOperationalData(): bool
     {
-        return $this !== self::Direksi;
+        return in_array($this, [self::Superadmin, self::AdminCabang, self::Staff], true);
+    }
+
+    public function canViewSalesData(): bool
+    {
+        return $this !== self::Keuangan;
+    }
+
+    public function canManageRegistrations(): bool
+    {
+        return $this === self::Staff;
+    }
+
+    public function canRecordPayments(): bool
+    {
+        return in_array($this, [self::Staff, self::Keuangan], true);
+    }
+
+    public function canVerifyPayments(): bool
+    {
+        return $this === self::Keuangan;
     }
 }
