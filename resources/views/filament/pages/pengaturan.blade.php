@@ -16,6 +16,32 @@
             </section>
 
             <section class="dashboard-card p-5 md:p-6">
+                <div class="flex items-start gap-3"><span class="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><x-heroicon-o-photo class="h-5 w-5" /></span><div><h3 class="font-bold text-slate-900">Background halaman login</h3><p class="mt-1 text-xs text-slate-500">Ganti gambar latar halaman login. Perubahan diterapkan setelah pengaturan disimpan.</p></div></div>
+                <div class="mt-6 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem] md:items-start">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700">Pilih gambar
+                            <input wire:model="loginBackgroundImage" type="file" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-sm" />
+                        </label>
+                        <div wire:loading wire:target="loginBackgroundImage" class="mt-2 text-xs font-semibold text-sky-600">Memeriksa gambar...</div>
+                        <p class="mt-2 text-xs leading-5 text-slate-500">JPG, PNG, atau WebP. Maksimal 5 MB. Ukuran minimum 1600 × 900 px. Gunakan rasio 16:9 dan letakkan objek penting di area tengah agar aman saat dipotong di mobile.</p>
+                        @error('loginBackgroundImage')<span class="mt-1 block text-xs text-rose-600">{{ $message }}</span>@enderror
+                        @if ($loginBackgroundImagePath)
+                            <button type="button" wire:click="removeLoginBackground" class="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-50"><x-heroicon-o-trash class="h-4 w-4" />Kembalikan ke default</button>
+                        @endif
+                    </div>
+                    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                        @if ($loginBackgroundImage)
+                            <img src="{{ $loginBackgroundImage->temporaryUrl() }}" alt="Preview background login baru" class="aspect-video w-full object-cover">
+                        @elseif ($loginBackgroundImagePath)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($loginBackgroundImagePath) }}" alt="Background login saat ini" class="aspect-video w-full object-cover">
+                        @else
+                            <div class="flex aspect-video items-center justify-center p-4 text-center text-xs text-slate-500">Menggunakan gambar default.</div>
+                        @endif
+                    </div>
+                </div>
+            </section>
+
+            <section class="dashboard-card p-5 md:p-6">
                 <div class="flex items-start gap-3"><span class="rounded-xl bg-cyan-50 p-2.5 text-cyan-600"><x-heroicon-o-user-group class="h-5 w-5" /></span><div><h3 class="font-bold text-slate-900">Data calon siswa</h3><p class="mt-1 text-xs text-slate-500">Daftar kelas sekolah ini berdiri sendiri dan tidak mengubah paket atau angkatan Program Bimbel.</p></div></div>
                 <label class="mt-6 block text-sm font-semibold text-slate-700">Kelas sekolah
                     <textarea wire:model="schoolClassLevels" rows="6" maxlength="1500" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 font-mono text-sm" required></textarea>

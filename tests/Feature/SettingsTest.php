@@ -10,6 +10,7 @@ use App\Models\CrmSetting;
 use App\Models\ProgramBimbel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -74,6 +75,23 @@ class SettingsTest extends TestCase
         $this->assertSame(['Diamond', 'Gold'], CrmSetting::getArray('program_classes'));
         $this->assertSame('json', CrmSetting::whereKey('program_classes')->value('type'));
         $this->actingAs($superadmin)->get('/admin/program-bimbel/create')->assertOk()->assertSee('Diamond')->assertSee('Privat');
+    }
+
+    public function test_superadmin_login_background_upload_updates_the_active_path_after_save(): void
+    {
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        CrmSetting::setMany(['login_background_image' => 'login/old-bg.png'], $superadmin->id);
+
+        $component = Livewire::actingAs($superadmin)->test(Pengaturan::class)
+            ->set('loginBackgroundImage', UploadedFile::fake()->image('new-login-bg.jpg', 1920, 1080))
+            ->call('save');
+
+        $this->assertNotNull($component->loginBackgroundImagePath);
+        $this->assertStringStartsWith('login/', $component->loginBackgroundImagePath);
+        $this->assertNotSame('login/old-bg.png', $component->loginBackgroundImagePath);
+        $this->assertSame($component->loginBackgroundImagePath, CrmSetting::getValue('login_background_image'));
+        $this->assertNotNull(CrmSetting::getValue('login_background_image'));
+        $this->assertStringStartsWith('login/', CrmSetting::getValue('login_background_image'));
     }
 
     public function test_in_use_program_option_cannot_be_removed(): void

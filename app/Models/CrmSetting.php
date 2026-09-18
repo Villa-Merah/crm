@@ -25,6 +25,7 @@ class CrmSetting extends Model
     public const DEFAULTS = [
         'app_name' => 'SIVMI CRM',
         'organization_name' => 'SIVMI',
+        'login_background_image' => null,
         'dashboard_tagline' => 'Pantau pertumbuhan leads, pencapaian siswa, dan kinerja tim dalam satu ruang kerja.',
         'support_email' => null,
         'support_phone' => null,
@@ -61,7 +62,7 @@ class CrmSetting extends Model
     {
         $allowed = array_intersect_key($values, static::DEFAULTS);
         $groups = [
-            'app_name' => 'identity', 'organization_name' => 'identity', 'dashboard_tagline' => 'dashboard',
+            'app_name' => 'identity', 'organization_name' => 'identity', 'login_background_image' => 'identity', 'dashboard_tagline' => 'dashboard',
             'support_email' => 'contact', 'support_phone' => 'contact', 'staff_report_export' => 'report',
             'school_class_levels' => 'lead',
             'program_categories' => 'program', 'program_classes' => 'program', 'program_types' => 'program',

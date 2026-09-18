@@ -18,6 +18,9 @@ export default defineConfig({
     ],
     server: {
         origin: process.env.VITE_DEV_SERVER_URL,
+        cors: {
+            origin: ['http://localhost:8000', 'http://127.0.0.1:8000'],
+        },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

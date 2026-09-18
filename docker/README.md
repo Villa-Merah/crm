@@ -16,6 +16,8 @@ Baseline versi 2.3 juga memerlukan akses keluar HTTPS menuju API Sekolah Indones
 
 Untuk skenario Laravel sudah berada di shared hosting tetapi WAHA/GOWS tetap
 berjalan pada Docker lokal melalui Cloudflare Tunnel, gunakan runbook
+`docs/PANDUAN-AKTIVASI-WAHA-GOWS-LOKAL-DENGAN-TUNNEL-DNS.md`. Panduan
+deployment shared hosting yang lebih luas berada di
 `docs/PANDUAN-WAHA-SETELAH-DEPLOY-SHARED-HOSTING.md`.
 
 ## Menjalankan aplikasi
@@ -67,7 +69,7 @@ docker compose --env-file docker/.env -f docker/compose.yml exec app php artisan
 Akun demo setelah seeding:
 
 - Email: `admin@sivmi.test`
-- Password: `password`
+- Password: `admin123`
 
 ## Queue dan scheduler
 

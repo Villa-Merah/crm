@@ -55,10 +55,10 @@ Endpoint siswa:
 GET /api/v1/students
 ```
 
-Gunakan domain yang sama dengan nilai `APP_URL` pada server. Contoh apabila aplikasi berjalan di `https://lead.sivmi.id`:
+Gunakan domain yang sama dengan nilai `APP_URL` pada server. Contoh apabila aplikasi berjalan di `https://crm.sivmi.id`:
 
 ```text
-https://lead.sivmi.id/api/v1/students
+https://crm.sivmi.id/api/v1/students
 ```
 
 ## 5. Konfigurasi SIVMI CRM
@@ -163,7 +163,7 @@ Setelah itu buat token baru. Jangan mengaktifkan kembali token yang sudah diduga
 Simpan alamat dan token pada environment sistem tujuan:
 
 ```env
-SIVMI_API_BASE_URL=https://lead.sivmi.id/api/v1
+SIVMI_API_BASE_URL=https://crm.sivmi.id/api/v1
 SIVMI_API_TOKEN=sivmi_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SIVMI_API_TIMEOUT=20
 SIVMI_API_PER_PAGE=100
@@ -199,7 +199,7 @@ Bearer token direkomendasikan agar pola autentikasi konsisten.
 Contoh mengambil seluruh siswa aktif:
 
 ```bash
-curl "https://lead.sivmi.id/api/v1/students?status=Aktif&per_page=100&page=1" \
+curl "https://crm.sivmi.id/api/v1/students?status=Aktif&per_page=100&page=1" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer sivmi_xxxxx"
 ```
@@ -207,7 +207,7 @@ curl "https://lead.sivmi.id/api/v1/students?status=Aktif&per_page=100&page=1" \
 Contoh pencarian:
 
 ```bash
-curl "https://lead.sivmi.id/api/v1/students?search=Bandung&per_page=25" \
+curl "https://crm.sivmi.id/api/v1/students?search=Bandung&per_page=25" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer sivmi_xxxxx"
 ```
@@ -221,7 +221,7 @@ $headers = @{
 }
 
 Invoke-RestMethod `
-    -Uri 'https://lead.sivmi.id/api/v1/students?status=Aktif&per_page=100&page=1' `
+    -Uri 'https://crm.sivmi.id/api/v1/students?status=Aktif&per_page=100&page=1' `
     -Headers $headers `
     -Method Get `
     -TimeoutSec 20
@@ -273,10 +273,10 @@ Contoh respons berhasil:
     "request_id": "b5913b83-16aa-4f04-a1c4-ccaa706d54f7"
   },
   "links": {
-    "first": "https://lead.sivmi.id/api/v1/students?page=1",
-    "last": "https://lead.sivmi.id/api/v1/students?page=3",
+    "first": "https://crm.sivmi.id/api/v1/students?page=1",
+    "last": "https://crm.sivmi.id/api/v1/students?page=3",
     "prev": null,
-    "next": "https://lead.sivmi.id/api/v1/students?page=2"
+    "next": "https://crm.sivmi.id/api/v1/students?page=2"
   }
 }
 ```
@@ -479,4 +479,3 @@ Prioritas pengembangan berikutnya:
 - Validasi parameter: `app/Http/Requests/Api/V1/ListStudentRequest.php`
 - Autentikasi API: `app/Http/Middleware/AuthenticatePublicApi.php`
 - Pengujian: `tests/Feature/PublicStudentApiTest.php`
-
