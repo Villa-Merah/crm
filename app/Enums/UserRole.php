@@ -28,7 +28,7 @@ enum UserRole: string
 
     public function canManageOperationalData(): bool
     {
-        return in_array($this, [self::Superadmin, self::AdminCabang, self::Staff], true);
+        return in_array($this, [self::AdminCabang, self::Staff], true);
     }
 
     public function canViewSalesData(): bool

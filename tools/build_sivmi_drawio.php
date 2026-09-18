@@ -373,6 +373,80 @@ addPage($pages, '16 - Deployment Hybrid WAHA', function (DrawioPage $p): void {
     $p->vertex('<b>Variabel penting</b><br>WAHA_BASE_URL=http://127.0.0.1:3000 | WAHA_WEBHOOK_URL=http://sivmi.crm.test/api/webhooks/waha | API key dan HMAC secret harus sama pada pasangan konfigurasi masing-masing', 170, 1030, 1280, 90, boxStyle('#FFEFF2', '#F43F5E'));
 });
 
+addPage($pages, '17 - Alur API Sekolah', function (DrawioPage $p): void {
+    title($p, 'Alur Integrasi API Sekolah', 'Pencarian data resmi, normalisasi, cache, dan penyimpanan ke master sekolah');
+    $user = $p->vertex('<b>Staff / Admin</b><br>Form Sekolah atau Form Lead<br>Memasukkan nama sekolah / NPSN', 40, 190, 300, 150, boxStyle('#F6F8FC'));
+    $action = $p->vertex('<b>SchoolApiActions.php</b><br>app/Filament/Support/<br>SchoolApiActions.php<br><br>searchOptions() / findByNpsn()', 430, 175, 360, 185, processStyle());
+    $client = $p->vertex('<b>SchoolApiClient.php</b><br>app/Services/Schools/<br>SchoolApiClient.php<br><br>Validasi minimal 3 karakter<br>dan enabled', 880, 165, 390, 205, processStyle());
+    $cache = $p->vertex('<b>Cache Laravel</b><br>school-api:search:{sha256 query}<br>TTL: SCHOOL_API_CACHE_TTL', 1320, 165, 280, 150, dataStoreStyle());
+    $decision = $p->vertex('<b>Cache tersedia?</b>', 930, 470, 260, 135, 'shape=rhombus;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=16;fontStyle=1;fontColor=#334155;');
+    $external = $p->vertex('<b>API Sekolah Indonesia</b><br>config/services.php<br>SCHOOL_API_URL<br>https://sekolah.devapi.id/sekolah<br><br>GET nama atau npsn + limit', 390, 700, 390, 210, boxStyle('#EAF4FB', '#075985'));
+    $normalize = $p->vertex('<b>Normalisasi respons</b><br>SchoolApiClient::normalize()<br>Filter data array, NPSN, nama<br>Status dan lokasi diseragamkan', 900, 700, 390, 190, processStyle());
+    $result = $p->vertex('<b>Hasil pencarian</b><br>searchOptions() menampilkan label<br>Nama - NPSN - Kota<br>Jika gagal: hasil kosong + log warning', 1330, 700, 270, 190, boxStyle('#EAFBF5', '#10B981'));
+    $sync = $p->vertex('<b>SyncSchoolFromApi.php</b><br>app/Services/Schools/<br>SyncSchoolFromApi.php<br><br>updateOrCreate berdasarkan NPSN', 390, 1030, 390, 190, processStyle());
+    $database = $p->vertex('<b>Master sekolah</b><br>app/Models/Sekolah.php<br>tabel: sekolah<br>sumber_data=api-sekolah<br>api_last_synced_at diisi', 900, 1030, 390, 190, dataStoreStyle());
+    $manual = $p->vertex('<b>Isi form sekolah</b><br>Data API mengisi field form<br>Pengguna memeriksa lalu menyimpan', 1330, 1030, 270, 150, boxStyle('#F5EEFF', '#A855F7'));
+
+    $p->edge($user, $action, 'ketik dan cari');
+    $p->edge($action, $client, 'query / NPSN');
+    $p->edge($client, $cache, 'cek / simpan');
+    $p->edge($client, $decision, 'search()');
+    $p->edge($decision, $result, 'Ya: ambil cache');
+    $p->edge($decision, $external, 'Tidak: HTTP + retry');
+    $p->edge($external, $normalize, 'JSON success + data');
+    $p->edge($normalize, $cache, 'Cache::put()');
+    $p->edge($normalize, $result, 'data ternormalisasi');
+    $p->edge($result, $manual, 'fillSchoolForm()');
+    $p->edge($result, $sync, 'selectSchoolForLead()');
+    $p->edge($sync, $database, 'validasi NPSN + upsert');
+    $p->edge($database, $manual, 'sekolah_id untuk lead', 'edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeWidth=2;strokeColor=#A855F7;fontSize=13;labelBackgroundColor=#FFFFFF;');
+    $p->vertex('<b>Konfigurasi</b><br>.env.example: SCHOOL_API_ENABLED, SCHOOL_API_URL, SCHOOL_API_TIMEOUT, SCHOOL_API_CACHE_TTL, SCHOOL_API_RESULT_LIMIT<br>Test: tests/Feature/SchoolApiIntegrationTest.php', 220, 1300, 1380, 95, boxStyle('#FFEFF2', '#F43F5E'));
+});
+
+addPage($pages, '18 - Matriks RBAC Terbaru', function (DrawioPage $p): void {
+    title($p, 'Matriks RBAC SIVMI CRM - Versi 3.0', '18 September 2026 | Superadmin fokus pada pengaturan global dan master data');
+    $headers = ['MODUL / AKTIVITAS', 'SUPERADMIN', 'ADMIN CABANG', 'STAFF', 'KEUANGAN', 'DIREKSI'];
+    $widths = [340, 235, 235, 235, 235, 235];
+    $x = 25;
+    $headerIds = [];
+    foreach ($headers as $index => $header) {
+        $headerIds[$index] = $p->vertex('<b>'.$header.'</b>', $x, 145, $widths[$index], 58, boxStyle('#075985', '#075985'));
+        $x += $widths[$index] + 8;
+    }
+    $rows = [
+        ['Dashboard', 'Baca global', 'Baca cabang', 'Baca cabang', 'Baca keuangan', 'Baca global'],
+        ['Leads', 'Baca global', 'Kelola cabang', 'Kelola cabang', 'Tidak', 'Baca global'],
+        ['Follow-up', 'Baca global', 'Kelola cabang', 'Kelola cabang', 'Tidak', 'Baca global'],
+        ['Pendaftaran', 'Baca global', 'Baca cabang', 'Kelola cabang', 'Baca cabang', 'Baca global'],
+        ['Pembayaran', 'Baca global', 'Baca cabang', 'Kelola terbatas', 'Kelola + verifikasi', 'Baca global'],
+        ['Cabang', 'Kelola', 'Baca cabang', 'Baca cabang', 'Tidak', 'Baca global'],
+        ['Sekolah', 'Kelola', 'Kelola', 'Baca', 'Tidak', 'Baca'],
+        ['Program Bimbel', 'Kelola', 'Baca', 'Baca', 'Tidak', 'Baca'],
+        ['Pengguna', 'Kelola global', 'Kelola staff cabang', 'Tidak', 'Tidak', 'Tidak'],
+        ['Target Kinerja', 'Kelola global', 'Kelola cabang', 'Baca target sendiri', 'Tidak', 'Baca global'],
+        ['Akun WhatsApp', 'Kelola konfigurasi', 'Kelola cabang', 'Tidak', 'Tidak', 'Tidak'],
+        ['Inbox WhatsApp', 'Tidak', 'Baca/kelola cabang', 'Baca/kelola penugasan', 'Tidak', 'Tidak'],
+        ['Audit Aktivitas', 'Baca global', 'Baca cabang', 'Baca sesuai scope', 'Tidak', 'Baca global'],
+        ['Backup & Restore', 'Kelola', 'Tidak', 'Tidak', 'Tidak', 'Tidak'],
+        ['Pengaturan global', 'Kelola', 'Tidak', 'Tidak', 'Tidak', 'Tidak'],
+    ];
+    foreach ($rows as $rowIndex => $row) {
+        $y = 215 + ($rowIndex * 57);
+        $x = 25;
+        foreach ($row as $columnIndex => $value) {
+            $fill = $columnIndex === 0 ? '#EAF4FB' : ($value === 'Tidak' ? '#FFEFF2' : ($columnIndex === 1 ? '#FFF7E6' : '#F8FAFC'));
+            $stroke = $columnIndex === 0 ? '#1476B8' : ($value === 'Tidak' ? '#F43F5E' : '#CBD5E1');
+            $p->vertex($columnIndex === 0 ? '<b>'.$value.'</b>' : $value, $x, $y, $widths[$columnIndex], 48, boxStyle($fill, $stroke));
+            $x += $widths[$columnIndex] + 8;
+        }
+    }
+    $p->vertex('<b>Legenda</b><br><font color="#10B981">Kelola</font> = create/edit sesuai kewenangan | <font color="#1476B8">Baca</font> = read-only | <font color="#F59E0B">Kelola terbatas</font> = dibatasi status/cabang | <font color="#F43F5E">Tidak</font> = akses ditolak', 25, 1100, 1165, 78, boxStyle('#F6F8FC', '#075985'));
+    $p->vertex('<b>Kontrol implementasi</b><br>UserRole::canManageOperationalData() hanya Admin Cabang dan Staff.<br>Resource/page tetap wajib memeriksa canViewAny, canCreate, canEdit, canDelete, dan canAccess.', 25, 1200, 1165, 100, boxStyle('#F5EEFF', '#A855F7'));
+    $superadmin = $p->vertex('<b>SUPERADMIN</b><br>Global settings<br>Master data<br>Backup & audit', 1230, 1110, 350, 120, boxStyle('#FFF7E6', '#F59E0B'));
+    $operational = $p->vertex('<b>OPERASIONAL</b><br>Leads | Follow-up<br>Pendaftaran | Pembayaran', 1230, 1320, 350, 120, boxStyle('#FFEFF2', '#F43F5E'));
+    $p->edge($superadmin, $operational, 'read-only / ditolak mutasi', 'edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeWidth=2;strokeColor=#F43F5E;fontSize=13;labelBackgroundColor=#FFFFFF;');
+});
+
 $xml = '<?xml version="1.0" encoding="UTF-8"?><mxfile host="Electron" modified="2026-08-24T15:00:00.000Z" agent="Codex SIVMI diagram builder" version="29.6.6" type="device">'.implode('', $pages).'</mxfile>';
 
 $directory = dirname($output);

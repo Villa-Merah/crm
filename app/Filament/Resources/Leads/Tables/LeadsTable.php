@@ -157,7 +157,7 @@ class LeadsTable
                     DeleteBulkAction::make()
                         ->label('Hapus data terpilih')
                         ->modalDescription('Lead yang sudah memiliki pendaftaran tidak dapat dihapus.')
-                        ->visible(fn (): bool => auth()->user()->hasRole(UserRole::Superadmin)),
+                        ->visible(fn (): bool => LeadResource::canDelete(new Lead)),
                 ]),
             ])
             ->emptyStateHeading('Belum ada lead')

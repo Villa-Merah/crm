@@ -76,7 +76,7 @@ class FollowupRiwayatResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasRole(UserRole::Superadmin) ?? false;
+        return false;
     }
 
     public static function getPages(): array

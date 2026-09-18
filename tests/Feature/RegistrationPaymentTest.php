@@ -30,7 +30,7 @@ class RegistrationPaymentTest extends TestCase
         $registration = $this->registration($branch, $admin, $this->program(), 'Siswa Read Only');
         $payment = $this->payment($registration);
 
-        $this->assertTrue($superadmin->canManageOperationalData());
+        $this->assertFalse($superadmin->canManageOperationalData());
         $this->assertTrue($superadmin->hasRole(UserRole::Superadmin));
         $superadminNavigation = $this->actingAs($superadmin)->get('/admin/dashboard');
         $superadminNavigation->assertOk();

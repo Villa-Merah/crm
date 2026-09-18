@@ -149,7 +149,7 @@ class WhatsAppAccountResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->canManageOperationalData() ?? false;
+        return static::canManage();
     }
 
     public static function canCreate(): bool
