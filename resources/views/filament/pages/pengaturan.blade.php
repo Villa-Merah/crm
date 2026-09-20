@@ -16,13 +16,13 @@
             </section>
 
             <section class="dashboard-card p-5 md:p-6">
-                <div class="flex items-start gap-3"><span class="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><x-heroicon-o-photo class="h-5 w-5" /></span><div><h3 class="font-bold text-slate-900">Background halaman login</h3><p class="mt-1 text-xs text-slate-500">Ganti gambar latar halaman login. Perubahan diterapkan setelah pengaturan disimpan.</p></div></div>
+                <div class="flex items-start gap-3"><span class="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><x-heroicon-o-photo class="h-5 w-5" /></span><div><h3 class="font-bold text-slate-900">Background halaman login</h3><p class="mt-1 text-xs text-slate-500">Gambar langsung disimpan setelah selesai dipilih dan berlaku saat halaman login dimuat ulang.</p></div></div>
                 <div class="mt-6 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem] md:items-start">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700">Pilih gambar
                             <input wire:model="loginBackgroundImage" type="file" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-sm" />
                         </label>
-                        <div wire:loading wire:target="loginBackgroundImage" class="mt-2 text-xs font-semibold text-sky-600">Memeriksa gambar...</div>
+                        <div wire:loading wire:target="loginBackgroundImage" class="mt-2 text-xs font-semibold text-sky-600">Memeriksa dan menyimpan gambar...</div>
                         <p class="mt-2 text-xs leading-5 text-slate-500">JPG, PNG, atau WebP. Maksimal 5 MB. Ukuran minimum 1600 × 900 px. Gunakan rasio 16:9 dan letakkan objek penting di area tengah agar aman saat dipotong di mobile.</p>
                         @error('loginBackgroundImage')<span class="mt-1 block text-xs text-rose-600">{{ $message }}</span>@enderror
                         @if ($loginBackgroundImagePath)

@@ -11,6 +11,7 @@ use App\Models\ProgramBimbel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -77,14 +78,17 @@ class SettingsTest extends TestCase
         $this->actingAs($superadmin)->get('/admin/program-bimbel/create')->assertOk()->assertSee('Diamond')->assertSee('Privat');
     }
 
-    public function test_superadmin_login_background_upload_updates_the_active_path_after_save(): void
+    public function test_superadmin_login_background_upload_is_persisted_immediately(): void
     {
+        Storage::fake('public');
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
         CrmSetting::setMany(['login_background_image' => 'login/old-bg.png'], $superadmin->id);
 
         $component = Livewire::actingAs($superadmin)->test(Pengaturan::class)
-            ->set('loginBackgroundImage', UploadedFile::fake()->image('new-login-bg.jpg', 1920, 1080))
-            ->call('save');
+            ->set('loginBackgroundImage', UploadedFile::fake()->createWithContent(
+                'new-login-bg.png',
+                file_get_contents(public_path('login.png')),
+            ));
 
         $this->assertNotNull($component->loginBackgroundImagePath);
         $this->assertStringStartsWith('login/', $component->loginBackgroundImagePath);
@@ -92,6 +96,14 @@ class SettingsTest extends TestCase
         $this->assertSame($component->loginBackgroundImagePath, CrmSetting::getValue('login_background_image'));
         $this->assertNotNull(CrmSetting::getValue('login_background_image'));
         $this->assertStringStartsWith('login/', CrmSetting::getValue('login_background_image'));
+        Storage::disk('public')->assertExists($component->loginBackgroundImagePath);
+
+        $loginBackgroundMarkup = view('filament.partials.login-background')->render();
+        $this->assertStringContainsString('/storage/'.$component->loginBackgroundImagePath, $loginBackgroundMarkup);
+        $this->assertStringContainsString('?v=', $loginBackgroundMarkup);
+
+        $component->call('save')->assertHasNoErrors();
+        $this->assertSame($component->loginBackgroundImagePath, CrmSetting::getValue('login_background_image'));
     }
 
     public function test_in_use_program_option_cannot_be_removed(): void

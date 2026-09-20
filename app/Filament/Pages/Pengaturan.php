@@ -83,13 +83,29 @@ class Pengaturan extends Page
         $this->programClassLevels = implode("\n", CrmSetting::getArray('program_class_levels'));
     }
 
+    public function updatedLoginBackgroundImage(): void
+    {
+        abort_unless(static::canAccess(), 403);
+        $this->validateOnly('loginBackgroundImage', [
+            'loginBackgroundImage' => $this->loginBackgroundRules(),
+        ]);
+
+        $this->persistLoginBackgroundImage();
+
+        Notification::make()
+            ->title('Background login berhasil diperbarui')
+            ->body('Muat ulang halaman login untuk melihat gambar terbaru.')
+            ->success()
+            ->send();
+    }
+
     public function save(): void
     {
         abort_unless(static::canAccess(), 403);
         $data = $this->validate([
             'appName' => ['required', 'string', 'max:60'],
             'organizationName' => ['required', 'string', 'max:100'],
-            'loginBackgroundImage' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:min_width=1600,min_height=900'],
+            'loginBackgroundImage' => $this->loginBackgroundRules(),
             'dashboardTagline' => ['required', 'string', 'max:180'],
             'supportEmail' => ['nullable', 'email', 'max:255'],
             'supportPhone' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+()\-\s]*$/'],
@@ -156,22 +172,12 @@ class Pengaturan extends Page
             $normalizedProgramSettings[$setting['key']] = $values;
         }
 
-        $loginBackgroundImagePath = $this->loginBackgroundImagePath;
-        if ($this->loginBackgroundImage) {
-            $oldPath = $loginBackgroundImagePath;
-            $loginBackgroundImagePath = $this->loginBackgroundImage->store('login', 'public');
-            $this->loginBackgroundImage = null;
-            if ($oldPath && str_starts_with($oldPath, 'login/')) {
-                Storage::disk('public')->delete($oldPath);
-            }
-        }
-
-        $this->loginBackgroundImagePath = $loginBackgroundImagePath;
+        $this->persistLoginBackgroundImage();
 
         CrmSetting::setMany([
             'app_name' => trim($data['appName']),
             'organization_name' => trim($data['organizationName']),
-            'login_background_image' => $loginBackgroundImagePath,
+            'login_background_image' => $this->loginBackgroundImagePath,
             'dashboard_tagline' => trim($data['dashboardTagline']),
             'support_email' => filled($data['supportEmail']) ? trim($data['supportEmail']) : null,
             'support_phone' => filled($data['supportPhone']) ? trim($data['supportPhone']) : null,
@@ -180,7 +186,7 @@ class Pengaturan extends Page
             ...$normalizedProgramSettings,
         ], auth()->id());
 
-        ActivityLog::create(['user_id' => auth()->id(), 'event' => 'updated', 'description' => 'Pengaturan aplikasi diperbarui', 'properties' => ['fields' => array_merge(['app_name', 'organization_name', 'dashboard_tagline', 'support_email', 'support_phone', 'staff_report_export', 'school_class_levels'], array_column($programSettings, 'key'))], 'ip_address' => request()->ip(), 'user_agent' => str(request()->userAgent())->limit(500)->toString(), 'created_at' => now()]);
+        ActivityLog::create(['user_id' => auth()->id(), 'event' => 'updated', 'description' => 'Pengaturan aplikasi diperbarui', 'properties' => ['fields' => array_merge(['app_name', 'organization_name', 'login_background_image', 'dashboard_tagline', 'support_email', 'support_phone', 'staff_report_export', 'school_class_levels'], array_column($programSettings, 'key'))], 'ip_address' => request()->ip(), 'user_agent' => str(request()->userAgent())->limit(500)->toString(), 'created_at' => now()]);
 
         Notification::make()->title('Pengaturan berhasil disimpan')->body('Perubahan langsung diterapkan pada panel SIVMI CRM.')->success()->send();
     }
@@ -206,5 +212,28 @@ class Pengaturan extends Page
             ->unique(fn (string $option): string => mb_strtolower($option))
             ->values()
             ->all();
+    }
+
+    private function loginBackgroundRules(): array
+    {
+        return ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:min_width=1600,min_height=900'];
+    }
+
+    private function persistLoginBackgroundImage(): void
+    {
+        if (! $this->loginBackgroundImage) {
+            return;
+        }
+
+        $oldPath = $this->loginBackgroundImagePath;
+        $newPath = $this->loginBackgroundImage->store('login', 'public');
+
+        CrmSetting::setMany(['login_background_image' => $newPath], auth()->id());
+        $this->loginBackgroundImagePath = $newPath;
+        $this->loginBackgroundImage = null;
+
+        if ($oldPath && $oldPath !== $newPath && str_starts_with($oldPath, 'login/')) {
+            Storage::disk('public')->delete($oldPath);
+        }
     }
 }

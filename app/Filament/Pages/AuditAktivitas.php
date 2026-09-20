@@ -51,7 +51,12 @@ class AuditAktivitas extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check() && ! auth()->user()->hasRole(UserRole::Keuangan);
+        return auth()->user()?->hasRole(UserRole::Superadmin) ?? false;
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
     }
 
     public function mount(): void

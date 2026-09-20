@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Filament\Pages\AuditAktivitas;
 use App\Models\ActivityLog;
 use App\Models\Cabang;
 use App\Models\FollowupRiwayat;
@@ -88,20 +89,33 @@ class AuditNotificationTest extends TestCase
         $this->assertSame($adminCount, $admin->notifications()->where('data->title', 'Pembayaran perlu diperiksa')->count());
     }
 
-    public function test_audit_page_respects_branch_and_staff_scope(): void
+    public function test_only_superadmin_can_access_audit_activity_page(): void
     {
         $bandung = $this->branch('BDG', 'Bandung');
         $jaksel = $this->branch('JKS', 'JakSel Rahasia');
+        $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $admin = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::AdminCabang, 'aktif' => true]);
         $staff = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
         $other = User::factory()->create(['cabang_id' => $jaksel->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $direksi = User::factory()->create(['role' => UserRole::Direksi, 'aktif' => true]);
+        $keuangan = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Keuangan, 'aktif' => true]);
         ActivityLog::create(['user_id' => $staff->id, 'cabang_id' => $bandung->getKey(), 'event' => 'updated', 'description' => 'Aktivitas Bandung Aman', 'created_at' => now()]);
         ActivityLog::create(['user_id' => $other->id, 'cabang_id' => $jaksel->getKey(), 'event' => 'updated', 'description' => 'Aktivitas Jakarta Rahasia', 'created_at' => now()]);
 
-        $this->actingAs($staff)->get('/admin/audit-aktivitas?cabang='.$jaksel->getKey().'&pengguna='.$other->id)
-            ->assertOk()->assertSee('Aktivitas Bandung Aman')->assertDontSee('Aktivitas Jakarta Rahasia')->assertDontSee('JakSel Rahasia');
+        $this->actingAs($superadmin)->get('/admin/audit-aktivitas')
+            ->assertOk()
+            ->assertSee('Aktivitas Bandung Aman')
+            ->assertSee('Aktivitas Jakarta Rahasia');
+        $this->assertTrue(AuditAktivitas::shouldRegisterNavigation());
 
-        $direksi = User::factory()->create(['role' => UserRole::Direksi, 'aktif' => true]);
-        $this->actingAs($direksi)->get('/admin/audit-aktivitas')->assertOk()->assertSee('Aktivitas Bandung Aman')->assertSee('Aktivitas Jakarta Rahasia');
+        foreach ([$admin, $staff, $direksi, $keuangan] as $unauthorizedUser) {
+            $this->actingAs($unauthorizedUser);
+            $this->assertFalse(AuditAktivitas::shouldRegisterNavigation());
+            $this->get('/admin/audit-aktivitas')
+                ->assertForbidden()
+                ->assertSee('Akses dibatasi')
+                ->assertSee('Kembali ke dashboard');
+        }
     }
 
     private function branch(string $code, string $name): Cabang
