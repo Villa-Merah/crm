@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Leads\RelationManagers;
 
+use App\Enums\UserRole;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -17,6 +18,7 @@ use Filament\Tables\Table;
 class FollowupsRelationManager extends RelationManager
 {
     protected static string $relationship = 'followups';
+
     protected static ?string $title = 'Riwayat follow-up';
 
     public function form(Schema $schema): Schema
@@ -45,11 +47,15 @@ class FollowupsRelationManager extends RelationManager
                 TextColumn::make('catatan')->label('Catatan')->limit(45)->placeholder('-')->toggleable(),
             ])
             ->headerActions([
-                CreateAction::make()->label('Catat follow-up')->visible(fn () => auth()->user()->canManageOperationalData())->mutateDataUsing(function (array $data): array { $data['user_id'] = auth()->id(); return $data; }),
+                CreateAction::make()->label('Catat follow-up')->visible(fn () => auth()->user()->canManageOperationalData())->mutateDataUsing(function (array $data): array {
+                    $data['user_id'] = auth()->id();
+
+                    return $data;
+                }),
             ])
             ->recordActions([
                 EditAction::make()->visible(fn () => auth()->user()->canManageOperationalData()),
-                DeleteAction::make()->visible(fn () => auth()->user()->hasRole(\App\Enums\UserRole::Superadmin)),
+                DeleteAction::make()->visible(fn () => auth()->user()->hasRole(UserRole::Superadmin)),
             ])
             ->emptyStateHeading('Belum ada riwayat follow-up')
             ->emptyStateDescription('Catat komunikasi pertama untuk lead ini.');

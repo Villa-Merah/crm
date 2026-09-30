@@ -173,10 +173,38 @@ body:has(.fi-simple-layout) {
     box-shadow: 0 24px 70px rgb(3 24 36 / 30%), inset 0 1px rgb(255 255 255 / 75%);
     backdrop-filter: blur(18px);
 }
-.fi-simple-page .fi-header-heading { color: #12364b; letter-spacing: -.025em; }
+.fi-simple-page .fi-header-heading {
+    margin: 0;
+    color: #12364b;
+    letter-spacing: -.025em;
+    text-align: center;
+}
 .fi-simple-page .fi-header-subheading { color: #557080; }
 .fi-simple-page .fi-input-wrp { background: rgb(255 255 255 / 78%); }
 .fi-simple-page .fi-btn { box-shadow: 0 10px 22px rgb(20 118 184 / 20%); }
+
+.fi-simple-page .fi-form-label,
+.fi-simple-page label,
+.fi-simple-page .fi-fo-field-label,
+.fi-simple-page .fi-input,
+.fi-simple-page .fi-checkbox,
+.fi-simple-page .fi-btn,
+.fi-simple-page .fi-form-field,
+.fi-simple-page .fi-field {
+    text-align: left;
+}
+
+.fi-simple-page .fi-fieldset,
+.fi-simple-page .fi-form,
+.fi-simple-page form,
+.fi-simple-page .fi-fo-fieldset {
+    display: block;
+}
+
+.fi-simple-page .fi-form > .fi-field,
+.fi-simple-page .fi-form > .fi-fieldset {
+    margin-bottom: .9rem;
+}
 
 @keyframes sivmi-login-rise {
     from { opacity: 0; transform: translateY(18px); }

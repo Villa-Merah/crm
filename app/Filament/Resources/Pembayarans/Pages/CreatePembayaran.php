@@ -14,7 +14,9 @@ class CreatePembayaran extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         Pendaftaran::query()->visibleTo(auth()->user())->findOrFail($data['pendaftaran_id']);
-        if (auth()->user()->hasRole(UserRole::Staff)) $data['status_pembayaran'] = 'Menunggu';
+        if (auth()->user()->hasRole(UserRole::Staff)) {
+            $data['status_pembayaran'] = 'Menunggu';
+        }
 
         return $data;
     }

@@ -13,4 +13,3 @@ class DatabaseIsolationTest extends TestCase
         $this->assertSame(':memory:', DB::connection()->getDatabaseName());
     }
 }
-

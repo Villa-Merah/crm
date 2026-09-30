@@ -17,6 +17,7 @@ function xmlAttr(string $value): string
 final class DrawioPage
 {
     private int $counter = 2;
+
     private array $cells = [
         '<mxCell id="0"/>',
         '<mxCell id="1" parent="0"/>',
@@ -81,7 +82,7 @@ function dataStoreStyle(): string
 
 function addPage(array &$pages, string $name, callable $draw): void
 {
-    $page = new DrawioPage();
+    $page = new DrawioPage;
     $draw($page);
     $pages[] = '<diagram id="'.xmlAttr('sivmi-'.(count($pages) + 1)).'" name="'.xmlAttr($name).'">'.$page->xml().'</diagram>';
 }
@@ -100,7 +101,9 @@ addPage($pages, '01 - Arsitektur Sistem', function (DrawioPage $p): void {
     $previous = null;
     foreach ($layers as $index => [$name, $items, $fill]) {
         $id = $p->vertex("<b>{$name}</b><br><br>{$items}", 45 + ($index * 305), 190, 270, 510, boxStyle($fill));
-        if ($previous) $p->edge($previous, $id, 'mengalir ke');
+        if ($previous) {
+            $p->edge($previous, $id, 'mengalir ke');
+        }
         $previous = $id;
     }
     $p->vertex('<b>Kontrol lintas lapisan</b><br>Autentikasi | RBAC | Branch scoping | Validasi | Audit aktivitas | Error/empty/loading state', 200, 790, 1200, 90, boxStyle('#F6F8FC', '#075985'));
@@ -137,7 +140,9 @@ addPage($pages, '03 - Proses Bisnis', function (DrawioPage $p): void {
     $previous = null;
     foreach ($stages as $i => [$heading, $content, $fill]) {
         $id = $p->vertex("<b>{$heading}</b><br><br>{$content}", 40 + ($i * 310), 260, 270, 400, boxStyle($fill));
-        if ($previous) $p->edge($previous, $id, 'status/data');
+        if ($previous) {
+            $p->edge($previous, $id, 'status/data');
+        }
         $previous = $id;
     }
     $p->vertex('<b>Kontrol</b><br>Validasi input | Role dan cabang | Notifikasi | Audit aktivitas | Query terfilter', 255, 760, 1050, 90, boxStyle('#F6F8FC', '#075985'));
@@ -158,7 +163,9 @@ addPage($pages, '04 - Flowmap', function (DrawioPage $p): void {
     $previous = null;
     foreach ($steps as [$lane, $x, $label]) {
         $id = $p->vertex($label, $x, 175 + ($lane * 180), 210, 78, boxStyle('#FFFFFF'));
-        if ($previous) $p->edge($previous, $id);
+        if ($previous) {
+            $p->edge($previous, $id);
+        }
         $previous = $id;
     }
 });
@@ -173,7 +180,9 @@ addPage($pages, '05 - Flowchart', function (DrawioPage $p): void {
     $valid = $p->vertex('Pembayaran valid dan<br>berwenang diverifikasi?', 650, 920, 300, 150, 'shape=rhombus;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#F59E0B;strokeWidth=2;fontSize=17;fontStyle=1;');
     $update = $p->vertex('Perbarui status siswa, omzet, target,<br>notifikasi, dan audit', 585, 1140, 430, 85, processStyle());
     $finish = $p->vertex('Selesai', 585, 1280, 430, 70, processStyle());
-    foreach ([[$start,$validate],[$validate,$followup],[$followup,$ready],[$ready,$registration],[$registration,$valid],[$valid,$update],[$update,$finish]] as [$a,$b]) $p->edge($a,$b);
+    foreach ([[$start, $validate], [$validate, $followup], [$followup, $ready], [$ready, $registration], [$registration, $valid], [$valid, $update], [$update, $finish]] as [$a,$b]) {
+        $p->edge($a, $b);
+    }
     $p->edge($ready, $followup, 'Tidak: follow-up ulang', 'edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F43F5E;strokeWidth=2;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=0;entryY=0.5;');
     $p->edge($valid, $registration, 'Tidak: koreksi', 'edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F43F5E;strokeWidth=2;fontSize=13;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=1;entryY=0.5;');
 });
@@ -185,7 +194,9 @@ addPage($pages, '06 - DFD Level 0', function (DrawioPage $p): void {
     $staff = $p->vertex('<b>Staff / Admin Cabang</b><br>Lead, follow-up, transaksi<br>Tugas dan notifikasi', 70, 690, 360, 150, boxStyle('#F6F8FC'));
     $superadmin = $p->vertex('<b>Superadmin</b><br>Master data dan konfigurasi<br>Status sistem', 1170, 160, 360, 150, boxStyle('#F6F8FC'));
     $director = $p->vertex('<b>Direksi</b><br>Filter dan permintaan laporan<br>KPI dan laporan', 1170, 690, 360, 150, boxStyle('#F6F8FC'));
-    foreach ([[$student,$system,'data calon siswa'],[$system,$student,'status layanan'],[$staff,$system,'data operasional'],[$system,$staff,'tugas/notifikasi'],[$superadmin,$system,'master dan aturan'],[$system,$superadmin,'hasil konfigurasi'],[$director,$system,'permintaan analisis'],[$system,$director,'KPI/laporan']] as [$a,$b,$label]) $p->edge($a,$b,$label);
+    foreach ([[$student, $system, 'data calon siswa'], [$system, $student, 'status layanan'], [$staff, $system, 'data operasional'], [$system, $staff, 'tugas/notifikasi'], [$superadmin, $system, 'master dan aturan'], [$system, $superadmin, 'hasil konfigurasi'], [$director, $system, 'permintaan analisis'], [$system, $director, 'KPI/laporan']] as [$a,$b,$label]) {
+        $p->edge($a, $b, $label);
+    }
 });
 
 addPage($pages, '07 - DFD Level 1', function (DrawioPage $p): void {
@@ -206,7 +217,9 @@ addPage($pages, '07 - DFD Level 1', function (DrawioPage $p): void {
         $processes[$i] = $p->vertex("<b>{$heading}</b><br>{$detail}", 440, $y, 390, 105, processStyle());
         $stores[$i] = $p->vertex($store, 1080, $y, 430, 105, dataStoreStyle());
         $p->edge($processes[$i], $stores[$i], 'simpan/baca');
-        if ($i > 0) $p->edge($processes[$i - 1], $processes[$i], 'status');
+        if ($i > 0) {
+            $p->edge($processes[$i - 1], $processes[$i], 'status');
+        }
     }
     $p->edge($ops, $processes[0], 'input/otorisasi');
     $p->edge($ops, $processes[1], 'aktivitas kontak');
@@ -225,7 +238,9 @@ addPage($pages, '08 - Peta Entitas', function (DrawioPage $p): void {
     $previous = null;
     foreach ($groups as $i => [$heading,$items,$fill]) {
         $id = $p->vertex("<b>{$heading}</b><br><br>{$items}", 90 + ($i * 380), 210, 330, 500, boxStyle($fill));
-        if ($previous) $p->edge($previous, $id, 'mendukung');
+        if ($previous) {
+            $p->edge($previous, $id, 'mendukung');
+        }
         $previous = $id;
     }
 });
@@ -241,11 +256,13 @@ addPage($pages, '09 - ERD Operasional', function (DrawioPage $p): void {
     $registration = $p->vertex('pendaftaran<br><br>PK pendaftaran_id<br>FK lead_id (unique)<br>FK program_bimbel_id<br>FK cabang_id<br>status_pendaftaran', 1240, 530, 360, 260, entityStyle());
     $payment = $p->vertex('pembayaran<br><br>PK pembayaran_id<br>FK pendaftaran_id<br>tanggal_pembayaran<br>nominal<br>status_pembayaran', 1240, 900, 360, 250, entityStyle());
     foreach ([
-        [$cabang,$users,'1 : 0..N'],[$cabang,$leads,'1 : 0..N'],[$cabang,$registration,'1 : 0..N'],
-        [$sekolah,$leads,'1 : 0..N'],[$program,$leads,'1 : 0..N'],[$users,$leads,'1 : 0..N'],
-        [$leads,$followup,'1 : 0..N'],[$users,$followup,'1 : 0..N'],[$leads,$registration,'1 : 0..1'],
-        [$program,$registration,'1 : 0..N'],[$registration,$payment,'1 : 0..N'],
-    ] as [$a,$b,$label]) $p->edge($a,$b,$label);
+        [$cabang, $users, '1 : 0..N'], [$cabang, $leads, '1 : 0..N'], [$cabang, $registration, '1 : 0..N'],
+        [$sekolah, $leads, '1 : 0..N'], [$program, $leads, '1 : 0..N'], [$users, $leads, '1 : 0..N'],
+        [$leads, $followup, '1 : 0..N'], [$users, $followup, '1 : 0..N'], [$leads, $registration, '1 : 0..1'],
+        [$program, $registration, '1 : 0..N'], [$registration, $payment, '1 : 0..N'],
+    ] as [$a,$b,$label]) {
+        $p->edge($a, $b, $label);
+    }
 });
 
 addPage($pages, '10 - ERD Kinerja dan Kontrol', function (DrawioPage $p): void {
@@ -258,9 +275,11 @@ addPage($pages, '10 - ERD Kinerja dan Kontrol', function (DrawioPage $p): void {
     $activity = $p->vertex('activity_logs<br><br>PK activity_log_id<br>FK user_id (nullable)<br>FK cabang_id (nullable)<br>subject_type + subject_id<br>event<br>properties', 1130, 620, 450, 290, entityStyle());
     $notifications = $p->vertex('notifications<br><br>PK id (UUID)<br>notifiable_type + notifiable_id<br>data<br>read_at', 1130, 980, 450, 210, entityStyle('#F5EEFF'));
     foreach ([
-        [$cabang,$targetBranch,'1 : 0..N'],[$targetBranch,$targetUser,'1 : 0..N'],[$users,$targetUser,'1 : 0..N'],
-        [$users,$settings,'1 : 0..N'],[$users,$activity,'1 : 0..N'],[$cabang,$activity,'1 : 0..N'],[$users,$notifications,'1 : 0..N'],
-    ] as [$a,$b,$label]) $p->edge($a,$b,$label);
+        [$cabang, $targetBranch, '1 : 0..N'], [$targetBranch, $targetUser, '1 : 0..N'], [$users, $targetUser, '1 : 0..N'],
+        [$users, $settings, '1 : 0..N'], [$users, $activity, '1 : 0..N'], [$cabang, $activity, '1 : 0..N'], [$users, $notifications, '1 : 0..N'],
+    ] as [$a,$b,$label]) {
+        $p->edge($a, $b, $label);
+    }
     $p->vertex('<b>Catatan kardinalitas</b><br>0..1 = relasi opsional tunggal<br>0..N = nol atau banyak record anak<br>Relasi subject dan notifiable bersifat polymorphic', 430, 1010, 500, 140, boxStyle('#FFF7E6', '#F59E0B'));
 });
 
@@ -300,7 +319,9 @@ addPage($pages, '12 - Alur Pesan Masuk WAHA', function (DrawioPage $p): void {
         $x = 45 + ($col * 380);
         $y = 180 + ($row * 430);
         $id = $p->vertex("<b>{$heading}</b><br><br>{$detail}", $x, $y, 330, 230, boxStyle($fill));
-        if ($previous) $p->edge($previous, $id, $i === 4 ? 'asinkron' : 'data/status');
+        if ($previous) {
+            $p->edge($previous, $id, $i === 4 ? 'asinkron' : 'data/status');
+        }
         $previous = $id;
     }
     $p->vertex('<b>Event yang diabaikan</b><br>group @g.us | newsletter | status@broadcast | event selain message/message.any/session.status', 610, 1010, 760, 90, boxStyle('#F6F8FC', '#64748B'));
@@ -332,10 +353,12 @@ addPage($pages, '14 - ERD Integrasi WhatsApp', function (DrawioPage $p): void {
     $message = $p->vertex('whatsapp_messages<br><br>PK id<br>FK conversation_id<br>FK whatsapp_account_id<br>FK lead_id (nullable)<br>external_message_id<br>direction + body<br>sent_at', 1010, 650, 430, 300, entityStyle('#F5EEFF'));
     $lead = $p->vertex('leads<br><br>PK lead_id<br>no_wa_normalized<br>kanal_masuk<br>status_lead<br>whatsapp_first_seen_at<br>whatsapp_last_seen_at', 1360, 360, 260, 280, entityStyle('#FFEFF2'));
     foreach ([
-        [$users,$account,'1 : 0..1'],[$branch,$account,'1 : 0..N'],[$account,$conversation,'1 : 0..N'],
-        [$account,$message,'1 : 0..N'],[$conversation,$message,'1 : 0..N'],[$lead,$conversation,'1 : 0..N'],
-        [$lead,$message,'1 : 0..N'],[$account,$event,'session_name (logis)'],
-    ] as [$a,$b,$label]) $p->edge($a,$b,$label);
+        [$users, $account, '1 : 0..1'], [$branch, $account, '1 : 0..N'], [$account, $conversation, '1 : 0..N'],
+        [$account, $message, '1 : 0..N'], [$conversation, $message, '1 : 0..N'], [$lead, $conversation, '1 : 0..N'],
+        [$lead, $message, '1 : 0..N'], [$account, $event, 'session_name (logis)'],
+    ] as [$a,$b,$label]) {
+        $p->edge($a, $b, $label);
+    }
     $p->vertex('<b>Aturan</b><br>Satu user satu session aktif | payload_hash idempotent | external_message_id unik per akun | lead lintas cabang tidak ditautkan otomatis', 500, 1040, 920, 90, boxStyle('#F6F8FC', '#075985'));
 });
 
@@ -352,11 +375,18 @@ addPage($pages, '15 - DFD Integrasi WhatsApp', function (DrawioPage $p): void {
     $d2 = $p->vertex('D6.2 Webhook Events', 1020, 500, 360, 90, dataStoreStyle());
     $d3 = $p->vertex('D6.3 Conversation dan Message', 1020, 650, 360, 90, dataStoreStyle());
     $d4 = $p->vertex('D1 Leads', 1020, 800, 360, 90, dataStoreStyle());
-    $p->edge($operator,$p1,'perintah session'); $p->edge($p1,$waha,'API X-Api-Key');
-    $p->edge($sender,$waha,'pesan'); $p->edge($waha,$p2,'webhook HMAC');
-    $p->edge($p2,$d2,'event'); $p->edge($d2,$p3,'job'); $p->edge($p3,$d3,'simpan chat');
-    $p->edge($p3,$p4,'nomor + identitas'); $p->edge($p4,$d4,'baca/buat/tautkan');
-    $p->edge($p4,$d3,'status match'); $p->edge($d3,$operator,'inbox terfilter'); $p->edge($p1,$d1,'status akun');
+    $p->edge($operator, $p1, 'perintah session');
+    $p->edge($p1, $waha, 'API X-Api-Key');
+    $p->edge($sender, $waha, 'pesan');
+    $p->edge($waha, $p2, 'webhook HMAC');
+    $p->edge($p2, $d2, 'event');
+    $p->edge($d2, $p3, 'job');
+    $p->edge($p3, $d3, 'simpan chat');
+    $p->edge($p3, $p4, 'nomor + identitas');
+    $p->edge($p4, $d4, 'baca/buat/tautkan');
+    $p->edge($p4, $d3, 'status match');
+    $p->edge($d3, $operator, 'inbox terfilter');
+    $p->edge($p1, $d1, 'status akun');
 });
 
 addPage($pages, '16 - Deployment Hybrid WAHA', function (DrawioPage $p): void {
@@ -367,9 +397,13 @@ addPage($pages, '16 - Deployment Hybrid WAHA', function (DrawioPage $p): void {
     $worker = $p->vertex('<b>Queue Worker</b><br>php artisan queue:work<br>harus dimonitor', 430, 820, 390, 150, boxStyle('#F5EEFF', '#A855F7'));
     $docker = $p->vertex('<b>Docker Desktop</b><br>WAHA GOWS<br>localhost:3000<br>volume waha_sessions', 1030, 150, 420, 210, boxStyle('#EAFBF5', '#10B981'));
     $whatsapp = $p->vertex('<b>WhatsApp Network</b><br>WebSocket dan perangkat tertaut', 1030, 560, 420, 150, boxStyle('#FFF7E6', '#F59E0B'));
-    $p->edge($browser,$laragon,'HTTP lokal'); $p->edge($laragon,$mysql,'Eloquent');
-    $p->edge($laragon,$docker,'127.0.0.1:3000 API'); $p->edge($docker,$laragon,'host-gateway webhook');
-    $p->edge($docker,$whatsapp,'GOWS'); $p->edge($mysql,$worker,'database queue'); $p->edge($worker,$mysql,'hasil proses');
+    $p->edge($browser, $laragon, 'HTTP lokal');
+    $p->edge($laragon, $mysql, 'Eloquent');
+    $p->edge($laragon, $docker, '127.0.0.1:3000 API');
+    $p->edge($docker, $laragon, 'host-gateway webhook');
+    $p->edge($docker, $whatsapp, 'GOWS');
+    $p->edge($mysql, $worker, 'database queue');
+    $p->edge($worker, $mysql, 'hasil proses');
     $p->vertex('<b>Variabel penting</b><br>WAHA_BASE_URL=http://127.0.0.1:3000 | WAHA_WEBHOOK_URL=http://sivmi.crm.test/api/webhooks/waha | API key dan HMAC secret harus sama pada pasangan konfigurasi masing-masing', 170, 1030, 1280, 90, boxStyle('#FFEFF2', '#F43F5E'));
 });
 

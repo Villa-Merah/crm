@@ -54,7 +54,9 @@ class CrmNotifier
     public function leadAssigned(Lead $lead): void
     {
         $recipient = $lead->diserahkanKe()->where('aktif', true)->first();
-        if (! $recipient || $recipient->id === auth()->id()) return;
+        if (! $recipient || $recipient->id === auth()->id()) {
+            return;
+        }
 
         $this->sendOnce($recipient, 'lead-assigned-'.$lead->getKey().'-'.$recipient->id, 'Lead baru ditugaskan', $lead->nama.' telah ditugaskan kepada Anda.', url('/admin/leads/'.$lead->getKey()), 'heroicon-o-user-plus', 'primary');
     }
@@ -63,16 +65,22 @@ class CrmNotifier
     {
         $recipient = $target->user()->where('aktif', true)->first();
         $period = $target->targetCabang()->first();
-        if (! $recipient || ! $period) return;
+        if (! $recipient || ! $period) {
+            return;
+        }
 
         $this->sendOnce($recipient, 'target-assigned-'.$target->getKey(), 'Target kinerja ditetapkan', 'Target '.$period->bulan.'/'.$period->tahun.' telah dialokasikan kepada Anda.', url('/admin/target-kinerja'), 'heroicon-o-chart-bar-square', 'success');
     }
 
     public function pendingPayment(Pembayaran $payment): int
     {
-        if (in_array($payment->status_pembayaran, ['Lunas', 'Terverifikasi'], true)) return 0;
+        if (in_array($payment->status_pembayaran, ['Lunas', 'Terverifikasi'], true)) {
+            return 0;
+        }
         $branchId = $payment->pendaftaran()->value('cabang_id');
-        if (! $branchId) return 0;
+        if (! $branchId) {
+            return 0;
+        }
 
         $recipients = User::query()->where('aktif', true)->where(fn ($query) => $query
             ->where(fn ($branch) => $branch->where('role', UserRole::AdminCabang->value)->where('cabang_id', $branchId))
@@ -81,13 +89,16 @@ class CrmNotifier
         foreach ($recipients as $recipient) {
             $sent += (int) $this->sendOnce($recipient, 'payment-pending-'.$payment->getKey(), 'Pembayaran perlu diperiksa', 'Pembayaran baru berstatus '.$payment->status_pembayaran.'.', url('/admin/pembayaran'), 'heroicon-o-banknotes', 'warning');
         }
+
         return $sent;
     }
 
     public function overdueFollowup(FollowupRiwayat $followup): bool
     {
         $recipient = $followup->user()->where('aktif', true)->first();
-        if (! $recipient || ! $followup->tanggal_followup_berikutnya) return false;
+        if (! $recipient || ! $followup->tanggal_followup_berikutnya) {
+            return false;
+        }
         $key = 'followup-overdue-'.$followup->getKey().'-'.$followup->tanggal_followup_berikutnya->format('YmdHi');
 
         return $this->sendOnce($recipient, $key, 'Follow-up melewati jadwal', 'Tindak lanjut lead '.$followup->lead()->value('nama').' memerlukan perhatian.', url('/admin/follow-up'), 'heroicon-o-chat-bubble-left-right', 'danger');

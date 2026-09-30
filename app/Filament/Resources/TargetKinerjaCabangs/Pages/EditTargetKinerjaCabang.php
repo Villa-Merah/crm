@@ -16,7 +16,10 @@ class EditTargetKinerjaCabang extends EditRecord
         $viewer = auth()->user();
         $data['cabang_id'] = $this->record->cabang_id;
         $exists = TargetKinerjaCabang::query()->whereKeyNot($this->record->getKey())->where('cabang_id', $data['cabang_id'])->where('tahun', $data['tahun'])->where('bulan', $data['bulan'])->exists();
-        if ($exists) throw ValidationException::withMessages(['data.bulan' => 'Target untuk cabang dan periode ini sudah tersedia.']);
+        if ($exists) {
+            throw ValidationException::withMessages(['data.bulan' => 'Target untuk cabang dan periode ini sudah tersedia.']);
+        }
+
         return $data;
     }
 }

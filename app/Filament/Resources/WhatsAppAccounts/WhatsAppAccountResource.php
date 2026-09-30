@@ -94,34 +94,34 @@ class WhatsAppAccountResource extends Resource
             TextColumn::make('last_seen_at')->label('Sinkronisasi')->since()->placeholder('Belum pernah'),
             IconColumn::make('aktif')->label('Aktif')->boolean(),
         ])->recordActions([
-                Action::make('provision')->label('Siapkan session')->icon('heroicon-o-cloud-arrow-up')->color('gray')
-                    ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && blank($record->metadata['provisioned_at'] ?? null))
-                    ->requiresConfirmation()->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'provision')),
-                Action::make('start')->label('Mulai')->icon('heroicon-o-play')->color('success')
-                    ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && $record->status !== WhatsAppAccountStatus::Working)
-                    ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction(
-                        $record,
-                        $record->status === WhatsAppAccountStatus::Failed ? 'restart' : 'start',
-                    )),
-                Action::make('sync')->label('Sinkronkan')->icon('heroicon-o-arrow-path')
-                    ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'refresh')),
-                Action::make('stop')->label('Hentikan')->icon('heroicon-o-stop')->color('danger')
-                    ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && $record->status === WhatsAppAccountStatus::Working)
-                    ->requiresConfirmation()
-                    ->modalDescription('Session dihentikan tanpa menghapus data percakapan maupun konfigurasi akun.')
-                    ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'stop')),
-                Action::make('syncWebhooks')->label('Aktifkan chat')->icon('heroicon-o-chat-bubble-left-right')->color('primary')
-                    ->visible(fn () => static::canManage())
-                    ->requiresConfirmation()
-                    ->modalDescription('Memperbarui webhook session agar pesan masuk, pesan keluar, dan status dibaca diterima oleh CRM.')
-                    ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'syncWebhooks')),
-                Action::make('qr')->label('Lihat QR')->icon('heroicon-o-qr-code')->color('warning')
-                    ->url(fn (UserWhatsAppAccount $record) => route('waha.accounts.qr', $record))->openUrlInNewTab()
-                    ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && $record->status !== WhatsAppAccountStatus::Working),
-                Action::make('inbox')->label('Buka inbox')->icon('heroicon-o-inbox')->color('gray')
-                    ->url(fn () => WhatsAppConversationResource::getUrl())
-                    ->visible(fn (UserWhatsAppAccount $record) => $record->conversations_count > 0),
-                EditAction::make()->visible(fn (UserWhatsAppAccount $record) => static::canEdit($record)),
+            Action::make('provision')->label('Siapkan session')->icon('heroicon-o-cloud-arrow-up')->color('gray')
+                ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && blank($record->metadata['provisioned_at'] ?? null))
+                ->requiresConfirmation()->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'provision')),
+            Action::make('start')->label('Mulai')->icon('heroicon-o-play')->color('success')
+                ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && $record->status !== WhatsAppAccountStatus::Working)
+                ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction(
+                    $record,
+                    $record->status === WhatsAppAccountStatus::Failed ? 'restart' : 'start',
+                )),
+            Action::make('sync')->label('Sinkronkan')->icon('heroicon-o-arrow-path')
+                ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'refresh')),
+            Action::make('stop')->label('Hentikan')->icon('heroicon-o-stop')->color('danger')
+                ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && $record->status === WhatsAppAccountStatus::Working)
+                ->requiresConfirmation()
+                ->modalDescription('Session dihentikan tanpa menghapus data percakapan maupun konfigurasi akun.')
+                ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'stop')),
+            Action::make('syncWebhooks')->label('Aktifkan chat')->icon('heroicon-o-chat-bubble-left-right')->color('primary')
+                ->visible(fn () => static::canManage())
+                ->requiresConfirmation()
+                ->modalDescription('Memperbarui webhook session agar pesan masuk, pesan keluar, dan status dibaca diterima oleh CRM.')
+                ->action(fn (UserWhatsAppAccount $record) => static::runWahaAction($record, 'syncWebhooks')),
+            Action::make('qr')->label('Lihat QR')->icon('heroicon-o-qr-code')->color('warning')
+                ->url(fn (UserWhatsAppAccount $record) => route('waha.accounts.qr', $record))->openUrlInNewTab()
+                ->visible(fn (UserWhatsAppAccount $record) => static::canManage() && $record->status !== WhatsAppAccountStatus::Working),
+            Action::make('inbox')->label('Buka inbox')->icon('heroicon-o-inbox')->color('gray')
+                ->url(fn () => WhatsAppConversationResource::getUrl())
+                ->visible(fn (UserWhatsAppAccount $record) => $record->conversations_count > 0),
+            EditAction::make()->visible(fn (UserWhatsAppAccount $record) => static::canEdit($record)),
         ])->emptyStateHeading('Belum ada nomor WhatsApp')->emptyStateDescription('Tambahkan nomor operasional admin atau staff, lalu siapkan session WAHA.');
     }
 

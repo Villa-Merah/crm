@@ -17,16 +17,29 @@ use Throwable;
 class Laporan extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-chart-bar';
+
     protected static ?string $navigationLabel = 'Laporan';
+
     protected static string|\UnitEnum|null $navigationGroup = 'SIVMI CRM';
+
     protected static ?int $navigationSort = 8;
+
     protected static ?string $title = 'Laporan';
+
     protected string $view = 'filament.pages.laporan';
 
-    #[Url] public ?int $cabang = null;
-    #[Url] public int $tahun;
-    #[Url] public int $bulan;
-    #[Url] public ?int $pengguna = null;
+    #[Url]
+    public ?int $cabang = null;
+
+    #[Url]
+    public int $tahun;
+
+    #[Url]
+    public int $bulan;
+
+    #[Url]
+    public ?int $pengguna = null;
+
     public ?string $reportError = null;
 
     public function mount(): void
@@ -71,6 +84,7 @@ class Laporan extends Page
     public function canExport(): bool
     {
         $viewer = auth()->user();
+
         return ! $viewer->hasRole(UserRole::Staff) || CrmSetting::getBoolean('staff_report_export');
     }
 
@@ -92,13 +106,18 @@ class Laporan extends Page
     private function enforceViewerScope(): void
     {
         $viewer = auth()->user();
-        if (! $viewer->hasGlobalBranchAccess()) $this->cabang = $viewer->cabang_id;
-        if ($viewer->hasRole(UserRole::Staff)) $this->pengguna = $viewer->id;
+        if (! $viewer->hasGlobalBranchAccess()) {
+            $this->cabang = $viewer->cabang_id;
+        }
+        if ($viewer->hasRole(UserRole::Staff)) {
+            $this->pengguna = $viewer->id;
+        }
     }
 
     private function periodRange(): array
     {
         $start = now()->setDate($this->tahun, $this->bulan, 1)->startOfMonth();
+
         return [$start->toDateString(), $start->copy()->addMonth()->toDateString(), $start];
     }
 
@@ -106,11 +125,14 @@ class Laporan extends Page
     {
         [$start, $end] = $this->periodRange();
         $query->where($date, '>=', $start)->where($date, '<', $end);
-        if ($this->cabang) $query->where($branch, $this->cabang);
+        if ($this->cabang) {
+            $query->where($branch, $this->cabang);
+        }
         if ($user && $this->pengguna) {
             $query->where(fn (Builder $builder) => $builder->where($user, $this->pengguna)
                 ->when(str_ends_with($user, 'diserahkan_ke_user_id'), fn (Builder $owner) => $owner->orWhere(str_replace('diserahkan_ke_user_id', 'diinput_oleh_user_id', $user), $this->pengguna)));
         }
+
         return $query;
     }
 
@@ -152,6 +174,7 @@ class Laporan extends Page
             $target = $targets->get($branch->cabang_id);
             $targetRevenue = (float) ($target->target_revenue ?? 0);
             $targetStudents = (int) ($target->target_students ?? 0);
+
             return [
                 'name' => $branch->nama, 'leads' => $branchLeads, 'registrations' => $branchRegistrations,
                 'conversion' => $branchLeads > 0 ? round($branchRegistrations / $branchLeads * 100, 1) : 0,
@@ -195,6 +218,7 @@ class Laporan extends Page
     private function emptyReportData(): array
     {
         $days = collect(range(1, now()->daysInMonth));
+
         return ['branches' => collect(), 'users' => collect(), 'years' => [now()->year], 'stats' => ['leads' => 0, 'registrations' => 0, 'conversion' => 0, 'revenue' => 0, 'average_ticket' => 0], 'periodLabel' => '-', 'days' => $days, 'trendLeads' => $days->map(fn () => 0), 'trendRegistrations' => $days->map(fn () => 0), 'funnel' => collect(), 'paymentMethods' => collect(), 'branchesReport' => collect(), 'programsReport' => collect(), 'hasData' => false];
     }
 }

@@ -178,10 +178,21 @@ class ProcessWahaWebhook implements ShouldQueue
                 ],
             );
 
+            // Heal orphaned references that can exist in imported legacy data
+            // when foreign-key checks were disabled during the import.
+            if ($conversation->lead_id && ! $conversation->lead()->exists()) {
+                $conversation->lead_id = null;
+                $conversation->match_status = WhatsAppMatchStatus::Unresolved;
+            }
+
             if (! $conversation->lead_id && $phone) {
                 $result = $matcher->matchOrCreate($account, $phone, $contactName, $sentAt, ! $fromMe);
                 $conversation->lead_id = $result['lead']?->getKey();
                 $conversation->match_status = $result['status'];
+
+                if ($conversation->lead_id) {
+                    $conversation->messages()->update(['lead_id' => $conversation->lead_id]);
+                }
             }
 
             $conversation->contact_phone_e164 ??= $phone;

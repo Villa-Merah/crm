@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\FollowupRiwayats;
 
-use App\Enums\UserRole;
 use App\Filament\Resources\FollowupRiwayats\Pages\CreateFollowupRiwayat;
 use App\Filament\Resources\FollowupRiwayats\Pages\EditFollowupRiwayat;
 use App\Filament\Resources\FollowupRiwayats\Pages\ListFollowupRiwayats;

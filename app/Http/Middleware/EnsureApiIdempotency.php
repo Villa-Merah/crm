@@ -22,36 +22,32 @@ class EnsureApiIdempotency
         /** @var ApiClient $client */
         $client = $request->attributes->get('api_client');
         $requestHash = hash('sha256', $request->method().'|'.$request->path().'|'.$request->getContent());
-        $existing = ApiIdempotencyKey::query()
-            ->where('api_client_id', $client->getKey())
-            ->where('key', $key)
-            ->first();
+        $record = ApiIdempotencyKey::query()->firstOrCreate(
+            ['api_client_id' => $client->getKey(), 'key' => $key],
+            [
+                'request_hash' => $requestHash,
+                'expires_at' => now()->addHours(config('public_api.idempotency_ttl_hours')),
+            ],
+        );
 
-        if ($existing) {
-            if (! hash_equals($existing->request_hash, $requestHash)) {
+        if (! $record->wasRecentlyCreated) {
+            if (! hash_equals($record->request_hash, $requestHash)) {
                 return ApiResponse::error($request, 'idempotency_conflict', 'Idempotency-Key pernah digunakan untuk payload berbeda.', 409);
             }
 
-            if ($existing->response_status && is_array($existing->response_body)) {
-                $body = $existing->response_body;
+            if ($record->response_status && is_array($record->response_body)) {
+                $body = $record->response_body;
                 if (isset($body['meta'])) {
                     $body['meta']['request_id'] = $request->attributes->get('api_request_id');
                 } elseif (isset($body['error'])) {
                     $body['error']['request_id'] = $request->attributes->get('api_request_id');
                 }
 
-                return response()->json($body, $existing->response_status, ['X-Idempotent-Replay' => 'true']);
+                return response()->json($body, $record->response_status, ['X-Idempotent-Replay' => 'true']);
             }
 
             return ApiResponse::error($request, 'request_in_progress', 'Request dengan Idempotency-Key ini masih diproses.', 409);
         }
-
-        $record = ApiIdempotencyKey::create([
-            'api_client_id' => $client->getKey(),
-            'key' => $key,
-            'request_hash' => $requestHash,
-            'expires_at' => now()->addHours(config('public_api.idempotency_ttl_hours')),
-        ]);
 
         try {
             $response = $next($request);

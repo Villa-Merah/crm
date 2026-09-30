@@ -13,7 +13,9 @@ class EditLead extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        if (! auth()->user()->hasGlobalBranchAccess()) $data['cabang_id'] = auth()->user()->cabang_id;
+        if (! auth()->user()->hasGlobalBranchAccess()) {
+            $data['cabang_id'] = auth()->user()->cabang_id;
+        }
         $data['no_wa'] = preg_replace('/[^0-9+]/', '', $data['no_wa']);
 
         return $data;
@@ -23,7 +25,7 @@ class EditLead extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make()->visible(fn () => \App\Filament\Resources\Leads\LeadResource::canDelete($this->record)),
+            DeleteAction::make()->visible(fn () => LeadResource::canDelete($this->record)),
         ];
     }
 }

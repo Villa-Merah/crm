@@ -2,7 +2,23 @@
 
 Dokumen ini menampung pekerjaan operasional jangka pendek, kendala, bug, risiko, dan hasil verifikasi. Daftar pekerjaan tingkat proyek berada pada `tasklist.md`.
 
-**Pembaruan terakhir:** 14 September 2026
+**Pembaruan terakhir:** 22 September 2026
+
+## Rencana portal dan modul marketing
+
+Rincian scope, data, branch, risiko, dan acceptance criteria ada di `RENCANA-MODUL-MARKETING.md`. Semua item berikut belum diimplementasikan.
+
+- [ ] Setujui lima modul terpisah: Leads, Konten, DAM, Medsos, Ads; kartu lain pada gambar hanya referensi UI.
+- [ ] Putuskan role `marketing`, approver konten/anggaran, serta hak tiap role dan cabang.
+- [ ] Pilah dan amankan perubahan lokal sebelum membuat branch; jangan sertakan `.env`.
+- [ ] `feature/module-portal`: landing pasca-login, kartu per role, redirect, navigasi balik, tes URL langsung.
+- [ ] `feature/module-leads-entry`: kartu Leads ke modul existing; regresi Leads/RBAC/WAHA.
+- [ ] `feature/module-dam`: skema dan private storage; upload, metadata, versi, pencarian, review, unduh aman.
+- [ ] `feature/module-konten`: ide, brief, naskah, revisi, approval editorial, tautan ke aset DAM; tanpa penyimpanan file langsung.
+- [ ] `feature/module-medsos`: akun kanal, kalender, draft, approval, publikasi manual, relasi Konten dan DAM.
+- [ ] `feature/module-ads`: kampanye, anggaran, approval, materi Konten/kreatif DAM, hasil manual, tes izin.
+- [ ] `feature/marketing-reports`: sepakati UTM dan atribusi sebelum laporan lintas modul.
+- [ ] Tiap branch: tes, format/build, review diff, PR, staging/UAT, dokumentasi, deploy, smoke test.
 
 ## Todo aktif
 
@@ -109,4 +125,3 @@ Salin format berikut:
 4. Sertakan gejala dan bukti tanpa menyalin data sensitif dari log.
 5. Hubungkan issue dengan task pada `tasklist.md` jika memerlukan pekerjaan terencana.
 6. Ubah status menjadi `CLOSED` hanya setelah verifikasi berhasil.
-

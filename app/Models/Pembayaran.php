@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Pembayaran extends Model
 {
     protected $table = 'pembayaran';
+
     protected $primaryKey = 'pembayaran_id';
+
     protected $guarded = [];
 
     protected function casts(): array
@@ -19,7 +21,10 @@ class Pembayaran extends Model
         ];
     }
 
-    public function pendaftaran() { return $this->belongsTo(Pendaftaran::class, 'pendaftaran_id', 'pendaftaran_id'); }
+    public function pendaftaran()
+    {
+        return $this->belongsTo(Pendaftaran::class, 'pendaftaran_id', 'pendaftaran_id');
+    }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {

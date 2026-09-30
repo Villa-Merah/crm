@@ -13,7 +13,7 @@ class EditFollowupRiwayat extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make()->visible(fn () => \App\Filament\Resources\FollowupRiwayats\FollowupRiwayatResource::canDelete($this->record)),
+            DeleteAction::make()->visible(fn () => FollowupRiwayatResource::canDelete($this->record)),
         ];
     }
 }

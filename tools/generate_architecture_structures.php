@@ -11,13 +11,12 @@ declare(strict_types=1);
  * File source tidak dipindahkan. Setiap keluaran hanya memetakan lokasi fisik
  * aktual ke struktur logis yang sesuai dengan arsitektur sistem.
  */
-
 $root = dirname(__DIR__);
 
 $outputs = [
-    'business' => $root . DIRECTORY_SEPARATOR . 'STRUKTUR-ARSITEKTUR-BISNIS-SIVMI.txt',
-    'application' => $root . DIRECTORY_SEPARATOR . 'STRUKTUR-ARSITEKTUR-APLIKASI-SIVMI.txt',
-    'technology' => $root . DIRECTORY_SEPARATOR . 'STRUKTUR-ARSITEKTUR-TEKNOLOGI-SIVMI.txt',
+    'business' => $root.DIRECTORY_SEPARATOR.'STRUKTUR-ARSITEKTUR-BISNIS-SIVMI.txt',
+    'application' => $root.DIRECTORY_SEPARATOR.'STRUKTUR-ARSITEKTUR-APLIKASI-SIVMI.txt',
+    'technology' => $root.DIRECTORY_SEPARATOR.'STRUKTUR-ARSITEKTUR-TEKNOLOGI-SIVMI.txt',
 ];
 
 $architectures = [
@@ -211,10 +210,11 @@ function collectFiles(string $root, array $specifications): array
 
     foreach ($specifications as $specification) {
         $relative = normalizePath($specification);
-        $absolute = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        $absolute = $root.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relative);
 
         if (is_file($absolute) || is_link($absolute)) {
             $files[$relative] = true;
+
             continue;
         }
 
@@ -273,12 +273,12 @@ function renderTree(array $tree, string $prefix = ''): array
         $children = $tree[$key];
         $last = $index === count($keys) - 1;
         $directory = $children !== [];
-        $lines[] = $prefix . ($last ? '└── ' : '├── ') . $key . ($directory ? '/' : '');
+        $lines[] = $prefix.($last ? '└── ' : '├── ').$key.($directory ? '/' : '');
 
         if ($directory) {
             $lines = array_merge($lines, renderTree(
                 $children,
-                $prefix . ($last ? '    ' : '│   '),
+                $prefix.($last ? '    ' : '│   '),
             ));
         }
     }
@@ -298,7 +298,7 @@ function buildArchitectureFile(string $root, array $definition): array
         '- Struktur ini adalah proyeksi logis; file fisik tidak dipindahkan atau digandakan.',
         '- Satu file dapat muncul pada beberapa kelompok jika memiliki fungsi lintas arsitektur.',
         '- Dokumentasi, draw.io, dependency pihak ketiga, cache, dan log tidak dicantumkan.',
-        '- ' . $definition['baseline'],
+        '- '.$definition['baseline'],
         '',
     ];
 
@@ -310,20 +310,20 @@ function buildArchitectureFile(string $root, array $definition): array
             insertTreePath($tree, $file);
         }
 
-        $lines[] = $group . '/';
+        $lines[] = $group.'/';
         $rendered = renderTree($tree);
         $lines = array_merge($lines, $rendered ?: ['└── [belum ada file aktual]']);
         $lines[] = '';
         $total += count($files);
     }
 
-    $lines[] = 'Total referensi file pada seluruh kelompok: ' . $total;
+    $lines[] = 'Total referensi file pada seluruh kelompok: '.$total;
 
     return $lines;
 }
 
 foreach ($architectures as $key => $definition) {
     $lines = buildArchitectureFile($root, $definition);
-    file_put_contents($outputs[$key], implode(PHP_EOL, $lines) . PHP_EOL);
-    echo 'Created: ' . $outputs[$key] . PHP_EOL;
+    file_put_contents($outputs[$key], implode(PHP_EOL, $lines).PHP_EOL);
+    echo 'Created: '.$outputs[$key].PHP_EOL;
 }

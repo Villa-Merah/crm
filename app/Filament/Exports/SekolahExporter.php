@@ -15,6 +15,7 @@ class SekolahExporter extends Exporter
     public static function getColumns(): array
     {
         $safe = fn ($state): string => static::sanitize((string) $state);
+
         return [
             ExportColumn::make('npsn')->label('npsn')->formatStateUsing($safe),
             ExportColumn::make('nama_sekolah')->label('nama_sekolah')->formatStateUsing($safe),
@@ -46,7 +47,10 @@ class SekolahExporter extends Exporter
     public static function getCompletedNotificationBody(Export $export): string
     {
         $body = Number::format($export->successful_rows).' baris sekolah berhasil diekspor.';
-        if ($failed = $export->getFailedRowsCount()) $body .= ' '.Number::format($failed).' baris gagal diekspor.';
+        if ($failed = $export->getFailedRowsCount()) {
+            $body .= ' '.Number::format($failed).' baris gagal diekspor.';
+        }
+
         return $body;
     }
 

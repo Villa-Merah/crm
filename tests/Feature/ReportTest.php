@@ -20,6 +20,8 @@ class ReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    private static int $waPhoneSequence = 10000000;
+
     public function test_report_renders_real_metrics_and_csv_export(): void
     {
         $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
@@ -67,7 +69,8 @@ class ReportTest extends TestCase
             ['nama_program' => 'Program Laporan'],
             ['jenjang_program' => 'SMA', 'biaya_pendidikan' => 5000000, 'aktif' => true],
         );
-        $lead = Lead::create(['nama' => 'Siswa '.$branch->kode_cabang, 'no_wa' => '08123456789', 'cabang_id' => $branch->getKey(), 'status_lead' => 'Daftar', 'diinput_oleh_user_id' => $staff->id, 'diserahkan_ke_user_id' => $staff->id, 'tanggal_masuk' => today()]);
+        $phone = '081'.str_pad((string) self::$waPhoneSequence++, 9, '0', STR_PAD_LEFT);
+        $lead = Lead::create(['nama' => 'Siswa '.$branch->kode_cabang, 'no_wa' => $phone, 'cabang_id' => $branch->getKey(), 'status_lead' => 'Daftar', 'diinput_oleh_user_id' => $staff->id, 'diserahkan_ke_user_id' => $staff->id, 'tanggal_masuk' => today()]);
         $registration = Pendaftaran::create(['lead_id' => $lead->getKey(), 'program_bimbel_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'tanggal_daftar' => today(), 'status_pendaftaran' => 'Aktif']);
         Pembayaran::create(['pendaftaran_id' => $registration->getKey(), 'tanggal_pembayaran' => now(), 'nominal' => $nominal, 'metode_pembayaran' => 'Transfer Bank', 'status_pembayaran' => 'Terverifikasi']);
     }

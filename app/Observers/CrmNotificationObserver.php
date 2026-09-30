@@ -13,9 +13,15 @@ class CrmNotificationObserver
     public function created(Model $model): void
     {
         $notifier = app(CrmNotifier::class);
-        if ($model instanceof Lead) $notifier->leadAssigned($model);
-        if ($model instanceof TargetKinerjaUser) $notifier->targetAssigned($model);
-        if ($model instanceof Pembayaran) $notifier->pendingPayment($model);
+        if ($model instanceof Lead) {
+            $notifier->leadAssigned($model);
+        }
+        if ($model instanceof TargetKinerjaUser) {
+            $notifier->targetAssigned($model);
+        }
+        if ($model instanceof Pembayaran) {
+            $notifier->pendingPayment($model);
+        }
     }
 
     public function updated(Model $model): void

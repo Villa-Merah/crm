@@ -13,7 +13,6 @@ use App\Models\FollowupRiwayat;
 use App\Models\Lead;
 use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
-use App\Models\Sekolah;
 use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -86,6 +86,38 @@ class WahaIntegrationTest extends TestCase
         $this->assertSame(WhatsAppMatchStatus::Matched, WhatsAppConversation::query()->sole()->match_status);
     }
 
+    public function test_existing_message_history_is_synced_to_the_linked_lead_when_conversation_matches(): void
+    {
+        [$branch, $staff, $account] = $this->account();
+        $lead = Lead::create($this->leadData($branch, $staff, 'Existing Lead', '08123456789'));
+
+        $conversation = WhatsAppConversation::create([
+            'whatsapp_account_id' => $account->getKey(),
+            'chat_id' => '628123456789@c.us',
+            'contact_phone_e164' => '628123456789',
+            'contact_name' => 'Customer Lama',
+            'match_status' => WhatsAppMatchStatus::Unresolved,
+        ]);
+
+        WhatsAppMessage::create([
+            'conversation_id' => $conversation->getKey(),
+            'whatsapp_account_id' => $account->getKey(),
+            'lead_id' => null,
+            'external_message_id' => 'old-message-1',
+            'direction' => WhatsAppMessageDirection::Inbound,
+            'message_type' => 'text',
+            'body' => 'Halo lama',
+            'sent_at' => now()->subMinute(),
+            'from_me' => false,
+            'processing_status' => WhatsAppMessageStatus::Processed,
+        ]);
+
+        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-existing-after-link'))->assertAccepted();
+
+        $this->assertSame($lead->getKey(), $conversation->fresh()->lead_id);
+        $this->assertSame([$lead->getKey(), $lead->getKey()], WhatsAppMessage::query()->where('conversation_id', $conversation->getKey())->pluck('lead_id')->all());
+    }
+
     public function test_gows_lid_message_uses_sender_alt_for_lead_matching(): void
     {
         [$branch, $staff, $account] = $this->account();

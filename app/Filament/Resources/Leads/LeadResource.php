@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Leads;
 
-use App\Enums\UserRole;
 use App\Filament\Resources\Leads\Pages\CreateLead;
 use App\Filament\Resources\Leads\Pages\EditLead;
 use App\Filament\Resources\Leads\Pages\ListLeads;

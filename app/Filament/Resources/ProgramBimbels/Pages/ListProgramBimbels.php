@@ -9,5 +9,9 @@ use Filament\Resources\Pages\ListRecords;
 class ListProgramBimbels extends ListRecords
 {
     protected static string $resource = ProgramBimbelResource::class;
-    protected function getHeaderActions(): array { return [CreateAction::make()->label('Tambah program')]; }
+
+    protected function getHeaderActions(): array
+    {
+        return [CreateAction::make()->label('Tambah program')];
+    }
 }

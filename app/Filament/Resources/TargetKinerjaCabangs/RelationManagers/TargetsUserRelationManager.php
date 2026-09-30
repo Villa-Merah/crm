@@ -20,6 +20,7 @@ use Illuminate\Validation\ValidationException;
 class TargetsUserRelationManager extends RelationManager
 {
     protected static string $relationship = 'targetsUser';
+
     protected static ?string $title = 'Alokasi target user';
 
     public function form(Schema $schema): Schema
@@ -49,6 +50,7 @@ class TargetsUserRelationManager extends RelationManager
                     if ($this->getOwnerRecord()->targetsUser()->where('user_id', $data['user_id'])->exists()) {
                         throw ValidationException::withMessages(['data.user_id' => 'Pengguna ini sudah memiliki alokasi pada periode tersebut.']);
                     }
+
                     return $data;
                 }),
             ])->recordActions([

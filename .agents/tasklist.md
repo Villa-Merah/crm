@@ -2,7 +2,7 @@
 
 Dokumen ini menjadi daftar pekerjaan utama proyek SIVMI CRM. Detail kendala, bug, dan tindakan singkat dicatat pada `todo.md`.
 
-**Pembaruan terakhir:** 14 September 2026  
+**Pembaruan terakhir:** 22 September 2026
 **Baseline:** SIVMI CRM versi 2.3
 
 ## Aturan status
@@ -30,6 +30,14 @@ Dokumen ini menjadi daftar pekerjaan utama proyek SIVMI CRM. Detail kendala, bug
 | TASK-008 | Sedang | `REVIEW` | Sinkronkan seluruh dokumentasi dan diagram baseline 2.3 | Markdown, DOCX, Draw.io, OpenAPI, serta struktur proyek konsisten |
 | TASK-009 | Sedang | `READY` | Tentukan kebijakan pelacakan folder `docs/` pada Git | Dokumen penting ikut repository tanpa memasukkan file rahasia atau QA sementara |
 | TASK-010 | Rendah | `BACKLOG` | Otomatiskan pemeriksaan dokumentasi pada quality gate | Link, domain, struktur Markdown, OpenAPI, dan artefak diperiksa otomatis |
+| TASK-011 | Tinggi | `READY` | Finalisasi portal dan matriks akses lima modul | Role, scope cabang, kartu, redirect login, serta UAT disetujui |
+| TASK-012 | Tinggi | `BACKLOG` | Portal pasca-login pada `feature/module-portal` | Kartu sesuai role; akses URL terlarang ditolak |
+| TASK-013 | Sedang | `BACKLOG` | Leads existing pada `feature/module-leads-entry` | Navigasi tanpa duplikasi data atau regresi RBAC |
+| TASK-014 | Tinggi | `BACKLOG` | DAM pada `feature/module-dam` | Aset privat, metadata, versi, pencarian, kontrol akses |
+| TASK-015 | Tinggi | `BACKLOG` | Konten pada `feature/module-konten` | Ide, brief, naskah, revisi, approval, tautan ke aset DAM |
+| TASK-016 | Sedang | `BACKLOG` | Medsos pada `feature/module-medsos` | Kalender, draft, approval, publikasi manual |
+| TASK-017 | Sedang | `BACKLOG` | Ads pada `feature/module-ads` | Kampanye, anggaran, approval, hasil manual |
+| TASK-018 | Sedang | `BACKLOG` | Laporan pada `feature/marketing-reports` | KPI dan atribusi dapat direkonsiliasi |
 
 ## Tahapan aktivasi WAHA dengan tunnel DNS
 
@@ -62,10 +70,10 @@ Sebuah task dapat diberi status `DONE` apabila:
 
 ## Referensi
 
+- `RENCANA-MODUL-MARKETING.md`
 - `todo.md`
 - `../README.md`
 - `../docs/DEPLOYMENT.md`
 - `../docs/PANDUAN-AKTIVASI-WAHA-GOWS-LOKAL-DENGAN-TUNNEL-DNS.md`
 - `../docs/PANDUAN-KONFIGURASI-WAHA.md`
 - `../docs/PEMBARUAN-VERSI-TERBARU-2026-09-08.md`
-

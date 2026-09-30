@@ -6,9 +6,8 @@ declare(strict_types=1);
  * Membuat manifest struktur source SIVMI CRM tanpa dokumentasi, draw.io,
  * dependency pihak ketiga, cache, log, dan artefak runtime berukuran besar.
  */
-
 $root = dirname(__DIR__);
-$output = $root . DIRECTORY_SEPARATOR . 'STRUKTUR-FOLDER-DAN-FILE-SIVMI.txt';
+$output = $root.DIRECTORY_SEPARATOR.'STRUKTUR-FOLDER-DAN-FILE-SIVMI.txt';
 
 $excludedDirectories = [
     '.git', '.tmp', '.codex-pydeps', '.codex-deps', 'docs', 'node_modules', 'vendor',
@@ -55,7 +54,7 @@ function normalizedRelative(string $root, string $path): string
 function pathIsExcluded(string $relative, array $excludedDirectories): bool
 {
     foreach ($excludedDirectories as $excluded) {
-        if ($relative === $excluded || str_starts_with($relative, $excluded . '/')) {
+        if ($relative === $excluded || str_starts_with($relative, $excluded.'/')) {
             return true;
         }
     }
@@ -95,16 +94,17 @@ function directoryTree(
         if ($entry->isDir() && pathIsExcluded($relative, $excludedDirectories)) {
             if (isset($placeholderDirectories[$relative])) {
                 $entries[] = [
-                    'name' => $entry->getFilename() . '/  [' . $placeholderDirectories[$relative] . ']',
+                    'name' => $entry->getFilename().'/  ['.$placeholderDirectories[$relative].']',
                     'directory' => false,
                     'placeholder' => true,
                 ];
             }
+
             continue;
         }
 
         $entries[] = [
-            'name' => $entry->getFilename() . ($entry->isDir() ? '/' : ''),
+            'name' => $entry->getFilename().($entry->isDir() ? '/' : ''),
             'path' => $path,
             'relative' => $relative,
             'directory' => $entry->isDir(),
@@ -125,13 +125,13 @@ function directoryTree(
 
     foreach ($entries as $index => $entry) {
         $last = $index === $count - 1;
-        $lines[] = $prefix . ($last ? '└── ' : '├── ') . $entry['name'];
+        $lines[] = $prefix.($last ? '└── ' : '├── ').$entry['name'];
 
         if ($entry['directory'] && ! $entry['placeholder']) {
             $lines = array_merge($lines, directoryTree(
                 $root,
                 $entry['path'],
-                $prefix . ($last ? '    ' : '│   '),
+                $prefix.($last ? '    ' : '│   '),
                 $excludedDirectories,
                 $excludedFiles,
                 $excludedExtensions,
@@ -171,7 +171,7 @@ $header = [
     'sivmi.crm/',
 ];
 
-file_put_contents($output, implode(PHP_EOL, array_merge($header, $tree)) . PHP_EOL);
+file_put_contents($output, implode(PHP_EOL, array_merge($header, $tree)).PHP_EOL);
 
-echo "Created: {$output}" . PHP_EOL;
-echo 'Tree lines: ' . count($tree) . PHP_EOL;
+echo "Created: {$output}".PHP_EOL;
+echo 'Tree lines: '.count($tree).PHP_EOL;

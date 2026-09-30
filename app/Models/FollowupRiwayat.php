@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class FollowupRiwayat extends Model
 {
     protected $table = 'followup_riwayat';
+
     protected $primaryKey = 'followup_riwayat_id';
+
     protected $guarded = [];
 
     protected function casts(): array
@@ -19,8 +21,15 @@ class FollowupRiwayat extends Model
         ];
     }
 
-    public function lead() { return $this->belongsTo(Lead::class, 'lead_id', 'lead_id'); }
-    public function user() { return $this->belongsTo(User::class); }
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class, 'lead_id', 'lead_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     protected static function booted(): void
     {

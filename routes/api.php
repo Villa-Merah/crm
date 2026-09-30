@@ -7,7 +7,10 @@ use App\Http\Middleware\VerifyWahaWebhookHmac;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/webhooks/waha', WahaWebhookController::class)
-    ->middleware(VerifyWahaWebhookHmac::class)
+    ->middleware([
+        'throttle:'.config('public_api.webhook_rate_limit').',1',
+        VerifyWahaWebhookHmac::class,
+    ])
     ->name('webhooks.waha');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {

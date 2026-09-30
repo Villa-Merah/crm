@@ -14,9 +14,12 @@ class CreateTargetKinerjaCabang extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $viewer = auth()->user();
-        if (! $viewer->hasGlobalBranchAccess()) $data['cabang_id'] = $viewer->cabang_id;
+        if (! $viewer->hasGlobalBranchAccess()) {
+            $data['cabang_id'] = $viewer->cabang_id;
+        }
         $data['created_by'] = $viewer->id;
         $this->ensureUniquePeriod($data);
+
         return $data;
     }
 
