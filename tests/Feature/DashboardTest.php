@@ -51,18 +51,21 @@ class DashboardTest extends TestCase
         $this->actingAs($user)->get('/admin/dashboard')->assertOk();
     }
 
-    public function test_staff_dashboard_rejects_tampered_global_filters(): void
+    public function test_staff_dashboard_shows_all_data_from_own_branch_and_rejects_tampered_global_filters(): void
     {
         $bandung = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
         $jaksel = Cabang::create(['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'aktif' => true]);
         $staff = User::factory()->create(['cabang_id' => $bandung->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $bandungStaff = User::factory()->create(['cabang_id' => $bandung->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
         $otherStaff = User::factory()->create(['cabang_id' => $jaksel->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
         Lead::create($this->leadData($bandung, $staff, 'Lead milik staff'));
+        Lead::create($this->leadData($bandung, $bandungStaff, 'Lead rekan satu cabang'));
         Lead::create($this->leadData($jaksel, $otherStaff, 'Lead cabang lain'));
 
         $this->actingAs($staff)->get('/admin/dashboard?cabang='.$jaksel->cabang_id.'&pengguna='.$otherStaff->id)
             ->assertOk()
             ->assertSee('Lead milik staff')
+            ->assertSee('Lead rekan satu cabang')
             ->assertDontSee('Lead cabang lain');
     }
 

@@ -58,7 +58,10 @@ class Dashboard extends Page
             $this->cabang = $user->cabang_id;
         }
         if ($user->hasRole(UserRole::Staff)) {
-            $this->pengguna = $user->id;
+            // Staff melihat ringkasan seluruh data dalam cabangnya. Filter
+            // pengguna sengaja diabaikan agar parameter URL tidak dapat
+            // membatasi atau mengalihkan dashboard ke pengguna tertentu.
+            $this->pengguna = null;
         }
     }
 
@@ -144,7 +147,7 @@ class Dashboard extends Page
             $this->cabang = $viewer->cabang_id;
         }
         if ($viewer->hasRole(UserRole::Staff)) {
-            $this->pengguna = $viewer->id;
+            $this->pengguna = null;
         }
         $leads = $this->scope(DB::table('leads'), 'tanggal_masuk', 'cabang_id', 'diserahkan_ke_user_id');
         $registrations = $this->scope(DB::table('pendaftaran'), 'tanggal_daftar', 'pendaftaran.cabang_id');
