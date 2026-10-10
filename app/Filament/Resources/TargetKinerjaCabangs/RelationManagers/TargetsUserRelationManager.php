@@ -45,7 +45,7 @@ class TargetsUserRelationManager extends RelationManager
                 TextColumn::make('target_siswa')->label('Target siswa')->suffix(' siswa'),
                 TextColumn::make('catatan')->label('Catatan')->limit(45)->placeholder('-')->toggleable(),
             ])->headerActions([
-                CreateAction::make()->label('Tambah alokasi')->visible(fn () => TargetKinerjaCabangResource::canManage())->mutateDataUsing(function (array $data): array {
+                CreateAction::make()->label('Tambah alokasi')->visible(fn () => TargetKinerjaCabangResource::canManage() && $this->getOwnerRecord()->status !== 'Selesai')->mutateDataUsing(function (array $data): array {
                     User::query()->whereKey($data['user_id'])->where('cabang_id', $this->getOwnerRecord()->cabang_id)->where('aktif', true)->whereIn('role', [UserRole::AdminCabang->value, UserRole::Staff->value])->firstOrFail();
                     if ($this->getOwnerRecord()->targetsUser()->where('user_id', $data['user_id'])->exists()) {
                         throw ValidationException::withMessages(['data.user_id' => 'Pengguna ini sudah memiliki alokasi pada periode tersebut.']);
@@ -54,7 +54,7 @@ class TargetsUserRelationManager extends RelationManager
                     return $data;
                 }),
             ])->recordActions([
-                EditAction::make()->visible(fn () => TargetKinerjaCabangResource::canManage()),
+                EditAction::make()->visible(fn () => TargetKinerjaCabangResource::canManage() && $this->getOwnerRecord()->status !== 'Selesai'),
             ])->emptyStateHeading('Belum ada alokasi user')->emptyStateDescription('Bagikan target cabang kepada Admin Cabang dan Staff.');
     }
 }

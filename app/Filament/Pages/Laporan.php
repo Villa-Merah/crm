@@ -209,10 +209,10 @@ class Laporan extends Page
     private function targetByBranch(): Collection
     {
         if ($this->pengguna) {
-            return DB::table('target_kinerja_user')->join('target_kinerja_cabang', 'target_kinerja_cabang.target_kinerja_cabang_id', '=', 'target_kinerja_user.target_kinerja_cabang_id')->where('target_kinerja_user.user_id', $this->pengguna)->when($this->cabang, fn ($query) => $query->where('target_kinerja_cabang.cabang_id', $this->cabang))->where(['target_kinerja_cabang.tahun' => $this->tahun, 'target_kinerja_cabang.bulan' => $this->bulan, 'target_kinerja_cabang.status' => 'Aktif'])->selectRaw('target_kinerja_cabang.cabang_id, SUM(target_kinerja_user.target_omzet) target_revenue, SUM(target_kinerja_user.target_siswa) target_students')->groupBy('target_kinerja_cabang.cabang_id')->get()->keyBy('cabang_id');
+            return DB::table('target_kinerja_user')->join('target_kinerja_cabang', 'target_kinerja_cabang.target_kinerja_cabang_id', '=', 'target_kinerja_user.target_kinerja_cabang_id')->where('target_kinerja_user.user_id', $this->pengguna)->when($this->cabang, fn ($query) => $query->where('target_kinerja_cabang.cabang_id', $this->cabang))->where(['target_kinerja_cabang.tahun' => $this->tahun, 'target_kinerja_cabang.bulan' => $this->bulan])->whereIn('target_kinerja_cabang.status', ['Aktif', 'Selesai'])->selectRaw('target_kinerja_cabang.cabang_id, SUM(target_kinerja_user.target_omzet) target_revenue, SUM(target_kinerja_user.target_siswa) target_students')->groupBy('target_kinerja_cabang.cabang_id')->get()->keyBy('cabang_id');
         }
 
-        return DB::table('target_kinerja_cabang')->when($this->cabang, fn ($query) => $query->where('cabang_id', $this->cabang))->where(['tahun' => $this->tahun, 'bulan' => $this->bulan, 'status' => 'Aktif'])->selectRaw('cabang_id, SUM(target_omzet) target_revenue, SUM(target_siswa) target_students')->groupBy('cabang_id')->get()->keyBy('cabang_id');
+        return DB::table('target_kinerja_cabang')->when($this->cabang, fn ($query) => $query->where('cabang_id', $this->cabang))->where(['tahun' => $this->tahun, 'bulan' => $this->bulan])->whereIn('status', ['Aktif', 'Selesai'])->selectRaw('cabang_id, SUM(target_omzet) target_revenue, SUM(target_siswa) target_students')->groupBy('cabang_id')->get()->keyBy('cabang_id');
     }
 
     private function emptyReportData(): array

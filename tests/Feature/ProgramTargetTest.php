@@ -12,6 +12,7 @@ use App\Models\TargetKinerjaCabang;
 use App\Models\TargetKinerjaUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -89,7 +90,7 @@ class ProgramTargetTest extends TestCase
         $this->assertSame([$bandungTarget->getKey()], TargetKinerjaCabangResource::getEloquentQuery()->pluck('target_kinerja_cabang_id')->all());
         $this->get('/admin/target-kinerja')->assertOk()->assertSee('Target omzet saya')->assertDontSee('JakSel');
         $this->get('/admin/target-kinerja/create')->assertForbidden();
-        $this->get('/admin/dashboard')->assertOk()->assertSee('Rp 45,0 jt')->assertSee('0 / 13 siswa');
+        $this->get('/admin/dashboard')->assertOk()->assertSee('Rp 125,0 jt')->assertSee('0 / 35 siswa');
     }
 
     public function test_direksi_can_read_targets_but_cannot_change_them(): void
@@ -100,6 +101,88 @@ class ProgramTargetTest extends TestCase
 
         $this->actingAs($direksi)->get('/admin/target-kinerja')->assertOk()->assertSee('Bandung');
         $this->get('/admin/target-kinerja/create')->assertForbidden();
+        $this->get('/admin/target-kinerja/'.$target->getKey().'/edit')->assertForbidden();
+    }
+
+    public function test_active_target_requires_positive_values_and_completed_target_is_locked(): void
+    {
+        [$bandung] = $this->branches();
+
+        try {
+            TargetKinerjaCabang::create([
+                'cabang_id' => $bandung->getKey(), 'tahun' => 2027, 'bulan' => 2,
+                'status' => 'Aktif', 'target_omzet' => 0, 'target_siswa' => 0,
+            ]);
+            $this->fail('Target aktif bernilai nol seharusnya ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('target_omzet', $exception->errors());
+            $this->assertArrayHasKey('target_siswa', $exception->errors());
+        }
+
+        $target = $this->target($bandung);
+        $target->update(['status' => 'Selesai']);
+
+        $this->expectException(ValidationException::class);
+        $target->update(['target_omzet' => 130000000]);
+    }
+
+    public function test_allocation_must_match_target_branch_and_cannot_exceed_branch_target(): void
+    {
+        [$bandung, $jaksel] = $this->branches();
+        $target = $this->target($bandung);
+        $staffBandung = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $staffJaksel = User::factory()->create(['cabang_id' => $jaksel->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+
+        TargetKinerjaUser::create([
+            'target_kinerja_cabang_id' => $target->getKey(), 'user_id' => $staffBandung->id,
+            'target_omzet' => 100000000, 'target_siswa' => 30,
+        ]);
+
+        try {
+            TargetKinerjaUser::create([
+                'target_kinerja_cabang_id' => $target->getKey(), 'user_id' => $staffJaksel->id,
+                'target_omzet' => 10000000, 'target_siswa' => 2,
+            ]);
+            $this->fail('Alokasi lintas cabang seharusnya ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('user_id', $exception->errors());
+        }
+
+        $otherBandung = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $this->expectException(ValidationException::class);
+        TargetKinerjaUser::create([
+            'target_kinerja_cabang_id' => $target->getKey(), 'user_id' => $otherBandung->id,
+            'target_omzet' => 30000000, 'target_siswa' => 6,
+        ]);
+    }
+
+    public function test_target_cannot_be_reduced_below_existing_allocations(): void
+    {
+        [$bandung] = $this->branches();
+        $target = $this->target($bandung);
+        $staff = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        TargetKinerjaUser::create([
+            'target_kinerja_cabang_id' => $target->getKey(), 'user_id' => $staff->id,
+            'target_omzet' => 100000000, 'target_siswa' => 30,
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $target->update(['target_omzet' => 90000000]);
+    }
+
+    public function test_completed_target_remains_visible_as_historical_target(): void
+    {
+        [$bandung] = $this->branches();
+        $target = $this->target($bandung);
+        $target->update(['status' => 'Selesai']);
+        $admin = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::AdminCabang, 'aktif' => true]);
+
+        $this->actingAs($admin)
+            ->get('/admin/dashboard?tahun='.now()->year.'&bulan='.now()->month)
+            ->assertOk()
+            ->assertSee('Rp 125,0 jt')
+            ->assertSee('0 / 35 siswa');
+
         $this->get('/admin/target-kinerja/'.$target->getKey().'/edit')->assertForbidden();
     }
 

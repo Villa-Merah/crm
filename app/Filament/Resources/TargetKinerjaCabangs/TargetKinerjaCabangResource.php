@@ -76,24 +76,41 @@ class TargetKinerjaCabangResource extends Resource
             }),
             TextColumn::make('target_omzet')->label('Target omzet cabang')->money('IDR', locale: 'id')->sortable(),
             TextColumn::make('target_siswa')->label('Target siswa cabang')->suffix(' siswa')->sortable(),
-            TextColumn::make('allocated_omzet')->label(fn () => auth()->user()->hasRole(UserRole::Staff) ? 'Target omzet saya' : 'Omzet dialokasikan')->money('IDR', locale: 'id')->placeholder('Rp 0'),
-            TextColumn::make('allocated_siswa')->label(fn () => auth()->user()->hasRole(UserRole::Staff) ? 'Target siswa saya' : 'Siswa dialokasikan')->suffix(' siswa')->placeholder('0'),
+            TextColumn::make('personal_omzet')->label('Target omzet saya')->money('IDR', locale: 'id')->placeholder('Rp 0')->visible(fn () => auth()->user()->hasRole(UserRole::Staff)),
+            TextColumn::make('personal_siswa')->label('Target siswa saya')->suffix(' siswa')->placeholder('0')->visible(fn () => auth()->user()->hasRole(UserRole::Staff)),
+            TextColumn::make('allocated_omzet')->label('Omzet dialokasikan')->money('IDR', locale: 'id')->placeholder('Rp 0')->visible(fn () => ! auth()->user()->hasRole(UserRole::Staff)),
+            TextColumn::make('allocated_siswa')->label('Siswa dialokasikan')->suffix(' siswa')->placeholder('0')->visible(fn () => ! auth()->user()->hasRole(UserRole::Staff)),
+            TextColumn::make('allocation_status')->label('Status alokasi')->state(function (TargetKinerjaCabang $record): string {
+                $allocatedOmzet = (float) ($record->allocated_omzet ?? 0);
+                $allocatedSiswa = (int) ($record->allocated_siswa ?? 0);
+                if ($allocatedOmzet === 0.0 && $allocatedSiswa === 0) {
+                    return 'Belum dialokasikan';
+                }
+
+                return $allocatedOmzet === (float) $record->target_omzet && $allocatedSiswa === (int) $record->target_siswa
+                    ? 'Sesuai target'
+                    : 'Belum penuh';
+            })->badge()->color(fn (string $state): string => match ($state) {
+                'Sesuai target' => 'success', 'Belum penuh' => 'warning', default => 'gray'
+            })->visible(fn () => ! auth()->user()->hasRole(UserRole::Staff)),
         ])->filters([
             SelectFilter::make('tahun')->label('Tahun')->options(fn () => TargetKinerjaCabang::query()->visibleTo(auth()->user())->distinct()->orderByDesc('tahun')->pluck('tahun', 'tahun')),
             SelectFilter::make('status')->label('Status')->options(['Draft' => 'Draft', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai']),
         ])->recordActions([
-            EditAction::make()->visible(fn () => static::canManage()),
+            EditAction::make()->visible(fn (TargetKinerjaCabang $record) => static::canEdit($record)),
         ])->emptyStateHeading('Belum ada target kinerja')->emptyStateDescription('Tetapkan target omzet dan siswa untuk periode cabang.');
     }
 
     public static function getEloquentQuery(): Builder
     {
         $viewer = auth()->user();
-        $scope = fn (Builder $query) => $query->when($viewer->hasRole(UserRole::Staff), fn (Builder $builder) => $builder->where('user_id', $viewer->id));
 
         return parent::getEloquentQuery()->visibleTo($viewer)->with(['cabang', 'createdBy'])
-            ->withSum(['targetsUser as allocated_omzet' => $scope], 'target_omzet')
-            ->withSum(['targetsUser as allocated_siswa' => $scope], 'target_siswa');
+            ->withSum('targetsUser as allocated_omzet', 'target_omzet')
+            ->withSum('targetsUser as allocated_siswa', 'target_siswa')
+            ->when($viewer->hasRole(UserRole::Staff), fn (Builder $query) => $query
+                ->withSum(['targetsUser as personal_omzet' => fn (Builder $builder) => $builder->where('user_id', $viewer->id)], 'target_omzet')
+                ->withSum(['targetsUser as personal_siswa' => fn (Builder $builder) => $builder->where('user_id', $viewer->id)], 'target_siswa'));
     }
 
     public static function canManage(): bool
@@ -113,7 +130,11 @@ class TargetKinerjaCabangResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::canManage();
+        $viewer = auth()->user();
+
+        return static::canManage()
+            && $record->status !== 'Selesai'
+            && ($viewer->hasGlobalBranchAccess() || $record->cabang_id === $viewer->cabang_id);
     }
 
     public static function canDelete(Model $record): bool
