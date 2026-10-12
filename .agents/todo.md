@@ -2,7 +2,7 @@
 
 Dokumen ini menampung pekerjaan operasional jangka pendek, kendala, bug, risiko, dan hasil verifikasi. Daftar pekerjaan tingkat proyek berada pada `tasklist.md`.
 
-**Pembaruan terakhir:** 22 September 2026
+**Pembaruan terakhir:** 12 Oktober 2026
 
 ## Rencana portal dan modul marketing
 
@@ -21,6 +21,37 @@ Rincian scope, data, branch, risiko, dan acceptance criteria ada di `RENCANA-MOD
 - [ ] Tiap branch: tes, format/build, review diff, PR, staging/UAT, dokumentasi, deploy, smoke test.
 
 ## Todo aktif
+
+### Laporan seluruh bulan dan tahun berjalan
+
+Tujuan: menambahkan mode laporan tahunan melalui pilihan **Semua bulan** sehingga data Januari–Desember pada tahun terpilih dapat dianalisis tanpa mengubah ketepatan laporan bulanan yang sudah ada.
+
+- [x] Pertahankan bulan berjalan sebagai filter awal dan sediakan opsi **Semua bulan** agar kebiasaan pengguna tidak berubah.
+- [x] Ubah properti `Laporan::$bulan` menjadi nullable dan pastikan query string kosong (`bulan=`) diperlakukan sebagai mode tahunan.
+- [x] Tambahkan pilihan **Semua bulan** pada filter Bulan di `resources/views/filament/pages/laporan.blade.php`.
+- [x] Refactor `periodRange()` agar mode bulanan memakai awal–akhir bulan, sedangkan mode tahunan memakai 1 Januari sampai 1 Januari tahun berikutnya.
+- [x] Ubah label periode menjadi nama bulan dan tahun untuk mode bulanan, serta `Tahun YYYY` untuk mode tahunan.
+- [x] Pertahankan agregasi kartu ringkasan: total leads, pendaftaran, konversi, omzet terverifikasi, dan rata-rata transaksi pada seluruh periode terpilih.
+- [x] Ubah grafik tren menjadi harian saat satu bulan dipilih dan bulanan Januari–Desember saat **Semua bulan** dipilih.
+- [x] Jumlahkan target omzet dan target siswa dari seluruh target berstatus `Aktif` atau `Selesai` pada tahun terpilih; tetap hormati filter cabang dan pengguna.
+- [x] Pastikan tabel kinerja cabang, funnel leads, metode pembayaran, dan performa program menggunakan rentang tahunan yang sama.
+- [x] Sesuaikan ekspor CSV: nama bulanan `laporan-sivmi-YYYY-MM.csv`, nama tahunan `laporan-sivmi-YYYY-tahunan.csv`, serta label periode yang konsisten di isi file.
+- [x] Pastikan Superadmin/Direksi dapat melihat lintas cabang, Admin Cabang hanya cabangnya, dan Staff hanya data serta alokasi miliknya sesuai kebijakan laporan saat ini.
+- [x] Tambahkan state kosong dan penanganan error yang tetap benar pada mode tahunan.
+- [x] Tambahkan pengujian regresi laporan bulanan agar hasil lama tidak berubah.
+- [x] Tambahkan pengujian tahunan untuk data Januari–Desember, pengecualian data tahun lain, tren 12 bulan, penjumlahan target, scope cabang/pengguna, dan CSV tahunan.
+- [x] Jalankan `vendor\\bin\\pint --test`, test `ReportTest`, test RBAC terkait, lalu `docker\\test-full.ps1` sebelum commit.
+
+**Selesai 12 Oktober 2026:** implementasi tersedia pada halaman Laporan. Verifikasi terakhir: test terfokus laporan 5 test/33 assertion, test laporan dan pengaturan 12 test/76 assertion, serta full suite 124 test/786 assertion seluruhnya lulus.
+
+Kriteria penerimaan:
+
+1. Filter Bulan menyediakan opsi **Semua bulan**.
+2. Mode tahunan hanya menghitung data pada tahun yang dipilih dan tidak memasukkan tahun lain.
+3. Grafik menampilkan tepat 12 titik/batang dari Januari sampai Desember.
+4. Target tahunan merupakan jumlah target bulanan berstatus `Aktif` dan `Selesai` sesuai scope pengguna.
+5. Tampilan, CSV, RBAC, dan hasil perhitungan menggunakan periode yang sama.
+6. Seluruh test terkait laporan dan full quality gate lulus.
 
 - [ ] Terapkan Cloudflare Named Tunnel untuk `waha.sivmi.id` pada komputer WAHA.
 - [ ] Pastikan service `cloudflared` otomatis berjalan setelah Windows restart.
@@ -46,18 +77,6 @@ Rincian scope, data, branch, risiko, dan acceptance criteria ada di `RENCANA-MOD
 | Penyebab | Aturan `/docs/` pada `.gitignore` |
 | Tindakan | Tentukan allowlist dokumen atau gunakan `git add -f` hanya untuk artefak yang disetujui |
 | Verifikasi | `git ls-files` menampilkan setiap dokumen yang wajib ikut repository |
-
-### ISSUE-002 — Full test suite belum seluruhnya hijau
-
-| Atribut | Nilai |
-|---|---|
-| Status | `OPEN` |
-| Prioritas | Tinggi |
-| Dampak | Quality gate produksi belum dapat dinyatakan lulus penuh |
-| Kondisi terakhir | 115 dari 117 test lulus pada snapshot baseline dokumentasi |
-| Area | Fixture lama Settings dan Report |
-| Tindakan | Reproduksi, perbaiki fixture atau implementasi, lalu jalankan seluruh suite kembali |
-| Verifikasi | Seluruh test lulus tanpa mengubah database development |
 
 ### ISSUE-003 — Ketersediaan WAHA bergantung pada komputer lokal
 
@@ -93,7 +112,18 @@ Rincian scope, data, branch, risiko, dan acceptance criteria ada di `RENCANA-MOD
 
 ## Issue selesai
 
-Belum ada issue yang dipindahkan ke bagian ini. Saat issue selesai, pindahkan seluruh bagiannya dan tambahkan tanggal penutupan serta bukti verifikasi.
+### ISSUE-002 — Full test suite belum seluruhnya hijau
+
+| Atribut | Nilai |
+|---|---|
+| Status | `CLOSED` |
+| Prioritas | Tinggi |
+| Dampak awal | Quality gate produksi belum dapat dinyatakan lulus penuh |
+| Kondisi awal | 115 dari 117 test lulus pada snapshot baseline dokumentasi |
+| Area | Fixture lama Settings dan Report |
+| Tindakan | Memperbarui implementasi dan fixture terkait, lalu menjalankan suite pada Docker dengan SQLite in-memory |
+| Verifikasi | 124 test dan 786 assertion lulus melalui `docker\\test-full.ps1` |
+| Ditutup | 12 Oktober 2026 |
 
 ## Format issue baru
 

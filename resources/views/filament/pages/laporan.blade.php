@@ -49,6 +49,7 @@
                 </label>
                 <label class="text-xs font-semibold text-slate-500">Bulan
                     <select wire:model.live="bulan" class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm">
+                        <option value="">Semua bulan</option>
                         @foreach(range(1, 12) as $month)<option value="{{ $month }}">{{ now()->setMonth($month)->translatedFormat('F') }}</option>@endforeach
                     </select>
                 </label>
@@ -90,15 +91,17 @@
                 </section>
             @else
                 <section class="dashboard-card p-5 md:p-6">
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h3 class="font-bold text-slate-900">Tren leads dan pendaftaran</h3><p class="mt-1 text-xs text-slate-500">Pergerakan harian selama {{ $periodLabel }}</p></div><div class="flex gap-4 text-xs"><span class="flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-[#1476B8]"></i>Leads</span><span class="flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-emerald-500"></i>Pendaftaran</span></div></div>
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h3 class="font-bold text-slate-900">Tren leads dan pendaftaran</h3><p class="mt-1 text-xs text-slate-500">Pergerakan {{ $bulan ? 'harian' : 'bulanan' }} selama {{ $periodLabel }}</p></div><div class="flex gap-4 text-xs"><span class="flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-[#1476B8]"></i>Leads</span><span class="flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-emerald-500"></i>Pendaftaran</span></div></div>
                     <div class="mt-8 flex h-64 items-end gap-1 overflow-hidden">
                         @foreach($days as $index => $day)
-                            <div class="group flex min-w-0 flex-1 items-end justify-center gap-px" title="Tanggal {{ $day }}: {{ $trendLeads[$index] }} leads, {{ $trendRegistrations[$index] }} pendaftaran">
+                            @php $trendLabel = $bulan ? 'Tanggal '.$day : now()->setMonth($day)->translatedFormat('F'); @endphp
+                            <div class="group flex min-w-0 flex-1 items-end justify-center gap-px" title="{{ $trendLabel }}: {{ $trendLeads[$index] }} leads, {{ $trendRegistrations[$index] }} pendaftaran">
                                 <div class="w-1/2 rounded-t bg-[#1476B8] transition hover:bg-[#075985]" style="height:{{ max(2, $trendLeads[$index] / $maxTrend * 100) }}%"></div>
                                 <div class="w-1/2 rounded-t bg-emerald-400 transition hover:bg-emerald-600" style="height:{{ max(2, $trendRegistrations[$index] / $maxTrend * 100) }}%"></div>
                             </div>
                         @endforeach
                     </div>
+                    <div class="mt-2 flex gap-1 text-center text-[10px] text-slate-400">@foreach($days as $day)<span class="min-w-0 flex-1">{{ $bulan ? ($loop->first || $loop->last || $day % 5 === 0 ? $day : '') : now()->setMonth($day)->translatedFormat('M') }}</span>@endforeach</div>
                 </section>
 
                 <section class="grid gap-5 xl:grid-cols-2">
@@ -111,7 +114,7 @@
                 </section>
 
                 <section class="dashboard-card overflow-hidden">
-                    <div class="p-5 md:p-6"><h3 class="font-bold text-slate-900">Kinerja cabang</h3><p class="mt-1 text-xs text-slate-500">Realisasi periode terhadap target aktif</p></div>
+                    <div class="p-5 md:p-6"><h3 class="font-bold text-slate-900">Kinerja cabang</h3><p class="mt-1 text-xs text-slate-500">Realisasi periode terhadap target aktif dan selesai</p></div>
                     <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="border-y border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Cabang</th><th class="px-5 py-3">Leads</th><th class="px-5 py-3">Pendaftaran</th><th class="px-5 py-3">Konversi</th><th class="px-5 py-3">Omzet</th><th class="px-5 py-3">Capaian omzet</th><th class="px-5 py-3">Capaian siswa</th></tr></thead><tbody class="divide-y divide-slate-100">
                         @foreach($branchesReport as $row)<tr class="transition hover:bg-slate-50"><td class="whitespace-nowrap px-5 py-4 font-semibold text-slate-800">{{ $row['name'] }}</td><td class="px-5 py-4">{{ $row['leads'] }}</td><td class="px-5 py-4">{{ $row['registrations'] }}</td><td class="px-5 py-4">{{ number_format($row['conversion'], 1, ',', '.') }}%</td><td class="whitespace-nowrap px-5 py-4 font-semibold">{{ $rupiah($row['revenue']) }}</td><td class="min-w-44 px-5 py-4"><div class="flex justify-between text-xs"><span>{{ number_format($row['revenue_progress'], 1, ',', '.') }}%</span><span class="text-slate-400">{{ $rupiah($row['target_revenue']) }}</span></div><div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#1476B8]" style="width:{{ min(100, $row['revenue_progress']) }}%"></div></div></td><td class="min-w-40 px-5 py-4"><div class="flex justify-between text-xs"><span>{{ number_format($row['student_progress'], 1, ',', '.') }}%</span><span class="text-slate-400">{{ $row['target_students'] }} siswa</span></div><div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" style="width:{{ min(100, $row['student_progress']) }}%"></div></div></td></tr>@endforeach
                     </tbody></table></div>

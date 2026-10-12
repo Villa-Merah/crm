@@ -34,8 +34,8 @@ class Laporan extends Page
     #[Url]
     public int $tahun;
 
-    #[Url]
-    public int $bulan;
+    #[Url(keep: true)]
+    public ?int $bulan = null;
 
     #[Url]
     public ?int $pengguna = null;
@@ -45,7 +45,13 @@ class Laporan extends Page
     public function mount(): void
     {
         $this->tahun = $this->tahun ?? now()->year;
-        $this->bulan = $this->bulan ?? now()->month;
+        if (! request()->query->has('bulan')) {
+            $this->bulan = now()->month;
+        }
+
+        if ($this->bulan !== null && ($this->bulan < 1 || $this->bulan > 12)) {
+            $this->bulan = now()->month;
+        }
         $this->enforceViewerScope();
     }
 
@@ -61,7 +67,9 @@ class Laporan extends Page
         abort_unless($this->canExport(), 403);
         $this->enforceViewerScope();
         $data = $this->queryReportData();
-        $filename = sprintf('laporan-sivmi-%d-%02d.csv', $this->tahun, $this->bulan);
+        $filename = $this->bulan
+            ? sprintf('laporan-sivmi-%d-%02d.csv', $this->tahun, $this->bulan)
+            : sprintf('laporan-sivmi-%d-tahunan.csv', $this->tahun);
         $organizationName = (string) CrmSetting::getValue('organization_name', 'SIVMI');
 
         return response()->streamDownload(function () use ($data, $organizationName): void {
@@ -116,9 +124,15 @@ class Laporan extends Page
 
     private function periodRange(): array
     {
-        $start = now()->setDate($this->tahun, $this->bulan, 1)->startOfMonth();
+        $start = $this->bulan
+            ? now()->setDate($this->tahun, $this->bulan, 1)->startOfMonth()
+            : now()->setDate($this->tahun, 1, 1)->startOfYear();
 
-        return [$start->toDateString(), $start->copy()->addMonth()->toDateString(), $start];
+        $endExclusive = $this->bulan
+            ? $start->copy()->addMonth()
+            : $start->copy()->addYear();
+
+        return [$start->toDateString(), $endExclusive->toDateString(), $start];
     }
 
     private function scope(Builder $query, string $date, string $branch, ?string $user = null): Builder
@@ -155,11 +169,13 @@ class Laporan extends Page
             'average_ticket' => $registrationCount > 0 ? $revenue / $registrationCount : 0,
         ];
 
-        $dayLead = DB::getDriverName() === 'sqlite' ? "CAST(strftime('%d', tanggal_masuk) AS INTEGER)" : 'DAY(tanggal_masuk)';
-        $dayRegistration = DB::getDriverName() === 'sqlite' ? "CAST(strftime('%d', pendaftaran.tanggal_daftar) AS INTEGER)" : 'DAY(pendaftaran.tanggal_daftar)';
-        $leadTrend = (clone $leads)->selectRaw("{$dayLead} hari, COUNT(*) total")->groupByRaw($dayLead)->pluck('total', 'hari');
-        $registrationTrend = (clone $registrations)->selectRaw("{$dayRegistration} hari, COUNT(*) total")->groupByRaw($dayRegistration)->pluck('total', 'hari');
-        $days = collect(range(1, $period->daysInMonth));
+        $periodPart = $this->bulan ? '%d' : '%m';
+        $periodFunction = $this->bulan ? 'DAY' : 'MONTH';
+        $leadPeriod = DB::getDriverName() === 'sqlite' ? "CAST(strftime('{$periodPart}', tanggal_masuk) AS INTEGER)" : "{$periodFunction}(tanggal_masuk)";
+        $registrationPeriod = DB::getDriverName() === 'sqlite' ? "CAST(strftime('{$periodPart}', pendaftaran.tanggal_daftar) AS INTEGER)" : "{$periodFunction}(pendaftaran.tanggal_daftar)";
+        $leadTrend = (clone $leads)->selectRaw("{$leadPeriod} periode, COUNT(*) total")->groupByRaw($leadPeriod)->pluck('total', 'periode');
+        $registrationTrend = (clone $registrations)->selectRaw("{$registrationPeriod} periode, COUNT(*) total")->groupByRaw($registrationPeriod)->pluck('total', 'periode');
+        $periods = collect(range(1, $this->bulan ? $period->daysInMonth : 12));
 
         $branchOptions = Cabang::query()->where('aktif', true)->when(! $viewer->hasGlobalBranchAccess(), fn ($query) => $query->whereKey($viewer->cabang_id))->orderBy('nama')->get();
         $reportBranches = $branchOptions->when($this->cabang, fn (Collection $items) => $items->where('cabang_id', $this->cabang));
@@ -194,10 +210,10 @@ class Laporan extends Page
             'users' => User::query()->when($this->cabang, fn ($query) => $query->where('cabang_id', $this->cabang))->when($viewer->hasRole(UserRole::Staff), fn ($query) => $query->whereKey($viewer->id))->whereIn('role', [UserRole::AdminCabang->value, UserRole::Staff->value])->where('aktif', true)->orderBy('name')->get(),
             'years' => range(now()->year + 1, now()->year - 4),
             'stats' => $stats,
-            'periodLabel' => $period->translatedFormat('F Y'),
-            'days' => $days,
-            'trendLeads' => $days->map(fn ($day) => (int) ($leadTrend[$day] ?? 0)),
-            'trendRegistrations' => $days->map(fn ($day) => (int) ($registrationTrend[$day] ?? 0)),
+            'periodLabel' => $this->bulan ? $period->translatedFormat('F Y') : 'Tahun '.$this->tahun,
+            'days' => $periods,
+            'trendLeads' => $periods->map(fn ($selectedPeriod) => (int) ($leadTrend[$selectedPeriod] ?? 0)),
+            'trendRegistrations' => $periods->map(fn ($selectedPeriod) => (int) ($registrationTrend[$selectedPeriod] ?? 0)),
             'funnel' => (clone $leads)->select('status_lead')->selectRaw('COUNT(*) total')->groupBy('status_lead')->orderByDesc('total')->get(),
             'paymentMethods' => (clone $payments)->select('pembayaran.metode_pembayaran')->selectRaw('COUNT(*) transactions, COALESCE(SUM(pembayaran.nominal), 0) total')->groupBy('pembayaran.metode_pembayaran')->orderByDesc('total')->get(),
             'branchesReport' => $branchesReport,
@@ -209,16 +225,19 @@ class Laporan extends Page
     private function targetByBranch(): Collection
     {
         if ($this->pengguna) {
-            return DB::table('target_kinerja_user')->join('target_kinerja_cabang', 'target_kinerja_cabang.target_kinerja_cabang_id', '=', 'target_kinerja_user.target_kinerja_cabang_id')->where('target_kinerja_user.user_id', $this->pengguna)->when($this->cabang, fn ($query) => $query->where('target_kinerja_cabang.cabang_id', $this->cabang))->where(['target_kinerja_cabang.tahun' => $this->tahun, 'target_kinerja_cabang.bulan' => $this->bulan])->whereIn('target_kinerja_cabang.status', ['Aktif', 'Selesai'])->selectRaw('target_kinerja_cabang.cabang_id, SUM(target_kinerja_user.target_omzet) target_revenue, SUM(target_kinerja_user.target_siswa) target_students')->groupBy('target_kinerja_cabang.cabang_id')->get()->keyBy('cabang_id');
+            return DB::table('target_kinerja_user')->join('target_kinerja_cabang', 'target_kinerja_cabang.target_kinerja_cabang_id', '=', 'target_kinerja_user.target_kinerja_cabang_id')->where('target_kinerja_user.user_id', $this->pengguna)->when($this->cabang, fn ($query) => $query->where('target_kinerja_cabang.cabang_id', $this->cabang))->where('target_kinerja_cabang.tahun', $this->tahun)->when($this->bulan, fn ($query) => $query->where('target_kinerja_cabang.bulan', $this->bulan))->whereIn('target_kinerja_cabang.status', ['Aktif', 'Selesai'])->selectRaw('target_kinerja_cabang.cabang_id, SUM(target_kinerja_user.target_omzet) target_revenue, SUM(target_kinerja_user.target_siswa) target_students')->groupBy('target_kinerja_cabang.cabang_id')->get()->keyBy('cabang_id');
         }
 
-        return DB::table('target_kinerja_cabang')->when($this->cabang, fn ($query) => $query->where('cabang_id', $this->cabang))->where(['tahun' => $this->tahun, 'bulan' => $this->bulan])->whereIn('status', ['Aktif', 'Selesai'])->selectRaw('cabang_id, SUM(target_omzet) target_revenue, SUM(target_siswa) target_students')->groupBy('cabang_id')->get()->keyBy('cabang_id');
+        return DB::table('target_kinerja_cabang')->when($this->cabang, fn ($query) => $query->where('cabang_id', $this->cabang))->where('tahun', $this->tahun)->when($this->bulan, fn ($query) => $query->where('bulan', $this->bulan))->whereIn('status', ['Aktif', 'Selesai'])->selectRaw('cabang_id, SUM(target_omzet) target_revenue, SUM(target_siswa) target_students')->groupBy('cabang_id')->get()->keyBy('cabang_id');
     }
 
     private function emptyReportData(): array
     {
-        $days = collect(range(1, now()->daysInMonth));
+        $periods = collect(range(1, $this->bulan ? now()->setDate($this->tahun, $this->bulan, 1)->daysInMonth : 12));
+        $periodLabel = $this->bulan
+            ? now()->setDate($this->tahun, $this->bulan, 1)->translatedFormat('F Y')
+            : 'Tahun '.$this->tahun;
 
-        return ['branches' => collect(), 'users' => collect(), 'years' => [now()->year], 'stats' => ['leads' => 0, 'registrations' => 0, 'conversion' => 0, 'revenue' => 0, 'average_ticket' => 0], 'periodLabel' => '-', 'days' => $days, 'trendLeads' => $days->map(fn () => 0), 'trendRegistrations' => $days->map(fn () => 0), 'funnel' => collect(), 'paymentMethods' => collect(), 'branchesReport' => collect(), 'programsReport' => collect(), 'hasData' => false];
+        return ['branches' => collect(), 'users' => collect(), 'years' => [now()->year], 'stats' => ['leads' => 0, 'registrations' => 0, 'conversion' => 0, 'revenue' => 0, 'average_ticket' => 0], 'periodLabel' => $periodLabel, 'days' => $periods, 'trendLeads' => $periods->map(fn () => 0), 'trendRegistrations' => $periods->map(fn () => 0), 'funnel' => collect(), 'paymentMethods' => collect(), 'branchesReport' => collect(), 'programsReport' => collect(), 'hasData' => false];
     }
 }
