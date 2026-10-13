@@ -95,7 +95,7 @@
                     <div class="mt-8 flex h-64 items-end gap-1 overflow-hidden">
                         @foreach($days as $index => $day)
                             @php $trendLabel = $bulan ? 'Tanggal '.$day : now()->setMonth($day)->translatedFormat('F'); @endphp
-                            <div class="group flex min-w-0 flex-1 items-end justify-center gap-px" title="{{ $trendLabel }}: {{ $trendLeads[$index] }} leads, {{ $trendRegistrations[$index] }} pendaftaran">
+                            <div class="group flex h-full min-w-0 flex-1 items-end justify-center gap-px" title="{{ $trendLabel }}: {{ $trendLeads[$index] }} leads, {{ $trendRegistrations[$index] }} pendaftaran">
                                 <div class="w-1/2 rounded-t bg-[#1476B8] transition hover:bg-[#075985]" style="height:{{ max(2, $trendLeads[$index] / $maxTrend * 100) }}%"></div>
                                 <div class="w-1/2 rounded-t bg-emerald-400 transition hover:bg-emerald-600" style="height:{{ max(2, $trendRegistrations[$index] / $maxTrend * 100) }}%"></div>
                             </div>

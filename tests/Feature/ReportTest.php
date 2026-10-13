@@ -75,6 +75,7 @@ class ReportTest extends TestCase
             ->assertSee('Semua bulan')
             ->assertSee('Tahun '.$year)
             ->assertSee('Pergerakan bulanan')
+            ->assertSee('group flex h-full min-w-0 flex-1 items-end justify-center gap-px', false)
             ->assertSee('Rp 3,5 jt')
             ->assertSee('Rp 5,0 jt')
             ->assertDontSee('Rp 9,0 jt');
