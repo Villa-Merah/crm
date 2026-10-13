@@ -89,6 +89,33 @@ container development. Container utama mempunyai `APP_ENV=local`; skrip test
 memasang environment `testing` sebelum Laravel dibootstrap dan memaksa koneksi
 SQLite in-memory agar database development tidak tersentuh.
 
+## Optimasi dan pemantauan produksi
+
+Image PHP produksi memuat konfigurasi OPcache khusus dengan
+`opcache.validate_timestamps=0`. Container `app` juga menjalankan
+`php artisan optimize` saat startup melalui `OPTIMIZE_ON_START=true`. Karena
+perubahan kode tidak diperiksa ulang oleh OPcache, setiap rilis wajib membuat
+ulang image dan me-recreate container aplikasi:
+
+```bash
+docker compose --env-file docker/.env.production -f docker/compose.production.yml build app web
+docker compose --env-file docker/.env.production -f docker/compose.production.yml up -d --force-recreate app web queue scheduler
+```
+
+Nginx mengaktifkan gzip, cache immutable satu tahun untuk aset Vite yang
+memiliki nama ber-hash, dan access log JSON tanpa query string. Waktu respons
+p50/p95 selama 15 menit terakhir dapat diperiksa dengan:
+
+```bash
+docker compose --env-file docker/.env.production -f docker/compose.production.yml logs --no-color --since 15m web \
+  | docker compose --env-file docker/.env.production -f docker/compose.production.yml exec -T app \
+      php docker/response_percentiles.php
+```
+
+Jalankan perintah tersebut setelah deployment dan secara berkala dari cron atau
+sistem monitoring. Pantau kenaikan p95 walaupun nilai rata-rata masih terlihat
+normal.
+
 ## Menghentikan layanan
 
 ```powershell

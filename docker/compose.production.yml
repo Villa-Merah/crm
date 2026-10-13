@@ -70,7 +70,6 @@ services:
     environment:
       <<: *app-environment
       RUN_MIGRATIONS: "false"
-      OPTIMIZE_ON_START: "false"
     command: php artisan queue:work --sleep=3 --tries=3 --timeout=90 --max-time=3600
     healthcheck:
       disable: true
@@ -80,7 +79,6 @@ services:
     environment:
       <<: *app-environment
       RUN_MIGRATIONS: "false"
-      OPTIMIZE_ON_START: "false"
     command: php artisan schedule:work
     healthcheck:
       disable: true

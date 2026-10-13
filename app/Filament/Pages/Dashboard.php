@@ -11,7 +11,6 @@ use App\Support\IndonesiaCityCoordinates;
 use Filament\Pages\Page;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Livewire\Attributes\Url;
 use Throwable;
 
@@ -161,7 +160,8 @@ class Dashboard extends Page
         }
         $followups = DB::table('followup_riwayat')->join('leads', 'leads.lead_id', '=', 'followup_riwayat.lead_id');
         $this->scope($followups, 'followup_riwayat.tanggal_followup', 'leads.cabang_id', 'followup_riwayat.user_id');
-        $todayPayments = clone $payments;
+        $todayStart = today()->startOfDay()->toDateTimeString();
+        $tomorrowStart = today()->addDay()->startOfDay()->toDateTimeString();
         $target = $this->pengguna
             ? DB::table('target_kinerja_user')->join('target_kinerja_cabang', 'target_kinerja_cabang.target_kinerja_cabang_id', '=', 'target_kinerja_user.target_kinerja_cabang_id')->where('target_kinerja_user.user_id', $this->pengguna)->when($this->cabang, fn ($q) => $q->where('target_kinerja_cabang.cabang_id', $this->cabang))->where('target_kinerja_cabang.tahun', $this->tahun)->whereIn('target_kinerja_cabang.status', ['Aktif', 'Selesai'])->when($this->bulan, fn ($q) => $q->where('target_kinerja_cabang.bulan', $this->bulan))->selectRaw('COALESCE(SUM(target_kinerja_user.target_omzet),0) omzet, COALESCE(SUM(target_kinerja_user.target_siswa),0) siswa')->first()
             : DB::table('target_kinerja_cabang')->when($this->cabang, fn ($q) => $q->where('cabang_id', $this->cabang))->where('tahun', $this->tahun)->whereIn('status', ['Aktif', 'Selesai'])->when($this->bulan, fn ($q) => $q->where('bulan', $this->bulan))->selectRaw('COALESCE(SUM(target_omzet),0) omzet, COALESCE(SUM(target_siswa),0) siswa')->first();
@@ -269,6 +269,24 @@ class Dashboard extends Page
             ->orderBy('sekolah.nama_sekolah')
             ->limit(5)
             ->get();
+        $leadFunnelRows = (clone $leads)
+            ->select('status_lead')
+            ->selectRaw('COUNT(*) total')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN tanggal_masuk >= ? AND tanggal_masuk < ? THEN 1 ELSE 0 END), 0) today',
+                [$todayStart, $tomorrowStart],
+            )
+            ->groupBy('status_lead')
+            ->get()
+            ->keyBy('status_lead');
+        $leadFunnelCounts = $leadFunnelRows->map(fn (object $row): int => (int) $row->total);
+        $totalLeadCountForMap = (int) $leadFunnelCounts->sum();
+        $leadsToday = (int) $leadFunnelRows->sum('today');
+        $leadFunnel = collect(LeadStatus::cases())->map(fn (LeadStatus $status): object => (object) [
+            'label' => $status->value,
+            'total' => (int) ($leadFunnelCounts[$status->value] ?? 0),
+        ]);
+
         $cityExpression = "COALESCE(NULLIF(TRIM(leads.kota_asal), ''), NULLIF(TRIM(sekolah.kota), ''))";
         $leadLocations = (clone $leads)
             ->leftJoin('sekolah', 'sekolah.sekolah_id', '=', 'leads.sekolah_id')
@@ -302,38 +320,22 @@ class Dashboard extends Page
             ->values();
         $mappedLeadCount = (int) $leadMapPoints->sum('total');
         $locatedLeadCount = (int) $cityRows->sum('total');
-        $totalLeadCountForMap = (int) (clone $leads)->count();
         $mapCoverage = $totalLeadCountForMap > 0 ? round($mappedLeadCount / $totalLeadCountForMap * 100, 1) : 0;
         $unlocatedLeadCount = max(0, $totalLeadCountForMap - $locatedLeadCount);
         $unmappedCities = $cityRows
             ->reject(fn (object $row): bool => IndonesiaCityCoordinates::find($row->kota) !== null)
             ->pluck('kota')
             ->values();
-        $leadFunnelCounts = (clone $leads)
-            ->selectRaw('status_lead, COUNT(*) total')
-            ->groupBy('status_lead')
-            ->pluck('total', 'status_lead');
-        $leadFunnel = collect(LeadStatus::cases())->map(fn (LeadStatus $status): object => (object) [
-            'label' => $status->value,
-            'total' => (int) ($leadFunnelCounts[$status->value] ?? 0),
-        ]);
-        $usesNormalizedLeadSources = Schema::hasTable('sumber_leads')
-            && Schema::hasColumn('leads', 'sumber_lead_id');
-        $sourceColumn = $usesNormalizedLeadSources ? 'sumber_leads.nama' : 'leads.sumber_lead';
-        $sourceGroupColumns = $usesNormalizedLeadSources
-            ? ['leads.sumber_lead_id', 'sumber_leads.nama']
-            : ['leads.sumber_lead'];
+        $sourceColumn = 'sumber_leads.nama';
+        $sourceGroupColumns = ['leads.sumber_lead_id', 'sumber_leads.nama'];
         $sourceLeads = clone $leads;
         $sourceRegistrations = (clone $registrations)
             ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id');
         $sourceRevenue = (clone $payments)
             ->join('leads', 'leads.lead_id', '=', 'pendaftaran.lead_id');
-
-        if ($usesNormalizedLeadSources) {
-            $sourceLeads->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
-            $sourceRegistrations->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
-            $sourceRevenue->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
-        }
+        $sourceLeads->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
+        $sourceRegistrations->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
+        $sourceRevenue->leftJoin('sumber_leads', 'sumber_leads.sumber_lead_id', '=', 'leads.sumber_lead_id');
 
         $sourceLeads = $sourceLeads
             ->selectRaw("COALESCE({$sourceColumn}, 'Belum diisi') sumber, COUNT(*) total")
@@ -368,7 +370,41 @@ class Dashboard extends Page
             return $person;
         });
         $activities = DB::table('leads')->leftJoin('users', 'users.id', '=', 'leads.diserahkan_ke_user_id')->where('leads.tanggal_masuk', '>=', $periodStart)->where('leads.tanggal_masuk', '<', $periodEndExclusive)->when($this->cabang, fn ($q) => $q->where('leads.cabang_id', $this->cabang))->when($this->pengguna, fn ($q) => $q->where(fn ($leadQuery) => $leadQuery->where('leads.diserahkan_ke_user_id', $this->pengguna)->orWhere('leads.diinput_oleh_user_id', $this->pengguna)))->select('leads.nama', 'leads.status_lead', 'leads.created_at', 'users.name as petugas')->latest('leads.created_at')->limit(6)->get();
-        $stats = ['leads_today' => (clone $leads)->whereDate('tanggal_masuk', today())->count(), 'followups_today' => (clone $followups)->whereDate('tanggal_followup', today())->count(), 'new_students' => (clone $registrations)->whereDate('tanggal_daftar', today())->count(), 'revenue_today' => (float) $todayPayments->whereDate('tanggal_pembayaran', today())->sum('nominal'), 'leads' => (clone $leads)->count(), 'registrations' => (clone $registrations)->count(), 'students' => (clone $registrations)->where('status_pendaftaran', 'Aktif')->count(), 'revenue' => (float) (clone $payments)->sum('nominal')];
+        $registrationStats = (clone $registrations)
+            ->selectRaw('COUNT(*) total')
+            ->selectRaw("COALESCE(SUM(CASE WHEN status_pendaftaran = 'Aktif' THEN 1 ELSE 0 END), 0) students")
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN tanggal_daftar >= ? AND tanggal_daftar < ? THEN 1 ELSE 0 END), 0) today',
+                [$todayStart, $tomorrowStart],
+            )
+            ->first();
+        $paymentStats = (clone $payments)
+            ->selectRaw('COALESCE(SUM(pembayaran.nominal), 0) total')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN tanggal_pembayaran >= ? AND tanggal_pembayaran < ? THEN pembayaran.nominal ELSE 0 END), 0) today',
+                [$todayStart, $tomorrowStart],
+            )
+            ->first();
+        $followupStats = (clone $followups)
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN followup_riwayat.tanggal_followup >= ? AND followup_riwayat.tanggal_followup < ? THEN 1 ELSE 0 END), 0) today',
+                [$todayStart, $tomorrowStart],
+            )
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN tanggal_followup_berikutnya IS NOT NULL AND tanggal_followup_berikutnya <= ? THEN 1 ELSE 0 END), 0) pending',
+                [now()->toDateTimeString()],
+            )
+            ->first();
+        $stats = [
+            'leads_today' => $leadsToday,
+            'followups_today' => (int) $followupStats->today,
+            'new_students' => (int) $registrationStats->today,
+            'revenue_today' => (float) $paymentStats->today,
+            'leads' => $totalLeadCountForMap,
+            'registrations' => (int) $registrationStats->total,
+            'students' => (int) $registrationStats->students,
+            'revenue' => (float) $paymentStats->total,
+        ];
         $stats['conversion'] = $stats['leads'] > 0 ? round($stats['registrations'] / $stats['leads'] * 100, 1) : 0;
         [$previousStart, $previousEndExclusive] = $this->previousPeriodRange();
         $previousLeads = $this->scopeRange(DB::table('leads'), 'tanggal_masuk', $previousStart, $previousEndExclusive, 'cabang_id', 'diserahkan_ke_user_id');
@@ -381,10 +417,14 @@ class Dashboard extends Page
         if ($this->pengguna) {
             $previousPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
+        $previousRegistrationStats = (clone $previousRegistrations)
+            ->selectRaw('COUNT(*) total')
+            ->selectRaw("COALESCE(SUM(CASE WHEN status_pendaftaran = 'Aktif' THEN 1 ELSE 0 END), 0) students")
+            ->first();
         $previousStats = [
             'leads' => (clone $previousLeads)->count(),
-            'registrations' => (clone $previousRegistrations)->count(),
-            'students' => (clone $previousRegistrations)->where('status_pendaftaran', 'Aktif')->count(),
+            'registrations' => (int) $previousRegistrationStats->total,
+            'students' => (int) $previousRegistrationStats->students,
             'revenue' => (float) (clone $previousPayments)->sum('nominal'),
         ];
         $previousStats['conversion'] = $previousStats['leads'] > 0 ? round($previousStats['registrations'] / $previousStats['leads'] * 100, 1) : 0;
@@ -399,7 +439,7 @@ class Dashboard extends Page
             $pendingPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
 
-        return ['branches' => Cabang::where('aktif', true)->when(! $viewer->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($viewer->cabang_id))->orderBy('nama')->get(), 'users' => User::when($this->cabang, fn ($q) => $q->where('cabang_id', $this->cabang))->when($viewer->hasRole(UserRole::Staff), fn ($q) => $q->whereKey($viewer->id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->where('aktif', true)->orderBy('name')->get(), 'dashboardTagline' => CrmSetting::getValue('dashboard_tagline'), 'stats' => $stats, 'previousStats' => $previousStats, 'comparisons' => $comparisons, 'target' => $target, 'targetPace' => $targetPace, 'ranking' => $ranking, 'activities' => $activities, 'days' => $periods, 'trendLeads' => collect($periods)->map(fn ($period) => $trendLeads[$period] ?? 0), 'trendRegs' => collect($periods)->map(fn ($period) => $trendRegs[$period] ?? 0), 'leadFunnel' => $leadFunnel, 'leadSources' => $leadSources, 'programLeadKpis' => $programLeadKpis, 'programLeadDimensions' => $programLeadDimensions, 'topSchools' => $topSchools, 'topCities' => $topCities, 'leadMapPoints' => $leadMapPoints, 'mappedLeadCount' => $mappedLeadCount, 'locatedLeadCount' => $locatedLeadCount, 'mapCoverage' => $mapCoverage, 'unlocatedLeadCount' => $unlocatedLeadCount, 'unmappedCities' => $unmappedCities, 'pending' => ['followup' => (clone $followups)->whereNotNull('tanggal_followup_berikutnya')->where('tanggal_followup_berikutnya', '<=', now())->count(), 'payments' => $pendingPayments->count(), 'new_leads' => (clone $leads)->where('status_lead', LeadStatus::Cold->value)->count()]];
+        return ['branches' => Cabang::where('aktif', true)->when(! $viewer->hasGlobalBranchAccess(), fn ($q) => $q->whereKey($viewer->cabang_id))->orderBy('nama')->get(), 'users' => User::when($this->cabang, fn ($q) => $q->where('cabang_id', $this->cabang))->when($viewer->hasRole(UserRole::Staff), fn ($q) => $q->whereKey($viewer->id))->whereIn('role', [UserRole::Staff->value, UserRole::AdminCabang->value])->where('aktif', true)->orderBy('name')->get(), 'dashboardTagline' => CrmSetting::getValue('dashboard_tagline'), 'stats' => $stats, 'previousStats' => $previousStats, 'comparisons' => $comparisons, 'target' => $target, 'targetPace' => $targetPace, 'ranking' => $ranking, 'activities' => $activities, 'days' => $periods, 'trendLeads' => collect($periods)->map(fn ($period) => $trendLeads[$period] ?? 0), 'trendRegs' => collect($periods)->map(fn ($period) => $trendRegs[$period] ?? 0), 'leadFunnel' => $leadFunnel, 'leadSources' => $leadSources, 'programLeadKpis' => $programLeadKpis, 'programLeadDimensions' => $programLeadDimensions, 'topSchools' => $topSchools, 'topCities' => $topCities, 'leadMapPoints' => $leadMapPoints, 'mappedLeadCount' => $mappedLeadCount, 'locatedLeadCount' => $locatedLeadCount, 'mapCoverage' => $mapCoverage, 'unlocatedLeadCount' => $unlocatedLeadCount, 'unmappedCities' => $unmappedCities, 'pending' => ['followup' => (int) $followupStats->pending, 'payments' => $pendingPayments->count(), 'new_leads' => (int) ($leadFunnelCounts[LeadStatus::Cold->value] ?? 0)]];
     }
 
     private function emptyDashboardData(): array

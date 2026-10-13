@@ -83,6 +83,8 @@ ENV APP_ENV=production \
     INSTALL_DEPENDENCIES_ON_START=false \
     OPTIMIZE_ON_START=true
 
+COPY docker/php/php-production.ini /usr/local/etc/php/conf.d/zz-sivmi-production.ini
+
 COPY . .
 COPY --from=composer-production /app/vendor ./vendor
 COPY --from=frontend /app/public/build ./public/build
