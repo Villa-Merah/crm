@@ -114,10 +114,10 @@
             </div>
 
             <div class="dashboard-card p-5 md:p-6">
-                <div><h3 class="font-bold text-slate-900">Performa sumber leads</h3><p class="mt-1 text-xs text-slate-500">Akuisisi dan hasil pendaftaran per kanal</p></div>
+                <div><h3 class="font-bold text-slate-900">Performa sumber leads</h3><p class="mt-1 text-xs text-slate-500">3 sumber teratas; sumber lainnya digabung sebagai Lainnya</p></div>
                 <div class="mt-5 space-y-3">
                     @forelse($leadSources as $source)
-                        <div class="rounded-xl border border-slate-100 p-3.5">
+                        <div class="rounded-xl border border-slate-100 p-3.5" data-lead-source="{{ $source->sumber }}">
                             <div class="flex items-center gap-3"><div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-700">{{ $source->sumber }}</p><div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#1476B8]" style="width: {{ max(2, $source->total / $sourceMax * 100) }}%"></div></div></div><div class="text-right"><b class="text-sm text-slate-900">{{ $source->total }} leads</b><p class="mt-0.5 text-[10px] text-emerald-600">{{ $source->registrations }} daftar · {{ $source->conversion }}%</p></div></div>
                         </div>
                     @empty
@@ -133,6 +133,7 @@
             $programCoverage = $programKpiTotal > 0 ? round(($programKpiTotal - $unassignedProgramLeads) / $programKpiTotal * 100) : 0;
             $topProgram = $programLeadKpis->first(fn ($item) => ! in_array($item->program, ['Belum memilih program', 'Program lainnya'], true));
             $programColors = ['bg-[#1476B8]', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-slate-400'];
+            $programPieColors = ['#1476B8', '#10b981', '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4', '#94a3b8'];
         @endphp
         <section class="dashboard-card overflow-hidden" aria-labelledby="program-leads-title">
             <div class="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
@@ -191,31 +192,94 @@
                 </div>
                 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                     @foreach($programLeadDimensions as $dimension)
+                        @php
+                            $dimensionTotal = (int) $dimension['items']->sum('total');
+                            $pieCursor = 0;
+                            $pieLabel = $dimension['items']->map(function ($item) use ($dimensionTotal) {
+                                $percentage = $dimensionTotal > 0 ? round($item->total / $dimensionTotal * 100, 1) : 0;
+
+                                return $item->label.': '.number_format($item->total, 0, ',', '.').' leads ('.number_format($percentage, 1, ',', '.').'%)';
+                            })->implode(', ');
+                        @endphp
                         <article class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                             <div class="flex items-center justify-between gap-2">
                                 <h5 class="text-sm font-bold text-slate-800">{{ $dimension['label'] }}</h5>
                                 <span class="rounded-lg bg-sky-50 px-2 py-1 text-[10px] font-bold text-[#1476B8]">{{ $dimension['items']->count() }} kelompok</span>
                             </div>
-                            <div class="mt-4 space-y-3">
-                                @forelse($dimension['items'] as $item)
-                                    @php
-                                        $dimensionPct = $programKpiTotal > 0 ? round($item->total / $programKpiTotal * 100) : 0;
-                                    @endphp
-                                    <div>
-                                        <div class="mb-1.5 flex items-center gap-2 text-xs">
-                                            <span class="min-w-0 flex-1 truncate font-semibold text-slate-600" title="{{ $item->label }}">{{ $item->label }}</span>
-                                            <span class="text-slate-400">{{ $dimensionPct }}%</span>
-                                            <b class="text-slate-800">{{ number_format($item->total, 0, ',', '.') }}</b>
+                            @if($dimensionTotal > 0)
+                                <div class="mt-4 flex justify-center">
+                                    <svg
+                                        role="img"
+                                        aria-label="Distribusi {{ $dimension['label'] }}. {{ $pieLabel }}"
+                                        viewBox="0 0 260 230"
+                                        style="display: block; width: 100%; max-width: 260px; height: auto;"
+                                        data-program-pie="{{ $dimension['label'] }}"
+                                    >
+                                        <title>{{ $pieLabel }}</title>
+                                        @foreach($dimension['items'] as $item)
+                                            @php
+                                                $slicePercentage = $item->total / $dimensionTotal * 100;
+                                                $startAngle = $pieCursor / $dimensionTotal * 360 - 90;
+                                                $pieCursor += $item->total;
+                                                $endAngle = $pieCursor / $dimensionTotal * 360 - 90;
+                                                $middleAngle = ($startAngle + $endAngle) / 2;
+                                                $startRadians = deg2rad($startAngle);
+                                                $endRadians = deg2rad($endAngle);
+                                                $middleRadians = deg2rad($middleAngle);
+                                                $centerX = 130;
+                                                $centerY = 112;
+                                                $radius = 70;
+                                                $startX = $centerX + $radius * cos($startRadians);
+                                                $startY = $centerY + $radius * sin($startRadians);
+                                                $endX = $centerX + $radius * cos($endRadians);
+                                                $endY = $centerY + $radius * sin($endRadians);
+                                                $largeArc = $slicePercentage > 50 ? 1 : 0;
+                                                $slicePath = "M {$centerX} {$centerY} L {$startX} {$startY} A {$radius} {$radius} 0 {$largeArc} 1 {$endX} {$endY} Z";
+                                                $valueX = $centerX + ($radius * 0.56) * cos($middleRadians);
+                                                $valueY = $centerY + ($radius * 0.56) * sin($middleRadians);
+                                                $labelX = $centerX + ($radius + 22) * cos($middleRadians);
+                                                $labelY = $centerY + ($radius + 22) * sin($middleRadians);
+                                                $sliceColor = $programPieColors[$loop->index % count($programPieColors)];
+                                                $shortLabel = \Illuminate\Support\Str::limit((string) $item->label, 17);
+                                            @endphp
+                                            @if($dimension['items']->count() === 1)
+                                                <circle cx="{{ $centerX }}" cy="{{ $centerY }}" r="{{ $radius }}" fill="{{ $sliceColor }}">
+                                                    <title>{{ $item->label }}: {{ number_format($slicePercentage, 1, ',', '.') }}% ({{ number_format($item->total, 0, ',', '.') }})</title>
+                                                </circle>
+                                            @else
+                                                <path d="{{ $slicePath }}" fill="{{ $sliceColor }}" stroke="#ffffff" stroke-width="1.5">
+                                                    <title>{{ $item->label }}: {{ number_format($slicePercentage, 1, ',', '.') }}% ({{ number_format($item->total, 0, ',', '.') }})</title>
+                                                </path>
+                                            @endif
+                                            @if($slicePercentage >= 8)
+                                                <text x="{{ $valueX }}" y="{{ $valueY }}" text-anchor="middle" dominant-baseline="middle" fill="#0f172a" font-size="10" font-weight="700">{{ number_format($slicePercentage, 1, ',', '.') }}% ({{ number_format($item->total, 0, ',', '.') }})</text>
+                                            @endif
+                                            <text x="{{ $labelX }}" y="{{ $labelY }}" text-anchor="middle" dominant-baseline="middle" fill="#475569" font-size="9" font-weight="600">{{ $shortLabel }}</text>
+                                        @endforeach
+                                    </svg>
+                                </div>
+                                <div class="mt-5 space-y-2.5" aria-label="Label data {{ $dimension['label'] }}">
+                                    @foreach($dimension['items'] as $item)
+                                        @php
+                                            $dimensionPct = round($item->total / $dimensionTotal * 100, 1);
+                                            $legendColor = $programPieColors[$loop->index % count($programPieColors)];
+                                        @endphp
+                                        <div class="flex items-start gap-2 text-xs">
+                                            <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ $legendColor }}" aria-hidden="true"></span>
+                                            <span class="min-w-0 flex-1 break-words font-semibold leading-4 text-slate-600" title="{{ $item->label }}">{{ $item->label }}</span>
+                                            <span class="whitespace-nowrap text-slate-400">{{ number_format($dimensionPct, 1, ',', '.') }}%</span>
+                                            <b class="w-8 whitespace-nowrap text-right text-slate-800">{{ number_format($item->total, 0, ',', '.') }}</b>
                                         </div>
-                                        <div class="h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{ $programColors[$loop->index % count($programColors)] }} transition-all duration-500" style="width: {{ max(2, $dimensionPct) }}%"></div></div>
-                                    </div>
-                                @empty
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="mt-4">
                                     <div class="flex min-h-24 flex-col items-center justify-center rounded-xl bg-slate-50 px-3 text-center">
                                         <x-heroicon-o-chart-bar class="h-6 w-6 text-slate-300" />
                                         <p class="mt-2 text-[11px] text-slate-400">Belum ada data</p>
                                     </div>
-                                @endforelse
-                            </div>
+                                </div>
+                            @endif
                         </article>
                     @endforeach
                 </div>

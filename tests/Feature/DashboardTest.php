@@ -7,6 +7,7 @@ use App\Models\Cabang;
 use App\Models\Lead;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
+use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -120,6 +121,11 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('KPI leads berdasarkan program')
             ->assertSee('Breakdown klasifikasi program')
+            ->assertSee('data-program-pie="Kategori"', false)
+            ->assertSee('<svg', false)
+            ->assertSee('<path', false)
+            ->assertSee('Label data Kategori')
+            ->assertSee('Distribusi Kategori')
             ->assertSee('Kategori')
             ->assertSee('Tipe program')
             ->assertSee('Metode belajar')
@@ -172,6 +178,44 @@ class DashboardTest extends TestCase
             ->assertSee('2 terpetakan')
             ->assertSee('66.7%')
             ->assertSee('1 leads belum memiliki kota asal maupun kota sekolah.');
+    }
+
+    public function test_lead_source_performance_shows_top_three_and_groups_the_rest(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'SRC', 'nama' => 'Cabang Sumber', 'aktif' => true]);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $sourceCounts = [
+            'Sumber Alpha' => 5,
+            'Sumber Beta' => 4,
+            'Sumber Gamma' => 3,
+            'Sumber Delta' => 2,
+            'Sumber Epsilon' => 1,
+        ];
+
+        foreach ($sourceCounts as $sourceName => $count) {
+            $source = SumberLead::create([
+                'kode' => str($sourceName)->slug(),
+                'nama' => $sourceName,
+                'warna' => 'primary',
+                'urutan' => 100,
+                'aktif' => true,
+            ]);
+
+            foreach (range(1, $count) as $index) {
+                Lead::create([
+                    ...$this->leadData($branch, $staff, $sourceName.' '.$index),
+                    'sumber_lead_id' => $source->sumber_lead_id,
+                ]);
+            }
+        }
+
+        $this->actingAs($admin)->get('/admin/dashboard?cabang='.$branch->cabang_id.'&tahun='.now()->year.'&bulan='.now()->month)
+            ->assertOk()
+            ->assertSee('3 sumber teratas; sumber lainnya digabung sebagai Lainnya')
+            ->assertSeeInOrder(['data-lead-source="Sumber Alpha"', 'data-lead-source="Sumber Beta"', 'data-lead-source="Sumber Gamma"', 'data-lead-source="Lainnya"'], false)
+            ->assertDontSee('data-lead-source="Sumber Delta"', false)
+            ->assertDontSee('data-lead-source="Sumber Epsilon"', false);
     }
 
     public function test_location_map_combines_the_same_effective_city_from_different_schools(): void

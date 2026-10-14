@@ -341,6 +341,7 @@ class Dashboard extends Page
             ->selectRaw("COALESCE({$sourceColumn}, 'Belum diisi') sumber, COUNT(*) total")
             ->groupBy(...$sourceGroupColumns)
             ->orderByDesc('total')
+            ->orderBy($sourceColumn)
             ->get();
         $sourceRegistrations = $sourceRegistrations
             ->selectRaw("COALESCE({$sourceColumn}, 'Belum diisi') sumber, COUNT(*) total")
@@ -358,6 +359,19 @@ class Dashboard extends Page
 
             return $source;
         });
+        $otherLeadSources = $leadSources->slice(3);
+
+        if ($otherLeadSources->isNotEmpty()) {
+            $otherTotal = (int) $otherLeadSources->sum('total');
+            $otherRegistrations = (int) $otherLeadSources->sum('registrations');
+            $leadSources = $leadSources->take(3)->push((object) [
+                'sumber' => 'Lainnya',
+                'total' => $otherTotal,
+                'registrations' => $otherRegistrations,
+                'revenue' => (float) $otherLeadSources->sum('revenue'),
+                'conversion' => $otherTotal > 0 ? round($otherRegistrations / $otherTotal * 100, 1) : 0,
+            ])->values();
+        }
         $periods = $this->bulan
             ? range(1, now()->setDate($this->tahun, $this->bulan, 1)->daysInMonth)
             : range(1, 12);
