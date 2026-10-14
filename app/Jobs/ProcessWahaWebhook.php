@@ -185,8 +185,14 @@ class ProcessWahaWebhook implements ShouldQueue
                 $conversation->match_status = WhatsAppMatchStatus::Unresolved;
             }
 
-            if (! $conversation->lead_id && $phone) {
-                $result = $matcher->matchOrCreate($account, $phone, $contactName, $sentAt, ! $fromMe);
+            if (! $conversation->lead_id && $phone && $conversation->match_status !== WhatsAppMatchStatus::Ignored) {
+                $result = $matcher->matchOrCreate(
+                    $account,
+                    $phone,
+                    $contactName,
+                    $sentAt,
+                    ! $fromMe && config('services.waha.auto_create_leads', false),
+                );
                 $conversation->lead_id = $result['lead']?->getKey();
                 $conversation->match_status = $result['status'];
 

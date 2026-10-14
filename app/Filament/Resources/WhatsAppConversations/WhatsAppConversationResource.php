@@ -7,15 +7,17 @@ use App\Enums\WhatsAppMatchStatus;
 use App\Filament\Resources\Leads\LeadResource;
 use App\Filament\Resources\WhatsAppConversations\Pages\ListWhatsAppConversations;
 use App\Filament\Resources\WhatsAppConversations\Pages\ViewWhatsAppConversation;
-use App\Models\ActivityLog;
 use App\Models\Lead;
 use App\Models\WhatsAppConversation;
+use App\Services\WhatsApp\WhatsAppLeadQualificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -25,7 +27,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class WhatsAppConversationResource extends Resource
 {
@@ -81,30 +82,65 @@ class WhatsAppConversationResource extends Resource
             SelectFilter::make('match_status')->label('Status pencocokan')->options(collect(WhatsAppMatchStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->value])),
         ])->recordActions([
             ViewAction::make(),
+            Action::make('createLead')->label('Jadikan lead')->icon('heroicon-o-user-plus')->color('primary')
+                ->visible(fn (WhatsAppConversation $record) => static::canResolve() && ! $record->lead_id && $record->match_status !== WhatsAppMatchStatus::Conflict)
+                ->requiresConfirmation()
+                ->modalHeading('Jadikan kontak sebagai lead?')
+                ->modalDescription('Data awal lead akan dibuat dari identitas kontak, cabang, dan session WhatsApp penerima.')
+                ->action(function (WhatsAppConversation $record): void {
+                    app(WhatsAppLeadQualificationService::class)->createLead($record, auth()->user());
+                    Notification::make()->success()->title('Kontak berhasil dijadikan lead')->send();
+                }),
             Action::make('linkLead')->label('Hubungkan lead')->icon('heroicon-o-link')->color('warning')
                 ->visible(fn (WhatsAppConversation $record) => static::canResolve() && ! $record->lead_id)
                 ->schema(fn (WhatsAppConversation $record) => [
-                    Select::make('lead_id')->label('Lead')->options(
-                        Lead::query()->visibleTo(auth()->user())
-                            ->when($record->contact_phone_e164, fn (Builder $query) => $query->where('no_wa_normalized', $record->contact_phone_e164))
-                            ->orderBy('nama')->pluck('nama', 'lead_id')
-                    )->searchable()->required(),
+                    Select::make('lead_id')->label('Lead')
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search): array => Lead::query()
+                            ->visibleTo(auth()->user())
+                            ->where('cabang_id', $record->account->cabang_id)
+                            ->where(fn (Builder $query) => $query
+                                ->where('nama', 'like', "%{$search}%")
+                                ->orWhere('no_wa', 'like', "%{$search}%")
+                                ->orWhere('no_wa_normalized', 'like', "%{$search}%"))
+                            ->orderBy('nama')
+                            ->limit(50)
+                            ->pluck('nama', 'lead_id')
+                            ->all())
+                        ->getOptionLabelUsing(fn ($value): ?string => Lead::query()
+                            ->visibleTo(auth()->user())
+                            ->where('cabang_id', $record->account->cabang_id)
+                            ->whereKey($value)
+                            ->value('nama'))
+                        ->required(),
                 ])->action(function (WhatsAppConversation $record, array $data): void {
-                    $lead = Lead::query()->visibleTo(auth()->user())->findOrFail($data['lead_id']);
-                    DB::transaction(function () use ($record, $lead): void {
-                        $record->update(['lead_id' => $lead->getKey(), 'match_status' => WhatsAppMatchStatus::Matched]);
-                        $record->messages()->update(['lead_id' => $lead->getKey()]);
-                        $lead->update([
-                            'whatsapp_first_seen_at' => $lead->whatsapp_first_seen_at ?? $record->first_message_at,
-                            'whatsapp_last_seen_at' => $record->last_message_at,
-                        ]);
-                        ActivityLog::create([
-                            'user_id' => auth()->id(), 'cabang_id' => $lead->cabang_id,
-                            'subject_type' => $record->getMorphClass(), 'subject_id' => $record->getKey(),
-                            'event' => 'whatsapp_linked', 'description' => 'Percakapan WhatsApp dihubungkan ke lead',
-                            'properties' => ['lead_id' => $lead->getKey()], 'created_at' => now(),
-                        ]);
-                    });
+                    $lead = Lead::query()->findOrFail($data['lead_id']);
+                    app(WhatsAppLeadQualificationService::class)->linkLead($record, $lead, auth()->user());
+                    Notification::make()->success()->title('Percakapan berhasil dihubungkan ke lead')->send();
+                }),
+            Action::make('ignore')->label('Bukan lead')->icon('heroicon-o-no-symbol')->color('gray')
+                ->visible(fn (WhatsAppConversation $record) => static::canResolve() && ! $record->lead_id && $record->match_status !== WhatsAppMatchStatus::Ignored)
+                ->schema([
+                    Select::make('reason')->label('Alasan')->options([
+                        'Kontak pribadi' => 'Kontak pribadi',
+                        'Vendor atau mitra' => 'Vendor atau mitra',
+                        'Kontak internal' => 'Kontak internal',
+                        'Spam' => 'Spam',
+                        'Lainnya' => 'Lainnya',
+                    ])->required(),
+                    Textarea::make('note')->label('Catatan')->maxLength(300),
+                ])
+                ->action(function (WhatsAppConversation $record, array $data): void {
+                    $reason = $data['reason'].(filled($data['note'] ?? null) ? ': '.str($data['note'])->limit(300) : '');
+                    app(WhatsAppLeadQualificationService::class)->ignore($record, auth()->user(), $reason);
+                    Notification::make()->success()->title('Percakapan ditandai bukan lead')->send();
+                }),
+            Action::make('reopen')->label('Tinjau kembali')->icon('heroicon-o-arrow-path')->color('warning')
+                ->visible(fn (WhatsAppConversation $record) => static::canResolve() && ! $record->lead_id && $record->match_status === WhatsAppMatchStatus::Ignored)
+                ->requiresConfirmation()
+                ->action(function (WhatsAppConversation $record): void {
+                    app(WhatsAppLeadQualificationService::class)->reopen($record, auth()->user());
+                    Notification::make()->success()->title('Percakapan dikembalikan untuk ditinjau')->send();
                 }),
         ])->emptyStateHeading('Belum ada percakapan')->emptyStateDescription('Pesan yang diterima melalui session WAHA akan muncul di sini.');
     }
@@ -161,7 +197,9 @@ class WhatsAppConversationResource extends Resource
 
     public static function canResolve(): bool
     {
-        return auth()->user()?->hasRole(UserRole::Superadmin) || auth()->user()?->hasRole(UserRole::AdminCabang);
+        return auth()->user()?->hasRole(UserRole::Superadmin)
+            || auth()->user()?->hasRole(UserRole::AdminCabang)
+            || auth()->user()?->hasRole(UserRole::Staff);
     }
 
     public static function getPages(): array

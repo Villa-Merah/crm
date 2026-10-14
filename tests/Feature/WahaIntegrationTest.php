@@ -18,6 +18,7 @@ use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\WahaClient;
 use App\Services\WhatsApp\WahaSessionService;
 use App\Services\WhatsApp\WhatsAppChatService;
+use App\Services\WhatsApp\WhatsAppLeadQualificationService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -49,23 +50,17 @@ class WahaIntegrationTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    public function test_incoming_message_creates_a_lead_and_records_the_chat(): void
+    public function test_incoming_message_waits_for_qualification_and_records_the_chat(): void
     {
-        [$branch, $staff, $account] = $this->account();
+        [, $staff, $account] = $this->account();
 
         $response = $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-new'));
         $response->assertAccepted()->assertJson(['accepted' => true, 'duplicate' => false]);
 
-        $lead = Lead::query()->sole();
-        $this->assertSame('628123456789', $lead->no_wa_normalized);
-        $this->assertSame('WhatsApp', $lead->kanal_masuk->value);
-        $this->assertSame($branch->getKey(), $lead->cabang_id);
-        $this->assertSame($staff->getKey(), $lead->diserahkan_ke_user_id);
-        $this->assertNotNull($lead->whatsapp_first_seen_at);
-
         $conversation = WhatsAppConversation::query()->sole();
-        $this->assertSame($lead->getKey(), $conversation->lead_id);
-        $this->assertSame(WhatsAppMatchStatus::NewLead, $conversation->match_status);
+        $this->assertDatabaseCount('leads', 0);
+        $this->assertNull($conversation->lead_id);
+        $this->assertSame(WhatsAppMatchStatus::Unresolved, $conversation->match_status);
         $this->assertSame(1, $conversation->unread_count);
         $this->assertDatabaseCount('whatsapp_messages', 1);
         $this->assertTrue($staff->notifications()->where('data->title', 'Pesan WhatsApp baru')->exists());
@@ -118,24 +113,72 @@ class WahaIntegrationTest extends TestCase
         $this->assertSame([$lead->getKey(), $lead->getKey()], WhatsAppMessage::query()->where('conversation_id', $conversation->getKey())->pluck('lead_id')->all());
     }
 
-    public function test_gows_lid_message_uses_sender_alt_for_lead_matching(): void
+    public function test_gows_lid_message_uses_sender_alt_for_pending_qualification(): void
     {
-        [$branch, $staff, $account] = $this->account();
+        [, , $account] = $this->account();
 
         $this->sendWebhook($this->gowsMessagePayload($account->session_name))->assertAccepted();
 
-        $lead = Lead::query()->sole();
         $conversation = WhatsAppConversation::query()->sole();
 
-        $this->assertSame('6285320008589', $lead->no_wa_normalized);
-        $this->assertSame('Pengirim GOWS', $lead->nama);
+        $this->assertDatabaseCount('leads', 0);
         $this->assertSame('109719301685330@lid', $conversation->chat_id);
         $this->assertSame('6285320008589', $conversation->contact_phone_e164);
         $this->assertSame('Pengirim GOWS', $conversation->contact_name);
-        $this->assertSame($lead->getKey(), $conversation->lead_id);
-        $this->assertSame(WhatsAppMatchStatus::NewLead, $conversation->match_status);
+        $this->assertNull($conversation->lead_id);
+        $this->assertSame(WhatsAppMatchStatus::Unresolved, $conversation->match_status);
+    }
+
+    public function test_authorized_staff_can_qualify_their_conversation_as_a_lead(): void
+    {
+        [$branch, $staff, $account] = $this->account();
+        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-qualify'))->assertAccepted();
+
+        $conversation = WhatsAppConversation::query()->sole();
+        $lead = app(WhatsAppLeadQualificationService::class)->createLead($conversation, $staff);
+
+        $this->assertSame('628123456789', $lead->no_wa_normalized);
+        $this->assertSame('WhatsApp', $lead->kanal_masuk->value);
         $this->assertSame($branch->getKey(), $lead->cabang_id);
         $this->assertSame($staff->getKey(), $lead->diserahkan_ke_user_id);
+        $this->assertSame($lead->getKey(), $conversation->fresh()->lead_id);
+        $this->assertSame(WhatsAppMatchStatus::NewLead, $conversation->fresh()->match_status);
+        $this->assertTrue(ActivityLog::query()->where('event', 'whatsapp_qualified_as_lead')->exists());
+    }
+
+    public function test_ignored_conversation_stays_ignored_when_another_message_arrives(): void
+    {
+        [, $staff, $account] = $this->account();
+        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-ignore-1'))->assertAccepted();
+
+        $conversation = WhatsAppConversation::query()->sole();
+        app(WhatsAppLeadQualificationService::class)->ignore($conversation, $staff, 'Kontak pribadi');
+        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-ignore-2'))->assertAccepted();
+
+        $this->assertDatabaseCount('leads', 0);
+        $this->assertDatabaseCount('whatsapp_messages', 2);
+        $this->assertSame(WhatsAppMatchStatus::Ignored, $conversation->fresh()->match_status);
+    }
+
+    public function test_staff_cannot_qualify_another_staffs_conversation(): void
+    {
+        [$branch, , $account] = $this->account();
+        $otherStaff = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
+        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-forbidden-qualification'))->assertAccepted();
+
+        $this->expectException(AuthorizationException::class);
+        app(WhatsAppLeadQualificationService::class)->createLead(WhatsAppConversation::query()->sole(), $otherStaff);
+    }
+
+    public function test_automatic_lead_creation_can_be_enabled_explicitly(): void
+    {
+        config()->set('services.waha.auto_create_leads', true);
+        [, , $account] = $this->account();
+
+        $this->sendWebhook($this->messagePayload($account->session_name, '628123456789@c.us', 'msg-auto-create'))->assertAccepted();
+
+        $this->assertDatabaseCount('leads', 1);
+        $this->assertSame(WhatsAppMatchStatus::NewLead, WhatsAppConversation::query()->sole()->match_status);
     }
 
     public function test_duplicate_normalized_lead_phone_is_rejected(): void

@@ -41,6 +41,7 @@ return [
         'webhook_hmac_secret' => env('WAHA_WEBHOOK_HMAC_SECRET'),
         'webhook_url' => env('WAHA_WEBHOOK_URL'),
         'timeout' => (int) env('WAHA_TIMEOUT', 15),
+        'auto_create_leads' => (bool) env('WHATSAPP_AUTO_CREATE_LEAD', false),
     ],
 
     'school_api' => [
