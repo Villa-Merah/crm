@@ -61,6 +61,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('SIVMI CRM')->collapsible(false),
                 NavigationGroup::make('MASTER DATA')->collapsible(false),
+                NavigationGroup::make('BANTUAN & DUKUNGAN')->collapsible(false),
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
