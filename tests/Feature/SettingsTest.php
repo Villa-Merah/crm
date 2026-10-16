@@ -134,11 +134,11 @@ class SettingsTest extends TestCase
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
         $staff = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
 
-        $this->actingAs($staff)->get('/admin/laporan')->assertOk()->assertDontSee('Ekspor CSV');
-        Livewire::actingAs($staff)->test(Laporan::class)->call('exportCsv')->assertForbidden();
+        $this->actingAs($staff)->get('/admin/laporan')->assertOk()->assertDontSee('Unduh laporan PDF');
+        Livewire::actingAs($staff)->test(Laporan::class)->call('exportPdf')->assertForbidden();
 
         CrmSetting::setMany(['staff_report_export' => true], $superadmin->id);
-        $this->actingAs($staff)->get('/admin/laporan')->assertOk()->assertSee('Ekspor CSV');
-        Livewire::actingAs($staff)->test(Laporan::class)->call('exportCsv')->assertFileDownloaded('laporan-sivmi-'.now()->format('Y-m').'.csv');
+        $this->actingAs($staff)->get('/admin/laporan')->assertOk()->assertSee('Unduh laporan PDF');
+        Livewire::actingAs($staff)->test(Laporan::class)->call('exportPdf')->assertFileDownloaded('laporan-sivmi-'.now()->format('Y-m').'.pdf');
     }
 }

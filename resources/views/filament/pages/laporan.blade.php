@@ -4,6 +4,9 @@
         $maxTrend = max(1, $trendLeads->max(), $trendRegistrations->max());
         $funnelMax = max(1, (int) $funnel->max('total'));
         $paymentMax = max(1, (float) $paymentMethods->max('total'));
+        $maxProgramLeads = max(1, (int) $leadsByProgram->max('total'));
+        $maxClassificationLeads = max(1, (int) $programClassifications->max('leads'));
+        $maxSchoolLeads = max(1, (int) $topSchools->max('total'));
     @endphp
 
     <div class="space-y-5" aria-live="polite">
@@ -26,10 +29,10 @@
                     <h2 class="mt-4 text-2xl font-bold md:text-3xl">Laporan kinerja SIVMI</h2>
                     <p class="mt-2 max-w-2xl text-sm text-sky-100">Analisis funnel calon siswa, pendaftaran, omzet terverifikasi, dan capaian target berdasarkan filter yang dipilih.</p>
                 </div>
-                @if($this->canExport())<button type="button" wire:click="exportCsv" wire:loading.attr="disabled" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/25 disabled:opacity-60">
+                @if($this->canExport())<button type="button" wire:click="exportPdf" wire:loading.attr="disabled" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/25 disabled:opacity-60">
                     <x-heroicon-o-arrow-down-tray class="h-5 w-5" />
-                    <span wire:loading.remove wire:target="exportCsv">Ekspor CSV</span>
-                    <span wire:loading wire:target="exportCsv">Menyiapkan...</span>
+                    <span wire:loading.remove wire:target="exportPdf">Unduh laporan PDF</span>
+                    <span wire:loading wire:target="exportPdf">Menyiapkan...</span>
                 </button>@endif
             </div>
         </section>
@@ -113,8 +116,54 @@
                     </div>
                 </section>
 
+                <section class="grid gap-5 xl:grid-cols-2">
+                    <div class="dashboard-card p-5 md:p-6">
+                        <h3 class="font-bold text-slate-900">Leads berdasarkan program</h3>
+                        <p class="mt-1 text-xs text-slate-500">Program yang diminati pada lead selama {{ $periodLabel }}</p>
+                        <div class="mt-5 space-y-4">
+                            @forelse($leadsByProgram as $program)
+                                <div>
+                                    <div class="mb-1 flex justify-between gap-3 text-sm"><span class="font-semibold text-slate-600">{{ $program->name }}</span><b>{{ $program->total }}</b></div>
+                                    <div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#1476B8]" style="width:{{ $program->total / $maxProgramLeads * 100 }}%"></div></div>
+                                    <p class="mt-1 text-xs text-slate-400">Klasifikasi: {{ $program->classification }}</p>
+                                </div>
+                            @empty
+                                <p class="py-8 text-center text-sm text-slate-400">Belum ada lead berdasarkan program.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                    <div class="dashboard-card p-5 md:p-6">
+                        <h3 class="font-bold text-slate-900">Klasifikasi program</h3>
+                        <p class="mt-1 text-xs text-slate-500">Komposisi minat leads berdasarkan kategori program</p>
+                        <div class="mt-5 space-y-4">
+                            @forelse($programClassifications as $classification)
+                                <div>
+                                    <div class="mb-1 flex justify-between text-sm"><span class="font-semibold text-slate-600">{{ $classification['name'] }}</span><b>{{ $classification['leads'] }} leads</b></div>
+                                    <div class="h-3 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400" style="width:{{ $classification['leads'] / $maxClassificationLeads * 100 }}%"></div></div>
+                                </div>
+                            @empty
+                                <p class="py-8 text-center text-sm text-slate-400">Belum ada data klasifikasi program.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </section>
+
                 <section class="dashboard-card overflow-hidden">
-                    <div class="p-5 md:p-6"><h3 class="font-bold text-slate-900">Kinerja cabang</h3><p class="mt-1 text-xs text-slate-500">Realisasi periode terhadap target aktif dan selesai</p></div>
+                    <div class="p-5 md:p-6"><h3 class="font-bold text-slate-900">Top 5 sekolah</h3><p class="mt-1 text-xs text-slate-500">Sekolah dengan jumlah leads terbanyak pada periode terpilih</p></div>
+                    <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="border-y border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Peringkat</th><th class="px-5 py-3">Sekolah</th><th class="px-5 py-3">Jumlah leads</th><th class="px-5 py-3">Proporsi</th></tr></thead><tbody class="divide-y divide-slate-100">
+                        @forelse($topSchools as $school)<tr><td class="px-5 py-4 font-bold text-[#1476B8]">{{ $loop->iteration }}</td><td class="px-5 py-4 font-semibold text-slate-800">{{ $school->name }}</td><td class="px-5 py-4">{{ $school->total }}</td><td class="min-w-40 px-5 py-4"><div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-amber-400" style="width:{{ $school->total / $maxSchoolLeads * 100 }}%"></div></div></td></tr>@empty<tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">Belum ada data sekolah.</td></tr>@endforelse
+                    </tbody></table></div>
+                </section>
+
+                <section class="dashboard-card overflow-hidden">
+                    <div class="p-5 md:p-6"><h3 class="font-bold text-slate-900">Peringkat kinerja pengguna</h3><p class="mt-1 text-xs text-slate-500">Peringkat berdasarkan capaian target siswa, lalu jumlah pendaftaran dan leads</p></div>
+                    <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="border-y border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Peringkat</th><th class="px-5 py-3">Pengguna</th><th class="px-5 py-3">Leads</th><th class="px-5 py-3">Pendaftaran</th><th class="px-5 py-3">Omzet</th><th class="px-5 py-3">Capaian target siswa</th><th class="px-5 py-3">Capaian target omzet</th></tr></thead><tbody class="divide-y divide-slate-100">
+                        @forelse($userPerformance as $user)<tr><td class="px-5 py-4 font-bold text-[#1476B8]">#{{ $user['rank'] }}</td><td class="whitespace-nowrap px-5 py-4 font-semibold text-slate-800">{{ $user['name'] }}</td><td class="px-5 py-4">{{ $user['leads'] }}</td><td class="px-5 py-4">{{ $user['registrations'] }}</td><td class="whitespace-nowrap px-5 py-4">{{ $rupiah($user['revenue']) }}</td><td class="px-5 py-4">{{ number_format($user['student_progress'], 1, ',', '.') }}% <span class="text-xs text-slate-400">({{ $user['registrations'] }}/{{ $user['target_students'] }})</span></td><td class="px-5 py-4">{{ number_format($user['revenue_progress'], 1, ',', '.') }}%</td></tr>@empty<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">Belum ada data kinerja pengguna.</td></tr>@endforelse
+                    </tbody></table></div>
+                </section>
+
+                <section class="dashboard-card overflow-hidden">
+                    <div class="p-5 md:p-6"><h3 class="font-bold text-slate-900">Progress target cabang</h3><p class="mt-1 text-xs text-slate-500">Realisasi periode terhadap target aktif dan selesai</p></div>
                     <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="border-y border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Cabang</th><th class="px-5 py-3">Leads</th><th class="px-5 py-3">Pendaftaran</th><th class="px-5 py-3">Konversi</th><th class="px-5 py-3">Omzet</th><th class="px-5 py-3">Capaian omzet</th><th class="px-5 py-3">Capaian siswa</th></tr></thead><tbody class="divide-y divide-slate-100">
                         @foreach($branchesReport as $row)<tr class="transition hover:bg-slate-50"><td class="whitespace-nowrap px-5 py-4 font-semibold text-slate-800">{{ $row['name'] }}</td><td class="px-5 py-4">{{ $row['leads'] }}</td><td class="px-5 py-4">{{ $row['registrations'] }}</td><td class="px-5 py-4">{{ number_format($row['conversion'], 1, ',', '.') }}%</td><td class="whitespace-nowrap px-5 py-4 font-semibold">{{ $rupiah($row['revenue']) }}</td><td class="min-w-44 px-5 py-4"><div class="flex justify-between text-xs"><span>{{ number_format($row['revenue_progress'], 1, ',', '.') }}%</span><span class="text-slate-400">{{ $rupiah($row['target_revenue']) }}</span></div><div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#1476B8]" style="width:{{ min(100, $row['revenue_progress']) }}%"></div></div></td><td class="min-w-40 px-5 py-4"><div class="flex justify-between text-xs"><span>{{ number_format($row['student_progress'], 1, ',', '.') }}%</span><span class="text-slate-400">{{ $row['target_students'] }} siswa</span></div><div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" style="width:{{ min(100, $row['student_progress']) }}%"></div></div></td></tr>@endforeach
                     </tbody></table></div>

@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\Pembayaran;
 use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
+use App\Models\Sekolah;
 use App\Models\TargetKinerjaCabang;
 use App\Models\TargetKinerjaUser;
 use App\Models\User;
@@ -23,20 +24,35 @@ class ReportTest extends TestCase
 
     private static int $waPhoneSequence = 10000000;
 
-    public function test_report_renders_real_metrics_and_csv_export(): void
+    public function test_report_renders_real_metrics_and_pdf_export(): void
     {
         $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
         $staff = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::Staff, 'aktif' => true]);
         $this->createTransaction($branch, $staff, 3750000);
-        TargetKinerjaCabang::create(['cabang_id' => $branch->getKey(), 'tahun' => now()->year, 'bulan' => now()->month, 'status' => 'Aktif', 'target_omzet' => 10000000, 'target_siswa' => 5]);
+        $target = TargetKinerjaCabang::create(['cabang_id' => $branch->getKey(), 'tahun' => now()->year, 'bulan' => now()->month, 'status' => 'Aktif', 'target_omzet' => 10000000, 'target_siswa' => 5]);
+        TargetKinerjaUser::create(['target_kinerja_cabang_id' => $target->getKey(), 'user_id' => $staff->id, 'target_omzet' => 5000000, 'target_siswa' => 3]);
 
         $this->actingAs($superadmin)->get('/admin/laporan')
-            ->assertOk()->assertSee('Laporan kinerja SIVMI')->assertSee('Rp 3,8 jt')->assertSee('Bandung')->assertSee('Ekspor CSV');
+            ->assertOk()
+            ->assertSee('Laporan kinerja SIVMI')
+            ->assertSee('Rp 3,8 jt')
+            ->assertSee('Bandung')
+            ->assertSee('Unduh laporan PDF')
+            ->assertSee('Leads berdasarkan program')
+            ->assertSee('Klasifikasi program')
+            ->assertSee('Top 5 sekolah')
+            ->assertSee('Peringkat kinerja pengguna')
+            ->assertSee('Sekolah BDG')
+            ->assertSee('Program Laporan')
+            ->assertSee($staff->name)
+            ->assertSee('33,3%')
+            ->assertSee('75,0%')
+            ->assertSee('Progress target cabang');
 
         Livewire::actingAs($superadmin)->test(Laporan::class)
-            ->call('exportCsv')
-            ->assertFileDownloaded('laporan-sivmi-'.now()->format('Y-m').'.csv');
+            ->call('exportPdf')
+            ->assertFileDownloaded('laporan-sivmi-'.now()->format('Y-m').'.pdf', null, 'application/pdf');
     }
 
     public function test_staff_report_ignores_tampered_branch_and_user_filters(): void
@@ -85,8 +101,8 @@ class ReportTest extends TestCase
             ->set('bulan', null)
             ->assertSet('bulan', null)
             ->assertSee('Pergerakan bulanan')
-            ->call('exportCsv')
-            ->assertFileDownloaded('laporan-sivmi-'.$year.'-tahunan.csv');
+            ->call('exportPdf')
+            ->assertFileDownloaded('laporan-sivmi-'.$year.'-tahunan.pdf');
     }
 
     public function test_staff_annual_report_keeps_personal_and_branch_scope(): void
@@ -132,10 +148,14 @@ class ReportTest extends TestCase
         $transactionDate = $date ? Carbon::parse($date) : now();
         $program = ProgramBimbel::firstOrCreate(
             ['nama_program' => 'Program Laporan'],
-            ['jenjang_program' => 'SMA', 'biaya_pendidikan' => 5000000, 'aktif' => true],
+            ['kategori_program' => 'SR', 'jenjang_program' => 'SMA', 'biaya_pendidikan' => 5000000, 'aktif' => true],
+        );
+        $school = Sekolah::firstOrCreate(
+            ['nama_sekolah' => 'Sekolah '.$branch->kode_cabang],
+            ['kota' => 'Bandung', 'aktif' => true],
         );
         $phone = '081'.str_pad((string) self::$waPhoneSequence++, 9, '0', STR_PAD_LEFT);
-        $lead = Lead::create(['nama' => 'Siswa '.$branch->kode_cabang, 'no_wa' => $phone, 'cabang_id' => $branch->getKey(), 'status_lead' => 'Daftar', 'diinput_oleh_user_id' => $staff->id, 'diserahkan_ke_user_id' => $staff->id, 'tanggal_masuk' => $transactionDate->toDateString()]);
+        $lead = Lead::create(['nama' => 'Siswa '.$branch->kode_cabang, 'no_wa' => $phone, 'sekolah_id' => $school->getKey(), 'minat_program_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'status_lead' => 'Daftar', 'diinput_oleh_user_id' => $staff->id, 'diserahkan_ke_user_id' => $staff->id, 'tanggal_masuk' => $transactionDate->toDateString()]);
         $registration = Pendaftaran::create(['lead_id' => $lead->getKey(), 'program_bimbel_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'tanggal_daftar' => $transactionDate->toDateString(), 'status_pendaftaran' => 'Aktif']);
         Pembayaran::create(['pendaftaran_id' => $registration->getKey(), 'tanggal_pembayaran' => $transactionDate, 'nominal' => $nominal, 'metode_pembayaran' => 'Transfer Bank', 'status_pembayaran' => 'Terverifikasi']);
     }

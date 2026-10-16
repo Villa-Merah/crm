@@ -6,8 +6,10 @@ use App\Enums\UserRole;
 use App\Models\Cabang;
 use App\Models\CrmSetting;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Pages\Page;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
@@ -62,31 +64,31 @@ class Laporan extends Page
         }
     }
 
-    public function exportCsv(): StreamedResponse
+    public function exportPdf(): StreamedResponse
     {
         abort_unless($this->canExport(), 403);
         $this->enforceViewerScope();
         $data = $this->queryReportData();
         $filename = $this->bulan
-            ? sprintf('laporan-sivmi-%d-%02d.csv', $this->tahun, $this->bulan)
-            : sprintf('laporan-sivmi-%d-tahunan.csv', $this->tahun);
-        $organizationName = (string) CrmSetting::getValue('organization_name', 'SIVMI');
+            ? sprintf('laporan-sivmi-%d-%02d.pdf', $this->tahun, $this->bulan)
+            : sprintf('laporan-sivmi-%d-tahunan.pdf', $this->tahun);
 
-        return response()->streamDownload(function () use ($data, $organizationName): void {
-            $stream = fopen('php://output', 'wb');
-            fwrite($stream, "\xEF\xBB\xBF");
-            fputcsv($stream, ['Laporan '.$organizationName, $data['periodLabel']], ';');
-            fputcsv($stream, ['Leads', $data['stats']['leads']], ';');
-            fputcsv($stream, ['Pendaftaran', $data['stats']['registrations']], ';');
-            fputcsv($stream, ['Konversi', number_format($data['stats']['conversion'], 1, ',', '.').'%'], ';');
-            fputcsv($stream, ['Omzet terverifikasi', $data['stats']['revenue']], ';');
-            fputcsv($stream, [], ';');
-            fputcsv($stream, ['Cabang', 'Leads', 'Pendaftaran', 'Konversi (%)', 'Omzet', 'Target omzet', 'Capaian omzet (%)', 'Target siswa', 'Capaian siswa (%)'], ';');
-            foreach ($data['branchesReport'] as $row) {
-                fputcsv($stream, [$row['name'], $row['leads'], $row['registrations'], $row['conversion'], $row['revenue'], $row['target_revenue'], $row['revenue_progress'], $row['target_students'], $row['student_progress']], ';');
-            }
-            fclose($stream);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        $content = Pdf::loadView('reports.laporan-pdf', [
+            ...$data,
+            'organizationName' => (string) CrmSetting::getValue('organization_name', 'SIVMI'),
+            'generatedAt' => now()->translatedFormat('d F Y H:i'),
+            'branchLabel' => $this->cabang
+                ? (string) ($data['branches']->firstWhere('cabang_id', $this->cabang)?->nama ?? 'Cabang terpilih')
+                : 'Semua cabang',
+        ])->setPaper('a4', 'landscape')->output();
+
+        return response()->streamDownload(
+            static function () use ($content): void {
+                echo $content;
+            },
+            $filename,
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 
     public function canExport(): bool
@@ -204,6 +206,95 @@ class Laporan extends Page
         $programRegistrations = (clone $registrations)->join('program_bimbel', 'program_bimbel.program_bimbel_id', '=', 'pendaftaran.program_bimbel_id')->selectRaw('program_bimbel.program_bimbel_id, program_bimbel.nama_program, COUNT(*) registrations')->groupBy('program_bimbel.program_bimbel_id', 'program_bimbel.nama_program')->get()->keyBy('program_bimbel_id');
         $programRevenue = (clone $payments)->join('program_bimbel', 'program_bimbel.program_bimbel_id', '=', 'pendaftaran.program_bimbel_id')->selectRaw('program_bimbel.program_bimbel_id, COALESCE(SUM(pembayaran.nominal), 0) revenue')->groupBy('program_bimbel.program_bimbel_id')->pluck('revenue', 'program_bimbel_id');
         $programsReport = $programRegistrations->map(fn ($row) => ['name' => $row->nama_program, 'registrations' => (int) $row->registrations, 'revenue' => (float) ($programRevenue[$row->program_bimbel_id] ?? 0)])->sortByDesc('registrations')->values();
+        $leadsByProgram = (clone $leads)
+            ->leftJoin('program_bimbel as report_programs', 'report_programs.program_bimbel_id', '=', 'leads.minat_program_id')
+            ->selectRaw("COALESCE(report_programs.nama_program, 'Program belum dipilih') name")
+            ->selectRaw("COALESCE(report_programs.kategori_program, 'Tidak diklasifikasikan') classification")
+            ->selectRaw('COUNT(*) total')
+            ->groupBy('report_programs.program_bimbel_id', 'report_programs.nama_program', 'report_programs.kategori_program')
+            ->orderByDesc('total')
+            ->get();
+        $programClassifications = $leadsByProgram
+            ->groupBy('classification')
+            ->map(fn (Collection $programs, string $classification): array => [
+                'name' => $classification,
+                'leads' => $programs->sum('total'),
+            ])
+            ->sortByDesc('leads')
+            ->values();
+        $topSchools = (clone $leads)
+            ->join('sekolah as report_schools', 'report_schools.sekolah_id', '=', 'leads.sekolah_id')
+            ->select('report_schools.nama_sekolah as name')
+            ->selectRaw('COUNT(*) total')
+            ->groupBy('report_schools.sekolah_id', 'report_schools.nama_sekolah')
+            ->orderByDesc('total')
+            ->orderBy('report_schools.nama_sekolah')
+            ->limit(5)
+            ->get();
+
+        $reportUsers = User::query()
+            ->when($this->cabang, fn ($query) => $query->where('cabang_id', $this->cabang))
+            ->when($this->pengguna, fn ($query) => $query->whereKey($this->pengguna))
+            ->when($viewer->hasRole(UserRole::Staff), fn ($query) => $query->whereKey($viewer->id))
+            ->whereIn('role', [UserRole::AdminCabang->value, UserRole::Staff->value])
+            ->where('aktif', true)
+            ->orderBy('name')
+            ->get();
+        $userLeadRows = (clone $leads)
+            ->selectRaw('COALESCE(leads.diserahkan_ke_user_id, leads.diinput_oleh_user_id) user_id')
+            ->selectRaw('COUNT(*) leads')
+            ->groupByRaw('COALESCE(leads.diserahkan_ke_user_id, leads.diinput_oleh_user_id)')
+            ->get()
+            ->keyBy('user_id');
+        $userRegistrationRows = (clone $registrations)
+            ->join('users as report_users', fn (JoinClause $join) => $join->on('report_users.id', '=', DB::raw('COALESCE(leads.diserahkan_ke_user_id, leads.diinput_oleh_user_id)')))
+            ->select('report_users.id as user_id')
+            ->selectRaw('COUNT(*) registrations')
+            ->groupBy('report_users.id')
+            ->get()
+            ->keyBy('user_id');
+        $userRevenueRows = (clone $payments)
+            ->join('users as report_users', fn (JoinClause $join) => $join->on('report_users.id', '=', DB::raw('COALESCE(leads.diserahkan_ke_user_id, leads.diinput_oleh_user_id)')))
+            ->select('report_users.id as user_id')
+            ->selectRaw('COALESCE(SUM(pembayaran.nominal), 0) revenue')
+            ->groupBy('report_users.id')
+            ->get()
+            ->keyBy('user_id');
+        $userTargets = DB::table('target_kinerja_user')
+            ->join('target_kinerja_cabang', 'target_kinerja_cabang.target_kinerja_cabang_id', '=', 'target_kinerja_user.target_kinerja_cabang_id')
+            ->whereIn('target_kinerja_user.user_id', $reportUsers->modelKeys())
+            ->when($this->cabang, fn ($query) => $query->where('target_kinerja_cabang.cabang_id', $this->cabang))
+            ->where('target_kinerja_cabang.tahun', $this->tahun)
+            ->when($this->bulan, fn ($query) => $query->where('target_kinerja_cabang.bulan', $this->bulan))
+            ->whereIn('target_kinerja_cabang.status', ['Aktif', 'Selesai'])
+            ->selectRaw('target_kinerja_user.user_id, SUM(target_kinerja_user.target_omzet) target_revenue, SUM(target_kinerja_user.target_siswa) target_students')
+            ->groupBy('target_kinerja_user.user_id')
+            ->get()
+            ->keyBy('user_id');
+        $userPerformance = $reportUsers->map(function (User $user) use ($userLeadRows, $userRegistrationRows, $userRevenueRows, $userTargets): array {
+            $leads = (int) ($userLeadRows->get($user->id)->leads ?? 0);
+            $registrations = (int) ($userRegistrationRows->get($user->id)->registrations ?? 0);
+            $revenue = (float) ($userRevenueRows->get($user->id)->revenue ?? 0);
+            $target = $userTargets->get($user->id);
+            $targetRevenue = (float) ($target->target_revenue ?? 0);
+            $targetStudents = (int) ($target->target_students ?? 0);
+
+            return [
+                'name' => $user->name,
+                'leads' => $leads,
+                'registrations' => $registrations,
+                'revenue' => $revenue,
+                'target_revenue' => $targetRevenue,
+                'target_students' => $targetStudents,
+                'revenue_progress' => $targetRevenue > 0 ? round($revenue / $targetRevenue * 100, 1) : 0,
+                'student_progress' => $targetStudents > 0 ? round($registrations / $targetStudents * 100, 1) : 0,
+            ];
+        })->sort(function (array $left, array $right): int {
+            return ($right['student_progress'] <=> $left['student_progress'])
+                ?: ($right['registrations'] <=> $left['registrations'])
+                ?: ($right['leads'] <=> $left['leads'])
+                ?: strcmp($left['name'], $right['name']);
+        })->values()->map(fn (array $row, int $index): array => ['rank' => $index + 1, ...$row]);
 
         return [
             'branches' => $branchOptions,
@@ -218,6 +309,10 @@ class Laporan extends Page
             'paymentMethods' => (clone $payments)->select('pembayaran.metode_pembayaran')->selectRaw('COUNT(*) transactions, COALESCE(SUM(pembayaran.nominal), 0) total')->groupBy('pembayaran.metode_pembayaran')->orderByDesc('total')->get(),
             'branchesReport' => $branchesReport,
             'programsReport' => $programsReport,
+            'leadsByProgram' => $leadsByProgram,
+            'programClassifications' => $programClassifications,
+            'topSchools' => $topSchools,
+            'userPerformance' => $userPerformance,
             'hasData' => $leadCount > 0 || $registrationCount > 0 || $revenue > 0,
         ];
     }
@@ -238,6 +333,6 @@ class Laporan extends Page
             ? now()->setDate($this->tahun, $this->bulan, 1)->translatedFormat('F Y')
             : 'Tahun '.$this->tahun;
 
-        return ['branches' => collect(), 'users' => collect(), 'years' => [now()->year], 'stats' => ['leads' => 0, 'registrations' => 0, 'conversion' => 0, 'revenue' => 0, 'average_ticket' => 0], 'periodLabel' => $periodLabel, 'days' => $periods, 'trendLeads' => $periods->map(fn () => 0), 'trendRegistrations' => $periods->map(fn () => 0), 'funnel' => collect(), 'paymentMethods' => collect(), 'branchesReport' => collect(), 'programsReport' => collect(), 'hasData' => false];
+        return ['branches' => collect(), 'users' => collect(), 'years' => [now()->year], 'stats' => ['leads' => 0, 'registrations' => 0, 'conversion' => 0, 'revenue' => 0, 'average_ticket' => 0], 'periodLabel' => $periodLabel, 'days' => $periods, 'trendLeads' => $periods->map(fn () => 0), 'trendRegistrations' => $periods->map(fn () => 0), 'funnel' => collect(), 'paymentMethods' => collect(), 'branchesReport' => collect(), 'programsReport' => collect(), 'leadsByProgram' => collect(), 'programClassifications' => collect(), 'topSchools' => collect(), 'userPerformance' => collect(), 'hasData' => false];
     }
 }
