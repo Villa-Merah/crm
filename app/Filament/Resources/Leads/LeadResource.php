@@ -10,6 +10,7 @@ use App\Filament\Resources\Leads\Schemas\LeadForm;
 use App\Filament\Resources\Leads\Schemas\LeadInfolist;
 use App\Filament\Resources\Leads\Tables\LeadsTable;
 use App\Models\Lead;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -68,7 +69,21 @@ class LeadResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return false;
+        $user = auth()->user();
+
+        return $user?->canManageOperationalData() && static::getDeletableLeadsQuery($user)
+            ->whereKey($record->getKey())
+            ->exists();
+    }
+
+    public static function getDeletableLeadsQuery(User $user): Builder
+    {
+        return Lead::query()
+            ->visibleTo($user)
+            ->where(fn (Builder $query) => $query
+                ->where('diinput_oleh_user_id', $user->getKey())
+                ->orWhere('diserahkan_ke_user_id', $user->getKey()))
+            ->whereDoesntHave('pendaftaran');
     }
 
     public static function canViewAny(): bool

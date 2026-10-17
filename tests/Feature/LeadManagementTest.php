@@ -146,6 +146,73 @@ class LeadManagementTest extends TestCase
         $this->assertTrue(LeadResource::canEdit($visible));
     }
 
+    public function test_only_lead_creator_or_assigned_pic_can_delete_unregistered_leads(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $creator = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $pic = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $other = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+
+        $creatorLead = Lead::create($this->leadData($branch, $creator, 'Lead dibuat creator'));
+        $creatorLead->update(['diserahkan_ke_user_id' => $other->id]);
+
+        $picLead = Lead::create($this->leadData($branch, $other, 'Lead ditugaskan ke PIC'));
+        $picLead->update(['diserahkan_ke_user_id' => $pic->id]);
+
+        $otherLead = Lead::create($this->leadData($branch, $other, 'Lead milik user lain'));
+
+        $registeredLead = Lead::create($this->leadData($branch, $creator, 'Lead sudah terdaftar'));
+        $registeredLead->update(['diserahkan_ke_user_id' => $pic->id]);
+        $program = ProgramBimbel::create([
+            'nama_program' => 'Program Lead Terdaftar',
+            'jenjang_program' => 'SMA',
+            'biaya_pendidikan' => 5000000,
+            'aktif' => true,
+        ]);
+        Pendaftaran::create([
+            'lead_id' => $registeredLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Aktif',
+        ]);
+
+        $this->actingAs($creator);
+        $this->assertTrue(LeadResource::canDelete($creatorLead));
+        $this->assertFalse(LeadResource::canDelete($picLead));
+        $this->assertFalse(LeadResource::canDelete($otherLead));
+        $this->assertFalse(LeadResource::canDelete($registeredLead));
+
+        Livewire::actingAs($creator)->test(ListLeads::class)
+            ->assertTableActionVisible('delete', $creatorLead)
+            ->assertTableActionHidden('delete', $registeredLead)
+            ->callTableAction('delete', $creatorLead);
+        $this->assertDatabaseMissing('leads', ['lead_id' => $creatorLead->lead_id]);
+
+        $this->actingAs($pic);
+        $this->assertTrue(LeadResource::canDelete($picLead));
+        $this->assertFalse(LeadResource::canDelete($registeredLead));
+        $this->assertFalse(LeadResource::canDelete($otherLead));
+
+        Livewire::actingAs($pic)->test(ListLeads::class)
+            ->assertTableActionVisible('delete', $picLead)
+            ->assertTableActionHidden('delete', $registeredLead)
+            ->callTableAction('delete', $picLead);
+        $this->assertDatabaseMissing('leads', ['lead_id' => $picLead->lead_id]);
+        $this->assertDatabaseHas('leads', ['lead_id' => $registeredLead->lead_id]);
+
+        $admin = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::AdminCabang, 'aktif' => true]);
+        $adminLead = Lead::create($this->leadData($branch, $admin, 'Lead dibuat admin'));
+
+        Livewire::actingAs($admin)->test(ListLeads::class)
+            ->assertTableBulkActionVisible('delete')
+            ->callTableBulkAction('delete', [$adminLead, $otherLead, $registeredLead]);
+
+        $this->assertDatabaseMissing('leads', ['lead_id' => $adminLead->lead_id]);
+        $this->assertDatabaseHas('leads', ['lead_id' => $otherLead->lead_id]);
+        $this->assertDatabaseHas('leads', ['lead_id' => $registeredLead->lead_id]);
+    }
+
     public function test_direksi_can_read_all_branches_but_cannot_mutate_operational_data(): void
     {
         $branchA = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);

@@ -157,7 +157,8 @@ class LeadsTable
                     DeleteBulkAction::make()
                         ->label('Hapus data terpilih')
                         ->modalDescription('Lead yang sudah memiliki pendaftaran tidak dapat dihapus.')
-                        ->visible(fn (): bool => LeadResource::canDelete(new Lead)),
+                        ->visible(fn (): bool => auth()->user()?->canManageOperationalData() && LeadResource::getDeletableLeadsQuery(auth()->user())->exists())
+                        ->authorizeIndividualRecords(fn (Lead $record): bool => LeadResource::canDelete($record)),
                 ]),
             ])
             ->emptyStateHeading('Belum ada lead')
