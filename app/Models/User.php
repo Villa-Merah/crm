@@ -35,6 +35,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->role->hasGlobalBranchAccess();
     }
 
+    public function hasGlobalFinanceScope(): bool
+    {
+        return $this->role->hasGlobalFinanceScope();
+    }
+
     public function canManageOperationalData(): bool
     {
         return $this->role->canManageOperationalData();

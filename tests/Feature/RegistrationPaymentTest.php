@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Filament\Resources\Pembayarans\Pages\CreatePembayaran;
+use App\Filament\Resources\Pembayarans\Pages\EditPembayaran;
 use App\Filament\Resources\Pembayarans\PembayaranResource;
 use App\Filament\Resources\Pendaftarans\Pages\CreatePendaftaran;
+use App\Filament\Resources\Pendaftarans\Pages\ListPendaftarans;
 use App\Filament\Resources\Pendaftarans\PendaftaranResource;
 use App\Models\Cabang;
 use App\Models\Lead;
@@ -21,7 +23,7 @@ class RegistrationPaymentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_superadmin_and_direksi_are_read_only_for_registration_and_payment(): void
+    public function test_admin_cabang_can_manage_registration_and_record_payment_while_superadmin_and_direksi_are_read_only(): void
     {
         $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
@@ -29,6 +31,13 @@ class RegistrationPaymentTest extends TestCase
         $direksi = User::factory()->create(['role' => UserRole::Direksi, 'aktif' => true]);
         $registration = $this->registration($branch, $admin, $this->program(), 'Siswa Read Only');
         $payment = $this->payment($registration);
+        $pendingPayment = Pembayaran::create([
+            'pendaftaran_id' => $registration->getKey(),
+            'tanggal_pembayaran' => now(),
+            'nominal' => 250000,
+            'metode_pembayaran' => 'Tunai',
+            'status_pembayaran' => 'Menunggu',
+        ]);
 
         $this->assertFalse($superadmin->canManageOperationalData());
         $this->assertTrue($superadmin->hasRole(UserRole::Superadmin));
@@ -56,10 +65,47 @@ class RegistrationPaymentTest extends TestCase
 
         $this->actingAs($admin)->get('/admin/pendaftaran')->assertOk();
         $this->get('/admin/pembayaran')->assertOk();
-        $this->get('/admin/pendaftaran/create')->assertForbidden();
-        $this->get("/admin/pendaftaran/{$registration->getKey()}/edit")->assertForbidden();
-        $this->get('/admin/pembayaran/create')->assertForbidden();
+        $this->assertTrue($admin->canManageRegistrations());
+        $this->assertTrue($admin->canRecordPayments());
+        $this->assertFalse($admin->canVerifyPayments());
+        $this->get('/admin/pendaftaran/create')->assertOk();
+        $this->get("/admin/pendaftaran/{$registration->getKey()}/edit")->assertOk();
+        $this->get('/admin/pembayaran/create')->assertOk();
         $this->get("/admin/pembayaran/{$payment->getKey()}/edit")->assertForbidden();
+        $this->get("/admin/pembayaran/{$pendingPayment->getKey()}/edit")->assertOk();
+
+        Livewire::actingAs($admin)->test(CreatePembayaran::class)
+            ->set('data', [
+                'pendaftaran_id' => $registration->getKey(),
+                'tanggal_pembayaran' => now()->toDateTimeString(),
+                'nominal' => 100000,
+                'metode_pembayaran' => 'Tunai',
+                'status_pembayaran' => 'Terverifikasi',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['status_pembayaran']);
+
+        $this->assertDatabaseMissing('pembayaran', ['nominal' => 100000]);
+
+        Livewire::actingAs($admin)->test(CreatePembayaran::class)
+            ->set('data', [
+                'pendaftaran_id' => $registration->getKey(),
+                'tanggal_pembayaran' => now()->toDateTimeString(),
+                'nominal' => 100000,
+                'metode_pembayaran' => 'Tunai',
+                'status_pembayaran' => 'Menunggu',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Menunggu', Pembayaran::query()->where('nominal', 100000)->value('status_pembayaran'));
+
+        Livewire::actingAs($admin)->test(EditPembayaran::class, ['record' => $pendingPayment->getKey()])
+            ->set('data.status_pembayaran', 'Terverifikasi')
+            ->call('save')
+            ->assertHasFormErrors(['status_pembayaran']);
+
+        $this->assertSame('Menunggu', $pendingPayment->refresh()->status_pembayaran);
 
         $this->actingAs($direksi)->get('/admin/dashboard')
             ->assertOk()
@@ -77,7 +123,7 @@ class RegistrationPaymentTest extends TestCase
         $this->get("/admin/pembayaran/{$payment->getKey()}/edit")->assertForbidden();
     }
 
-    public function test_keuangan_only_manages_branch_payments_and_cannot_manage_registration_or_sales(): void
+    public function test_keuangan_manages_payments_across_branches_and_cannot_manage_registration_or_sales(): void
     {
         [$bandung, $jaksel] = $this->branches();
         $keuangan = User::factory()->create(['cabang_id' => $bandung->getKey(), 'role' => UserRole::Keuangan, 'aktif' => true]);
@@ -87,17 +133,25 @@ class RegistrationPaymentTest extends TestCase
         $registrationBandung = $this->registration($bandung, $staffBandung, $program, 'Siswa Bandung');
         $registrationJaksel = $this->registration($jaksel, $staffJaksel, $program, 'Siswa Jakarta');
         $paymentBandung = $this->payment($registrationBandung);
-        $this->payment($registrationJaksel);
+        $paymentJaksel = $this->payment($registrationJaksel);
 
         $this->actingAs($keuangan);
 
         $this->assertFalse($keuangan->canManageOperationalData());
         $this->assertFalse($keuangan->canViewSalesData());
         $this->assertFalse($keuangan->canManageRegistrations());
+        $this->assertTrue($keuangan->hasGlobalFinanceScope());
+        $this->assertFalse($keuangan->hasGlobalBranchAccess());
         $this->assertTrue($keuangan->canRecordPayments());
         $this->assertTrue($keuangan->canVerifyPayments());
-        $this->assertSame([$registrationBandung->getKey()], PendaftaranResource::getEloquentQuery()->pluck('pendaftaran_id')->all());
-        $this->assertSame([$paymentBandung->getKey()], PembayaranResource::getEloquentQuery()->pluck('pembayaran_id')->all());
+        $this->assertEqualsCanonicalizing(
+            [$registrationBandung->getKey(), $registrationJaksel->getKey()],
+            PendaftaranResource::getEloquentQuery()->pluck('pendaftaran_id')->all(),
+        );
+        $this->assertEqualsCanonicalizing(
+            [$paymentBandung->getKey(), $paymentJaksel->getKey()],
+            PembayaranResource::getEloquentQuery()->pluck('pembayaran_id')->all(),
+        );
 
         $financeDashboard = $this->get('/admin/dashboard')->assertOk();
         $financeDashboard->assertDontSee('/admin/leads', false);
@@ -120,13 +174,28 @@ class RegistrationPaymentTest extends TestCase
             ->set('data', [
                 'pendaftaran_id' => $registrationBandung->getKey(),
                 'tanggal_pembayaran' => now()->format('Y-m-d H:i:s'),
+                'nominal' => 500000,
+                'metode_pembayaran' => 'Transfer Bank',
+                'status_pembayaran' => 'Lunas',
+            ])->call('create')->assertHasFormErrors(['status_pembayaran']);
+
+        $this->assertDatabaseMissing('pembayaran', [
+            'pendaftaran_id' => $registrationBandung->getKey(),
+            'nominal' => 500000,
+            'status_pembayaran' => 'Lunas',
+        ]);
+
+        Livewire::actingAs($keuangan)->test(CreatePembayaran::class)
+            ->set('data', [
+                'pendaftaran_id' => $registrationJaksel->getKey(),
+                'tanggal_pembayaran' => now()->format('Y-m-d H:i:s'),
                 'nominal' => 750000,
                 'metode_pembayaran' => 'Transfer Bank',
                 'status_pembayaran' => 'Terverifikasi',
             ])->call('create')->assertHasNoFormErrors();
 
         $this->assertDatabaseHas('pembayaran', [
-            'pendaftaran_id' => $registrationBandung->getKey(),
+            'pendaftaran_id' => $registrationJaksel->getKey(),
             'nominal' => 750000,
             'status_pembayaran' => 'Terverifikasi',
         ]);
@@ -147,6 +216,39 @@ class RegistrationPaymentTest extends TestCase
 
         $this->assertSame([$ownRegistration->pendaftaran_id], PendaftaranResource::getEloquentQuery()->pluck('pendaftaran_id')->all());
         $this->assertSame([$ownPayment->pembayaran_id], PembayaranResource::getEloquentQuery()->pluck('pembayaran_id')->all());
+    }
+
+    public function test_registration_list_hides_verified_and_legacy_paid_records_without_deleting_them(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $admin = User::factory()->create(['cabang_id' => $branch->getKey(), 'role' => UserRole::AdminCabang, 'aktif' => true]);
+        $program = $this->program();
+        $pendingRegistration = $this->registration($branch, $admin, $program, 'Siswa Menunggu');
+        $verifiedRegistration = $this->registration($branch, $admin, $program, 'Siswa Terverifikasi');
+        $legacyPaidRegistration = $this->registration($branch, $admin, $program, 'Siswa Lunas Lama');
+
+        Pembayaran::create([
+            'pendaftaran_id' => $pendingRegistration->getKey(),
+            'tanggal_pembayaran' => now(),
+            'nominal' => 500000,
+            'metode_pembayaran' => 'Transfer Bank',
+            'status_pembayaran' => 'Menunggu',
+        ]);
+        $this->payment($verifiedRegistration);
+        Pembayaran::create([
+            'pendaftaran_id' => $legacyPaidRegistration->getKey(),
+            'tanggal_pembayaran' => now(),
+            'nominal' => 1000000,
+            'metode_pembayaran' => 'Tunai',
+            'status_pembayaran' => 'Lunas',
+        ]);
+
+        Livewire::actingAs($admin)->test(ListPendaftarans::class)
+            ->assertCanSeeTableRecords([$pendingRegistration])
+            ->assertCanNotSeeTableRecords([$verifiedRegistration, $legacyPaidRegistration]);
+
+        $this->assertDatabaseHas('pendaftaran', ['pendaftaran_id' => $verifiedRegistration->getKey()]);
+        $this->assertDatabaseHas('pendaftaran', ['pendaftaran_id' => $legacyPaidRegistration->getKey()]);
     }
 
     public function test_staff_can_register_owned_lead_and_payment_starts_unverified(): void

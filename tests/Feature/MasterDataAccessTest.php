@@ -125,14 +125,13 @@ class MasterDataAccessTest extends TestCase
         $this->assertSame($bandung->cabang_id, $created->cabang_id);
     }
 
-    public function test_superadmin_can_create_keuangan_and_branch_is_required(): void
+    public function test_superadmin_can_create_global_keuangan_without_a_branch(): void
     {
-        [$bandung] = $this->branches();
         $superadmin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
 
         Livewire::actingAs($superadmin)->test(CreateUser::class)
             ->set('data', [
-                'name' => 'Keuangan Tanpa Cabang',
+                'name' => 'Keuangan Global',
                 'email' => 'keuangan.tanpa.cabang@sivmi.test',
                 'password' => 'password123',
                 'role' => UserRole::Keuangan->value,
@@ -140,23 +139,11 @@ class MasterDataAccessTest extends TestCase
                 'aktif' => true,
             ])
             ->call('create')
-            ->assertHasFormErrors(['cabang_id']);
-
-        Livewire::actingAs($superadmin)->test(CreateUser::class)
-            ->set('data', [
-                'name' => 'Keuangan Bandung',
-                'email' => 'keuangan.bandung@sivmi.test',
-                'password' => 'password123',
-                'role' => UserRole::Keuangan->value,
-                'cabang_id' => $bandung->getKey(),
-                'aktif' => true,
-            ])
-            ->call('create')
             ->assertHasNoFormErrors();
 
-        $keuangan = User::where('email', 'keuangan.bandung@sivmi.test')->firstOrFail();
+        $keuangan = User::where('email', 'keuangan.tanpa.cabang@sivmi.test')->firstOrFail();
         $this->assertTrue($keuangan->hasRole(UserRole::Keuangan));
-        $this->assertSame($bandung->getKey(), $keuangan->cabang_id);
+        $this->assertNull($keuangan->cabang_id);
     }
 
     public function test_staff_and_direksi_have_read_only_master_data_access(): void

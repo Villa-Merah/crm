@@ -26,6 +26,11 @@ enum UserRole: string
         return in_array($this, [self::Superadmin, self::Direksi], true);
     }
 
+    public function hasGlobalFinanceScope(): bool
+    {
+        return $this->hasGlobalBranchAccess() || $this === self::Keuangan;
+    }
+
     public function canManageOperationalData(): bool
     {
         return in_array($this, [self::AdminCabang, self::Staff], true);
@@ -38,12 +43,12 @@ enum UserRole: string
 
     public function canManageRegistrations(): bool
     {
-        return $this === self::Staff;
+        return in_array($this, [self::AdminCabang, self::Staff], true);
     }
 
     public function canRecordPayments(): bool
     {
-        return in_array($this, [self::Staff, self::Keuangan], true);
+        return in_array($this, [self::AdminCabang, self::Staff, self::Keuangan], true);
     }
 
     public function canVerifyPayments(): bool

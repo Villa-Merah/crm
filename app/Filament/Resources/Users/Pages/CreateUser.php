@@ -17,7 +17,7 @@ class CreateUser extends CreateRecord
             $data['role'] = UserRole::Staff->value;
         }
 
-        if (in_array($data['role'], [UserRole::Superadmin->value, UserRole::Direksi->value], true)) {
+        if (in_array($data['role'], [UserRole::Superadmin->value, UserRole::Keuangan->value, UserRole::Direksi->value], true)) {
             $data['cabang_id'] = null;
         }
 

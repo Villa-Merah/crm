@@ -75,7 +75,7 @@ class PembayaranResource extends Resource
                 'Lunas', 'Terverifikasi' => 'success', 'Menunggu' => 'warning', 'Ditolak' => 'danger', default => 'gray'
             }),
             TextColumn::make('nomor_referensi')->label('Referensi')->placeholder('-')->toggleable(),
-            TextColumn::make('pendaftaran.cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
+            TextColumn::make('pendaftaran.cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalFinanceScope()),
             TextColumn::make('tanggal_pembayaran')->label('Tanggal')->dateTime('d M Y, H:i')->sortable(),
         ])->filters([
             SelectFilter::make('status_pembayaran')->label('Status')->options(['Menunggu' => 'Menunggu verifikasi', 'Terverifikasi' => 'Terverifikasi', 'Ditolak' => 'Ditolak']),

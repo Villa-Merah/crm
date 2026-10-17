@@ -42,7 +42,7 @@ class Pendaftaran extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->hasGlobalBranchAccess()) {
+        if ($user->hasGlobalFinanceScope()) {
             return $query;
         }
 

@@ -77,7 +77,7 @@ class PendaftaranResource extends Resource
                     'Aktif' => 'success', 'Menunggu' => 'warning', 'Dibatalkan' => 'danger', default => 'gray'
                 }),
                 TextColumn::make('pembayaran_terverifikasi_sum')->label('Terbayar')->money('IDR', locale: 'id')->placeholder('Rp 0')->sortable(),
-                TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
+                TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalFinanceScope()),
                 TextColumn::make('tanggal_daftar')->label('Tanggal daftar')->date('d M Y')->sortable(),
             ])->filters([
                 SelectFilter::make('status_pendaftaran')->label('Status')->options(['Menunggu' => 'Menunggu', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan']),

@@ -40,7 +40,7 @@ class Bantuan extends Page
             ],
             UserRole::Keuangan => [
                 'label' => 'Keuangan',
-                'summary' => 'Mencatat dan memverifikasi pembayaran serta memantau data pendaftaran yang diperlukan untuk proses keuangan.',
+                'summary' => 'Mencatat dan memverifikasi pembayaran serta memantau data pendaftaran secara global untuk seluruh cabang.',
                 'icon_classes' => 'bg-amber-50 text-amber-600',
             ],
             UserRole::Direksi => [
