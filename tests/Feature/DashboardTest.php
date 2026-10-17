@@ -74,7 +74,7 @@ class DashboardTest extends TestCase
             ->assertDontSee('Lead cabang lain');
     }
 
-    public function test_branch_admin_and_staff_dashboard_headline_leads_and_revenue_are_global(): void
+    public function test_branch_admin_and_staff_dashboard_leads_and_revenue_are_global(): void
     {
         $bandung = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
         $jaksel = Cabang::create(['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'aktif' => true]);
@@ -125,11 +125,13 @@ class DashboardTest extends TestCase
             $data = $dashboard->getViewData();
 
             $this->assertNull($dashboard->dashboardError);
-            $this->assertSame(1, $data['stats']['leads']);
+            $this->assertSame(2, $data['stats']['leads']);
             $this->assertSame(2, $data['stats']['headline_leads']);
-            $this->assertSame(500000.0, $data['stats']['revenue']);
+            $this->assertSame(1250000.0, $data['stats']['revenue']);
             $this->assertSame(1250000.0, $data['stats']['headline_revenue']);
-            $component->assertSee('2 calon siswa')->assertSee('Rp 1,3 jt');
+            $component->assertSee('2 calon siswa')
+                ->assertSee('Rp 1,3 jt')
+                ->assertSee('Data Leads dan Omzet pada Dashboard merupakan agregat seluruh cabang.');
         }
     }
 

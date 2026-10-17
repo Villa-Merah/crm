@@ -41,6 +41,9 @@
                 <label class="text-xs font-semibold text-slate-500">Bulan<select wire:model.live="bulan" class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm"><option value="">Semua bulan</option>@foreach(range(1,12) as $month)<option value="{{ $month }}">{{ now()->setMonth($month)->translatedFormat('F') }}</option>@endforeach</select></label>
                 <label class="text-xs font-semibold text-slate-500">Pengguna<select wire:model.live="pengguna" @disabled(auth()->user()->hasRole(\App\Enums\UserRole::Staff)) class="mt-1.5 w-full rounded-xl border-slate-200 bg-slate-50 text-sm"><option value="">Semua pengguna</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->name }}</option>@endforeach</select></label>
             </div>
+            @if(auth()->user()->hasRole(\App\Enums\UserRole::AdminCabang) || auth()->user()->hasRole(\App\Enums\UserRole::Staff))
+                <p class="mt-3 text-xs text-sky-700">Data Leads dan Omzet pada Dashboard merupakan agregat seluruh cabang. Filter Cabang tetap berlaku untuk indikator operasional lainnya.</p>
+            @endif
             <div wire:loading class="mt-3 w-full"><div class="skeleton h-1.5 w-full"></div></div>
         </section>
 

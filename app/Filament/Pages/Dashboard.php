@@ -148,24 +148,24 @@ class Dashboard extends Page
         if ($viewer->hasRole(UserRole::Staff)) {
             $this->pengguna = null;
         }
-        $globalHeadlineScope = $viewer->hasRole(UserRole::AdminCabang) || $viewer->hasRole(UserRole::Staff);
-        $leads = $this->scope(DB::table('leads'), 'tanggal_masuk', 'cabang_id', 'diserahkan_ke_user_id');
+        $globalLeadRevenueScope = $viewer->hasRole(UserRole::AdminCabang) || $viewer->hasRole(UserRole::Staff);
+        $leads = $this->scope(DB::table('leads'), 'tanggal_masuk', $globalLeadRevenueScope ? null : 'cabang_id', 'diserahkan_ke_user_id');
         $registrations = $this->scope(DB::table('pendaftaran'), 'tanggal_daftar', 'pendaftaran.cabang_id');
         if ($this->pengguna) {
             $registrations->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
         $payments = DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi']);
-        $this->scope($payments, 'tanggal_pembayaran', 'pendaftaran.cabang_id');
+        $this->scope($payments, 'tanggal_pembayaran', $globalLeadRevenueScope ? null : 'pendaftaran.cabang_id');
         if ($this->pengguna) {
             $payments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
-        $headlineLeads = $globalHeadlineScope
+        $headlineLeads = $globalLeadRevenueScope
             ? $this->scope(DB::table('leads'), 'tanggal_masuk', null, 'diserahkan_ke_user_id')
             : clone $leads;
-        $headlinePayments = $globalHeadlineScope
+        $headlinePayments = $globalLeadRevenueScope
             ? DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi'])
             : clone $payments;
-        if ($globalHeadlineScope) {
+        if ($globalLeadRevenueScope) {
             $this->scope($headlinePayments, 'tanggal_pembayaran', null);
             if ($this->pengguna) {
                 $headlinePayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
@@ -436,23 +436,23 @@ class Dashboard extends Page
         ];
         $stats['conversion'] = $stats['leads'] > 0 ? round($stats['registrations'] / $stats['leads'] * 100, 1) : 0;
         [$previousStart, $previousEndExclusive] = $this->previousPeriodRange();
-        $previousLeads = $this->scopeRange(DB::table('leads'), 'tanggal_masuk', $previousStart, $previousEndExclusive, 'cabang_id', 'diserahkan_ke_user_id');
+        $previousLeads = $this->scopeRange(DB::table('leads'), 'tanggal_masuk', $previousStart, $previousEndExclusive, $globalLeadRevenueScope ? null : 'cabang_id', 'diserahkan_ke_user_id');
         $previousRegistrations = $this->scopeRange(DB::table('pendaftaran'), 'tanggal_daftar', $previousStart, $previousEndExclusive, 'pendaftaran.cabang_id');
         if ($this->pengguna) {
             $previousRegistrations->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
         $previousPayments = DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi']);
-        $this->scopeRange($previousPayments, 'tanggal_pembayaran', $previousStart, $previousEndExclusive, 'pendaftaran.cabang_id');
+        $this->scopeRange($previousPayments, 'tanggal_pembayaran', $previousStart, $previousEndExclusive, $globalLeadRevenueScope ? null : 'pendaftaran.cabang_id');
         if ($this->pengguna) {
             $previousPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
-        $previousHeadlineLeads = $globalHeadlineScope
+        $previousHeadlineLeads = $globalLeadRevenueScope
             ? $this->scopeRange(DB::table('leads'), 'tanggal_masuk', $previousStart, $previousEndExclusive, null, 'diserahkan_ke_user_id')
             : clone $previousLeads;
-        $previousHeadlinePayments = $globalHeadlineScope
+        $previousHeadlinePayments = $globalLeadRevenueScope
             ? DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi'])
             : clone $previousPayments;
-        if ($globalHeadlineScope) {
+        if ($globalLeadRevenueScope) {
             $this->scopeRange($previousHeadlinePayments, 'tanggal_pembayaran', $previousStart, $previousEndExclusive, null);
             if ($this->pengguna) {
                 $previousHeadlinePayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
