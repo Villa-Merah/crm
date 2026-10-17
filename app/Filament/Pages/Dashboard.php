@@ -148,6 +148,7 @@ class Dashboard extends Page
         if ($viewer->hasRole(UserRole::Staff)) {
             $this->pengguna = null;
         }
+        $globalHeadlineScope = $viewer->hasRole(UserRole::AdminCabang) || $viewer->hasRole(UserRole::Staff);
         $leads = $this->scope(DB::table('leads'), 'tanggal_masuk', 'cabang_id', 'diserahkan_ke_user_id');
         $registrations = $this->scope(DB::table('pendaftaran'), 'tanggal_daftar', 'pendaftaran.cabang_id');
         if ($this->pengguna) {
@@ -157,6 +158,18 @@ class Dashboard extends Page
         $this->scope($payments, 'tanggal_pembayaran', 'pendaftaran.cabang_id');
         if ($this->pengguna) {
             $payments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+        }
+        $headlineLeads = $globalHeadlineScope
+            ? $this->scope(DB::table('leads'), 'tanggal_masuk', null, 'diserahkan_ke_user_id')
+            : clone $leads;
+        $headlinePayments = $globalHeadlineScope
+            ? DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi'])
+            : clone $payments;
+        if ($globalHeadlineScope) {
+            $this->scope($headlinePayments, 'tanggal_pembayaran', null);
+            if ($this->pengguna) {
+                $headlinePayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+            }
         }
         $followups = DB::table('followup_riwayat')->join('leads', 'leads.lead_id', '=', 'followup_riwayat.lead_id');
         $this->scope($followups, 'followup_riwayat.tanggal_followup', 'leads.cabang_id', 'followup_riwayat.user_id');
@@ -415,9 +428,11 @@ class Dashboard extends Page
             'new_students' => (int) $registrationStats->today,
             'revenue_today' => (float) $paymentStats->today,
             'leads' => $totalLeadCountForMap,
+            'headline_leads' => (int) (clone $headlineLeads)->count(),
             'registrations' => (int) $registrationStats->total,
             'students' => (int) $registrationStats->students,
             'revenue' => (float) $paymentStats->total,
+            'headline_revenue' => (float) (clone $headlinePayments)->sum('pembayaran.nominal'),
         ];
         $stats['conversion'] = $stats['leads'] > 0 ? round($stats['registrations'] / $stats['leads'] * 100, 1) : 0;
         [$previousStart, $previousEndExclusive] = $this->previousPeriodRange();
@@ -431,6 +446,18 @@ class Dashboard extends Page
         if ($this->pengguna) {
             $previousPayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
         }
+        $previousHeadlineLeads = $globalHeadlineScope
+            ? $this->scopeRange(DB::table('leads'), 'tanggal_masuk', $previousStart, $previousEndExclusive, null, 'diserahkan_ke_user_id')
+            : clone $previousLeads;
+        $previousHeadlinePayments = $globalHeadlineScope
+            ? DB::table('pembayaran')->join('pendaftaran', 'pendaftaran.pendaftaran_id', '=', 'pembayaran.pendaftaran_id')->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi'])
+            : clone $previousPayments;
+        if ($globalHeadlineScope) {
+            $this->scopeRange($previousHeadlinePayments, 'tanggal_pembayaran', $previousStart, $previousEndExclusive, null);
+            if ($this->pengguna) {
+                $previousHeadlinePayments->whereIn('pendaftaran.lead_id', $this->leadIdsForSelectedUser());
+            }
+        }
         $previousRegistrationStats = (clone $previousRegistrations)
             ->selectRaw('COUNT(*) total')
             ->selectRaw("COALESCE(SUM(CASE WHEN status_pendaftaran = 'Aktif' THEN 1 ELSE 0 END), 0) students")
@@ -440,9 +467,11 @@ class Dashboard extends Page
             'registrations' => (int) $previousRegistrationStats->total,
             'students' => (int) $previousRegistrationStats->students,
             'revenue' => (float) (clone $previousPayments)->sum('nominal'),
+            'headline_leads' => (int) (clone $previousHeadlineLeads)->count(),
+            'headline_revenue' => (float) (clone $previousHeadlinePayments)->sum('pembayaran.nominal'),
         ];
         $previousStats['conversion'] = $previousStats['leads'] > 0 ? round($previousStats['registrations'] / $previousStats['leads'] * 100, 1) : 0;
-        $comparisons = collect(['leads', 'conversion', 'students', 'revenue'])->mapWithKeys(fn (string $metric): array => [$metric => $this->percentageChange($stats[$metric], $previousStats[$metric])])->all();
+        $comparisons = collect(['leads', 'conversion', 'students', 'revenue', 'headline_leads', 'headline_revenue'])->mapWithKeys(fn (string $metric): array => [$metric => $this->percentageChange($stats[$metric], $previousStats[$metric])])->all();
         $periodStartDate = now()->parse($periodStart)->startOfDay();
         $periodEndDate = now()->parse($periodEndExclusive)->startOfDay();
         $elapsedDays = max(0, min($periodStartDate->diffInDays($periodEndDate), $periodStartDate->diffInDays(now()->startOfDay(), false)));
@@ -472,13 +501,15 @@ class Dashboard extends Page
                 'new_students' => 0,
                 'revenue_today' => 0,
                 'leads' => 0,
+                'headline_leads' => 0,
                 'registrations' => 0,
                 'students' => 0,
                 'revenue' => 0,
+                'headline_revenue' => 0,
                 'conversion' => 0,
             ],
-            'previousStats' => ['leads' => 0, 'registrations' => 0, 'students' => 0, 'revenue' => 0, 'conversion' => 0],
-            'comparisons' => ['leads' => 0, 'conversion' => 0, 'students' => 0, 'revenue' => 0],
+            'previousStats' => ['leads' => 0, 'headline_leads' => 0, 'registrations' => 0, 'students' => 0, 'revenue' => 0, 'headline_revenue' => 0, 'conversion' => 0],
+            'comparisons' => ['leads' => 0, 'headline_leads' => 0, 'conversion' => 0, 'students' => 0, 'revenue' => 0, 'headline_revenue' => 0],
             'target' => (object) ['omzet' => 0, 'siswa' => 0],
             'targetPace' => 0,
             'ranking' => collect(),

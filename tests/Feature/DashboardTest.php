@@ -3,13 +3,17 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Filament\Pages\Dashboard;
 use App\Models\Cabang;
 use App\Models\Lead;
+use App\Models\Pembayaran;
+use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
 use App\Models\Sekolah;
 use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -68,6 +72,65 @@ class DashboardTest extends TestCase
             ->assertSee('Lead milik staff')
             ->assertSee('Lead rekan satu cabang')
             ->assertDontSee('Lead cabang lain');
+    }
+
+    public function test_branch_admin_and_staff_dashboard_headline_leads_and_revenue_are_global(): void
+    {
+        $bandung = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $jaksel = Cabang::create(['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $bandung->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $branchAdmin = User::factory()->create(['cabang_id' => $bandung->cabang_id, 'role' => UserRole::AdminCabang, 'aktif' => true]);
+        $otherBranchStaff = User::factory()->create(['cabang_id' => $jaksel->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = ProgramBimbel::create([
+            'nama_program' => 'Test Dashboard',
+            'kategori_program' => 'SR',
+            'program_kelas' => 'Gold',
+            'tipe_program' => 'Intensif',
+            'metode_belajar' => 'Online',
+            'jenjang_program' => 'SMA',
+            'biaya_pendidikan' => 1000000,
+        ]);
+        $branchLead = Lead::create($this->leadData($bandung, $staff, 'Lead Bandung'));
+        $otherBranchLead = Lead::create($this->leadData($jaksel, $otherBranchStaff, 'Lead Jakarta'));
+        $branchRegistration = Pendaftaran::create([
+            'lead_id' => $branchLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $bandung->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Aktif',
+        ]);
+        $otherBranchRegistration = Pendaftaran::create([
+            'lead_id' => $otherBranchLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $jaksel->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Aktif',
+        ]);
+        Pembayaran::create([
+            'pendaftaran_id' => $branchRegistration->pendaftaran_id,
+            'tanggal_pembayaran' => now(),
+            'nominal' => 500000,
+            'status_pembayaran' => 'Lunas',
+        ]);
+        Pembayaran::create([
+            'pendaftaran_id' => $otherBranchRegistration->pendaftaran_id,
+            'tanggal_pembayaran' => now(),
+            'nominal' => 750000,
+            'status_pembayaran' => 'Terverifikasi',
+        ]);
+
+        foreach ([$branchAdmin, $staff] as $user) {
+            $component = Livewire::actingAs($user)->test(Dashboard::class);
+            $dashboard = $component->instance();
+            $data = $dashboard->getViewData();
+
+            $this->assertNull($dashboard->dashboardError);
+            $this->assertSame(1, $data['stats']['leads']);
+            $this->assertSame(2, $data['stats']['headline_leads']);
+            $this->assertSame(500000.0, $data['stats']['revenue']);
+            $this->assertSame(1250000.0, $data['stats']['headline_revenue']);
+            $component->assertSee('2 calon siswa')->assertSee('Rp 1,3 jt');
+        }
     }
 
     public function test_dashboard_period_filter_includes_first_day_and_excludes_other_months(): void
