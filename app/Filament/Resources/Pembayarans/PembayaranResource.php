@@ -45,7 +45,7 @@ class PembayaranResource extends Resource
     {
         $viewer = auth()->user();
         $statusOptions = $viewer->canVerifyPayments()
-            ? ['Menunggu' => 'Menunggu verifikasi', 'Terverifikasi' => 'Terverifikasi', 'Lunas' => 'Lunas', 'Ditolak' => 'Ditolak']
+            ? ['Menunggu' => 'Menunggu verifikasi', 'Terverifikasi' => 'Terverifikasi', 'Ditolak' => 'Ditolak']
             : ['Menunggu' => 'Menunggu verifikasi'];
 
         return $schema->components([
@@ -78,7 +78,7 @@ class PembayaranResource extends Resource
             TextColumn::make('pendaftaran.cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
             TextColumn::make('tanggal_pembayaran')->label('Tanggal')->dateTime('d M Y, H:i')->sortable(),
         ])->filters([
-            SelectFilter::make('status_pembayaran')->label('Status')->options(['Menunggu' => 'Menunggu verifikasi', 'Terverifikasi' => 'Terverifikasi', 'Lunas' => 'Lunas', 'Ditolak' => 'Ditolak']),
+            SelectFilter::make('status_pembayaran')->label('Status')->options(['Menunggu' => 'Menunggu verifikasi', 'Terverifikasi' => 'Terverifikasi', 'Ditolak' => 'Ditolak']),
             SelectFilter::make('metode_pembayaran')->label('Metode')->options(['Transfer Bank' => 'Transfer bank', 'Tunai' => 'Tunai', 'QRIS' => 'QRIS', 'Kartu Debit' => 'Kartu debit', 'Lainnya' => 'Lainnya']),
         ])->recordActions([
             EditAction::make()->visible(fn (Pembayaran $record) => static::canEdit($record)),

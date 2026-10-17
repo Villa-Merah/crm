@@ -64,23 +64,28 @@ class PendaftaranResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->defaultSort('tanggal_daftar', 'desc')->columns([
-            TextColumn::make('lead.nama')->label('Siswa')->description(fn (Pendaftaran $record) => $record->lead?->no_wa)->weight('semibold')->searchable(),
-            TextColumn::make('programBimbel.nama_program')->label('Program')->wrap()->searchable(),
-            TextColumn::make('kelas_angkatan')->label('Kelas/angkatan program')->placeholder('-')->toggleable(),
-            TextColumn::make('status_pendaftaran')->label('Status')->badge()->color(fn (string $state) => match ($state) {
-                'Aktif' => 'success', 'Menunggu' => 'warning', 'Dibatalkan' => 'danger', default => 'gray'
-            }),
-            TextColumn::make('pembayaran_terverifikasi_sum')->label('Terbayar')->money('IDR', locale: 'id')->placeholder('Rp 0')->sortable(),
-            TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
-            TextColumn::make('tanggal_daftar')->label('Tanggal daftar')->date('d M Y')->sortable(),
-        ])->filters([
-            SelectFilter::make('status_pendaftaran')->label('Status')->options(['Menunggu' => 'Menunggu', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan']),
-            SelectFilter::make('program_bimbel_id')->label('Program')->options(ProgramBimbel::where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable(),
-        ])->recordActions([
-            Action::make('pembayaran')->label('Catat pembayaran')->icon('heroicon-o-banknotes')->color('success')->url(fn (Pendaftaran $record) => PembayaranResource::getUrl('create', ['pendaftaran' => $record->pendaftaran_id]))->visible(fn () => auth()->user()->canRecordPayments()),
-            EditAction::make()->visible(fn () => auth()->user()->canManageRegistrations()),
-        ])->emptyStateHeading('Belum ada pendaftaran')->emptyStateDescription('Daftarkan lead yang telah siap menjadi siswa SIVMI.')->emptyStateIcon('heroicon-o-document-plus');
+        return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->whereDoesntHave(
+                'payments',
+                fn (Builder $paymentQuery): Builder => $paymentQuery->whereIn('status_pembayaran', ['Terverifikasi', 'Lunas']),
+            ))
+            ->defaultSort('tanggal_daftar', 'desc')->columns([
+                TextColumn::make('lead.nama')->label('Siswa')->description(fn (Pendaftaran $record) => $record->lead?->no_wa)->weight('semibold')->searchable(),
+                TextColumn::make('programBimbel.nama_program')->label('Program')->wrap()->searchable(),
+                TextColumn::make('kelas_angkatan')->label('Kelas/angkatan program')->placeholder('-')->toggleable(),
+                TextColumn::make('status_pendaftaran')->label('Status')->badge()->color(fn (string $state) => match ($state) {
+                    'Aktif' => 'success', 'Menunggu' => 'warning', 'Dibatalkan' => 'danger', default => 'gray'
+                }),
+                TextColumn::make('pembayaran_terverifikasi_sum')->label('Terbayar')->money('IDR', locale: 'id')->placeholder('Rp 0')->sortable(),
+                TextColumn::make('cabang.nama')->label('Cabang')->visible(fn () => auth()->user()->hasGlobalBranchAccess()),
+                TextColumn::make('tanggal_daftar')->label('Tanggal daftar')->date('d M Y')->sortable(),
+            ])->filters([
+                SelectFilter::make('status_pendaftaran')->label('Status')->options(['Menunggu' => 'Menunggu', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan']),
+                SelectFilter::make('program_bimbel_id')->label('Program')->options(ProgramBimbel::where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable(),
+            ])->recordActions([
+                Action::make('pembayaran')->label('Catat pembayaran')->icon('heroicon-o-banknotes')->color('success')->url(fn (Pendaftaran $record) => PembayaranResource::getUrl('create', ['pendaftaran' => $record->pendaftaran_id]))->visible(fn () => auth()->user()->canRecordPayments()),
+                EditAction::make()->visible(fn () => auth()->user()->canManageRegistrations()),
+            ])->emptyStateHeading('Tidak ada pendaftaran yang perlu diproses')->emptyStateDescription('Pendaftaran dengan pembayaran terverifikasi tidak ditampilkan pada daftar ini.')->emptyStateIcon('heroicon-o-document-check');
     }
 
     public static function getEloquentQuery(): Builder
