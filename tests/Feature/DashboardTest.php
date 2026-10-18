@@ -56,7 +56,7 @@ class DashboardTest extends TestCase
         $this->actingAs($user)->get('/admin/dashboard')->assertOk();
     }
 
-    public function test_staff_dashboard_shows_all_data_from_own_branch_and_rejects_tampered_global_filters(): void
+    public function test_staff_dashboard_is_global_and_branch_filter_is_available_while_user_filter_is_ignored(): void
     {
         $bandung = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
         $jaksel = Cabang::create(['kode_cabang' => 'JKS', 'nama' => 'JakSel', 'aktif' => true]);
@@ -67,11 +67,18 @@ class DashboardTest extends TestCase
         Lead::create($this->leadData($bandung, $bandungStaff, 'Lead rekan satu cabang'));
         Lead::create($this->leadData($jaksel, $otherStaff, 'Lead cabang lain'));
 
-        $this->actingAs($staff)->get('/admin/dashboard?cabang='.$jaksel->cabang_id.'&pengguna='.$otherStaff->id)
+        $this->actingAs($staff)->get('/admin/dashboard')
             ->assertOk()
             ->assertSee('Lead milik staff')
             ->assertSee('Lead rekan satu cabang')
-            ->assertDontSee('Lead cabang lain');
+            ->assertSee('Lead cabang lain')
+            ->assertSee('Semua cabang');
+
+        $this->actingAs($staff)->get('/admin/dashboard?cabang='.$jaksel->cabang_id.'&pengguna='.$otherStaff->id)
+            ->assertOk()
+            ->assertDontSee('Lead milik staff')
+            ->assertDontSee('Lead rekan satu cabang')
+            ->assertSee('Lead cabang lain');
     }
 
     public function test_branch_admin_and_staff_dashboard_leads_and_revenue_are_global(): void
@@ -131,7 +138,7 @@ class DashboardTest extends TestCase
             $this->assertSame(1250000.0, $data['stats']['headline_revenue']);
             $component->assertSee('2 calon siswa')
                 ->assertSee('Rp 1,3 jt')
-                ->assertSee('Data Leads dan Omzet pada Dashboard merupakan agregat seluruh cabang.');
+                ->assertSee('Dashboard menampilkan agregat seluruh cabang secara bawaan.');
         }
     }
 

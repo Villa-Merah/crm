@@ -76,7 +76,7 @@ class ProgramTargetTest extends TestCase
         ])->call('create')->assertHasFormErrors(['bulan']);
     }
 
-    public function test_target_scope_and_dashboard_use_staff_allocation(): void
+    public function test_target_resource_keeps_staff_scope_while_dashboard_uses_global_targets(): void
     {
         [$bandung, $jaksel] = $this->branches();
         $staff = User::factory()->create(['cabang_id' => $bandung->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
@@ -90,7 +90,7 @@ class ProgramTargetTest extends TestCase
         $this->assertSame([$bandungTarget->getKey()], TargetKinerjaCabangResource::getEloquentQuery()->pluck('target_kinerja_cabang_id')->all());
         $this->get('/admin/target-kinerja')->assertOk()->assertSee('Target omzet saya')->assertDontSee('JakSel');
         $this->get('/admin/target-kinerja/create')->assertForbidden();
-        $this->get('/admin/dashboard')->assertOk()->assertSee('Rp 125,0 jt')->assertSee('0 / 35 siswa');
+        $this->get('/admin/dashboard')->assertOk()->assertSee('Rp 250,0 jt')->assertSee('0 / 70 siswa');
     }
 
     public function test_direksi_can_read_targets_but_cannot_change_them(): void
