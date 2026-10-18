@@ -48,16 +48,16 @@
         </section>
 
         <section wire:loading.class.remove="hidden" wire:loading.class="flex" wire:target="cabang,tahun,bulan,pengguna" class="dashboard-card hidden flex-col gap-5 p-5" aria-label="Memuat data dashboard">
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                @foreach(range(1, 4) as $item)
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                @foreach(range(1, 5) as $item)
                     <div class="rounded-2xl border border-slate-100 p-4"><div class="skeleton h-10 w-10"></div><div class="skeleton mt-5 h-8 w-24"></div><div class="skeleton mt-3 h-3 w-32"></div></div>
                 @endforeach
             </div>
             <div class="grid gap-4 xl:grid-cols-[1.7fr_1fr]"><div class="skeleton h-56 w-full"></div><div class="skeleton h-56 w-full"></div></div>
         </section>
 
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="KPI utama">
-            @foreach([['Total leads',$stats['headline_leads'],'bg-sky-50 text-[#1476B8]','heroicon-o-user-group','headline_leads',number_format($stats['headline_leads'], 0, ',', '.').' calon siswa'],['Konversi lead',$stats['conversion'].'%','bg-emerald-50 text-emerald-600','heroicon-o-arrow-trending-up','conversion',number_format($stats['registrations'], 0, ',', '.').' pendaftaran dari '.number_format($stats['leads'], 0, ',', '.').' leads'],['Siswa aktif',$stats['students'],'bg-violet-50 text-violet-600','heroicon-o-academic-cap','students',number_format($stats['registrations'], 0, ',', '.').' pendaftaran periode ini'],['Omzet tervalidasi',$rupiah($stats['headline_revenue']),'bg-amber-50 text-amber-600','heroicon-o-banknotes','headline_revenue','Pembayaran lunas atau terverifikasi']] as $card)
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="KPI utama">
+            @foreach([['Total leads',$stats['headline_leads'],'bg-sky-50 text-[#1476B8]','heroicon-o-user-group','headline_leads',number_format($stats['headline_leads'], 0, ',', '.').' calon siswa masuk pada periode ini'],['Lead belum daftar',$stats['unregistered_leads'],'bg-orange-50 text-orange-600','heroicon-o-user-minus','unregistered_leads','Total leads dikurangi status Daftar; termasuk Tidak Berminat'],['Konversi lead',$stats['conversion'].'%','bg-emerald-50 text-emerald-600','heroicon-o-arrow-trending-up','conversion',number_format($stats['registrations'], 0, ',', '.').' pendaftaran dari '.number_format($stats['leads'], 0, ',', '.').' leads'],['Siswa aktif',$stats['students'],'bg-violet-50 text-violet-600','heroicon-o-academic-cap','students',number_format($stats['registrations'], 0, ',', '.').' pendaftaran periode ini'],['Omzet tervalidasi',$rupiah($stats['headline_revenue']),'bg-amber-50 text-amber-600','heroicon-o-banknotes','headline_revenue','Pembayaran lunas atau terverifikasi']] as $card)
                 @php
                     $badge = $comparisonBadge($comparisons[$card[4]]);
                 @endphp
@@ -83,7 +83,7 @@
         @endphp
         <section class="grid gap-5 xl:grid-cols-2">
             <div class="dashboard-card p-5 md:p-6">
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h3 class="font-bold text-slate-900">Pipeline leads</h3><p class="mt-1 text-xs text-slate-500">Perjalanan leads dari Cold hingga menjadi siswa</p></div><span class="w-fit rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-[#1476B8]">{{ number_format($stats['leads'], 0, ',', '.') }} leads</span></div>
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h3 class="font-bold text-slate-900">Pipeline leads</h3><p class="mt-1 text-xs text-slate-500">Distribusi status terkini dari leads yang masuk pada periode terpilih</p></div><span class="w-fit rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-[#1476B8]">{{ number_format($stats['leads'], 0, ',', '.') }} leads</span></div>
                 @if($stats['leads'] > 0)
                     <div class="mt-6 overflow-x-auto pb-2">
                         <div class="flex min-w-[650px] items-stretch gap-2">

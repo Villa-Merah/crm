@@ -412,6 +412,7 @@ class Dashboard extends Page
             'revenue_today' => (float) $paymentStats->today,
             'leads' => $totalLeadCountForMap,
             'headline_leads' => (int) (clone $headlineLeads)->count(),
+            'unregistered_leads' => max(0, $totalLeadCountForMap - (int) ($leadFunnelCounts[LeadStatus::Daftar->value] ?? 0)),
             'registrations' => (int) $registrationStats->total,
             'students' => (int) $registrationStats->students,
             'revenue' => (float) $paymentStats->total,
@@ -431,12 +432,17 @@ class Dashboard extends Page
         }
         $previousHeadlineLeads = clone $previousLeads;
         $previousHeadlinePayments = clone $previousPayments;
+        $previousLeadStats = (clone $previousLeads)
+            ->selectRaw('COUNT(*) total')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status_lead = ? THEN 1 ELSE 0 END), 0) registered', [LeadStatus::Daftar->value])
+            ->first();
         $previousRegistrationStats = (clone $previousRegistrations)
             ->selectRaw('COUNT(*) total')
             ->selectRaw("COALESCE(SUM(CASE WHEN status_pendaftaran = 'Aktif' THEN 1 ELSE 0 END), 0) students")
             ->first();
         $previousStats = [
-            'leads' => (clone $previousLeads)->count(),
+            'leads' => (int) $previousLeadStats->total,
+            'unregistered_leads' => max(0, (int) $previousLeadStats->total - (int) $previousLeadStats->registered),
             'registrations' => (int) $previousRegistrationStats->total,
             'students' => (int) $previousRegistrationStats->students,
             'revenue' => (float) (clone $previousPayments)->sum('nominal'),
@@ -444,7 +450,7 @@ class Dashboard extends Page
             'headline_revenue' => (float) (clone $previousHeadlinePayments)->sum('pembayaran.nominal'),
         ];
         $previousStats['conversion'] = $previousStats['leads'] > 0 ? round($previousStats['registrations'] / $previousStats['leads'] * 100, 1) : 0;
-        $comparisons = collect(['leads', 'conversion', 'students', 'revenue', 'headline_leads', 'headline_revenue'])->mapWithKeys(fn (string $metric): array => [$metric => $this->percentageChange($stats[$metric], $previousStats[$metric])])->all();
+        $comparisons = collect(['leads', 'unregistered_leads', 'conversion', 'students', 'revenue', 'headline_leads', 'headline_revenue'])->mapWithKeys(fn (string $metric): array => [$metric => $this->percentageChange($stats[$metric], $previousStats[$metric])])->all();
         $periodStartDate = now()->parse($periodStart)->startOfDay();
         $periodEndDate = now()->parse($periodEndExclusive)->startOfDay();
         $elapsedDays = max(0, min($periodStartDate->diffInDays($periodEndDate), $periodStartDate->diffInDays(now()->startOfDay(), false)));
@@ -475,14 +481,15 @@ class Dashboard extends Page
                 'revenue_today' => 0,
                 'leads' => 0,
                 'headline_leads' => 0,
+                'unregistered_leads' => 0,
                 'registrations' => 0,
                 'students' => 0,
                 'revenue' => 0,
                 'headline_revenue' => 0,
                 'conversion' => 0,
             ],
-            'previousStats' => ['leads' => 0, 'headline_leads' => 0, 'registrations' => 0, 'students' => 0, 'revenue' => 0, 'headline_revenue' => 0, 'conversion' => 0],
-            'comparisons' => ['leads' => 0, 'headline_leads' => 0, 'conversion' => 0, 'students' => 0, 'revenue' => 0, 'headline_revenue' => 0],
+            'previousStats' => ['leads' => 0, 'unregistered_leads' => 0, 'headline_leads' => 0, 'registrations' => 0, 'students' => 0, 'revenue' => 0, 'headline_revenue' => 0, 'conversion' => 0],
+            'comparisons' => ['leads' => 0, 'unregistered_leads' => 0, 'headline_leads' => 0, 'conversion' => 0, 'students' => 0, 'revenue' => 0, 'headline_revenue' => 0],
             'target' => (object) ['omzet' => 0, 'siswa' => 0],
             'targetPace' => 0,
             'ranking' => collect(),

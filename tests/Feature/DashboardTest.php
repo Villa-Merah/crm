@@ -142,6 +142,57 @@ class DashboardTest extends TestCase
         }
     }
 
+    public function test_dashboard_shows_total_leads_and_leads_not_yet_registered_separately(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $admin = User::factory()->create(['role' => UserRole::Superadmin, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = ProgramBimbel::create([
+            'nama_program' => 'Test Dashboard Pendaftaran',
+            'kategori_program' => 'SR',
+            'program_kelas' => 'Gold',
+            'tipe_program' => 'Intensif',
+            'metode_belajar' => 'Online',
+            'jenjang_program' => 'SMA',
+            'biaya_pendidikan' => 1000000,
+        ]);
+        $currentRegisteredLead = Lead::create([...$this->leadData($branch, $staff, 'Lead terdaftar periode ini'), 'status_lead' => 'Daftar']);
+        Pendaftaran::create([
+            'lead_id' => $currentRegisteredLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Aktif',
+        ]);
+        Lead::create([...$this->leadData($branch, $staff, 'Lead dingin periode ini'), 'status_lead' => 'Cold']);
+        Lead::create([...$this->leadData($branch, $staff, 'Lead tidak berminat periode ini'), 'status_lead' => 'Tidak Berminat']);
+        Lead::create([...$this->leadData($branch, $staff, 'Lead hangat periode ini'), 'status_lead' => 'Warm']);
+
+        $previousDate = now()->subMonthNoOverflow()->startOfMonth();
+        $previousRegisteredLead = Lead::create([...$this->leadData($branch, $staff, 'Lead terdaftar periode lalu', $previousDate), 'status_lead' => 'Daftar']);
+        Pendaftaran::create([
+            'lead_id' => $previousRegisteredLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => $previousDate,
+            'status_pendaftaran' => 'Aktif',
+        ]);
+        Lead::create([...$this->leadData($branch, $staff, 'Lead belum terdaftar periode lalu', $previousDate), 'status_lead' => 'Cold']);
+
+        $component = Livewire::actingAs($admin)->test(Dashboard::class);
+        $data = $component->instance()->getViewData();
+
+        $this->assertSame(4, $data['stats']['leads']);
+        $this->assertSame(4, $data['stats']['headline_leads']);
+        $this->assertSame(3, $data['stats']['unregistered_leads']);
+        $this->assertSame(2, $data['previousStats']['leads']);
+        $this->assertSame(1, $data['previousStats']['unregistered_leads']);
+        $this->assertSame(200.0, $data['comparisons']['unregistered_leads']);
+        $component->assertSee('Total leads')
+            ->assertSee('Lead belum daftar')
+            ->assertSee('Total leads dikurangi status Daftar; termasuk Tidak Berminat');
+    }
+
     public function test_dashboard_period_filter_includes_first_day_and_excludes_other_months(): void
     {
         $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
