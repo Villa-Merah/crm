@@ -295,6 +295,61 @@ class RegistrationPaymentTest extends TestCase
         $this->assertTrue(PembayaranResource::canEdit($payment));
     }
 
+    public function test_verified_payment_activates_its_registration_and_updates_lead_status(): void
+    {
+        [$branch] = $this->branches();
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = $this->program();
+        $lead = Lead::create($this->leadData($branch, $staff, 'Siswa Aktivasi Otomatis'));
+        $registration = Pendaftaran::create([
+            'lead_id' => $lead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Menunggu',
+        ]);
+
+        $payment = Pembayaran::create([
+            'pendaftaran_id' => $registration->pendaftaran_id,
+            'tanggal_pembayaran' => now(),
+            'nominal' => 1000000,
+            'metode_pembayaran' => 'Transfer Bank',
+            'status_pembayaran' => 'Menunggu',
+        ]);
+        $this->assertSame('Menunggu', $registration->refresh()->status_pendaftaran);
+
+        $payment->update(['status_pembayaran' => 'Terverifikasi']);
+
+        $this->assertSame('Aktif', $registration->refresh()->status_pendaftaran);
+        $this->assertSame('Daftar', $lead->refresh()->status_lead);
+    }
+
+    public function test_creating_verified_payment_activates_a_waiting_registration(): void
+    {
+        [$branch] = $this->branches();
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = $this->program();
+        $lead = Lead::create($this->leadData($branch, $staff, 'Siswa Dibayar Langsung'));
+        $registration = Pendaftaran::create([
+            'lead_id' => $lead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Menunggu',
+        ]);
+
+        Pembayaran::create([
+            'pendaftaran_id' => $registration->pendaftaran_id,
+            'tanggal_pembayaran' => now(),
+            'nominal' => 1000000,
+            'metode_pembayaran' => 'Transfer Bank',
+            'status_pembayaran' => 'Terverifikasi',
+        ]);
+
+        $this->assertSame('Aktif', $registration->refresh()->status_pendaftaran);
+        $this->assertSame('Daftar', $lead->refresh()->status_lead);
+    }
+
     private function branches(): array
     {
         return [

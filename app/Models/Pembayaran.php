@@ -21,9 +21,31 @@ class Pembayaran extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function (self $payment): void {
+            $payment->activateRegistrationIfVerified();
+        });
+    }
+
     public function pendaftaran()
     {
         return $this->belongsTo(Pendaftaran::class, 'pendaftaran_id', 'pendaftaran_id');
+    }
+
+    public function activateRegistrationIfVerified(): void
+    {
+        if ($this->status_pembayaran !== 'Terverifikasi') {
+            return;
+        }
+
+        $registration = $this->pendaftaran()->first();
+        if (! $registration || $registration->status_pendaftaran === 'Aktif') {
+            return;
+        }
+
+        $registration->status_pendaftaran = 'Aktif';
+        $registration->save();
     }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
