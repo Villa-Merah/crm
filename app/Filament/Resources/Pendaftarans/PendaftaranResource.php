@@ -55,7 +55,20 @@ class PendaftaranResource extends Resource
                 Select::make('program_bimbel_id')->label('Program bimbel')->options(ProgramBimbel::query()->where('aktif', true)->orderBy('nama_program')->pluck('nama_program', 'program_bimbel_id'))->searchable()->preload()->required(),
                 DatePicker::make('tanggal_daftar')->label('Tanggal daftar')->default(today())->required()->maxDate(today()),
                 TextInput::make('kelas_angkatan')->label('Kelas/angkatan program')->maxLength(100)->placeholder('Contoh: Angkatan 2026'),
-                Select::make('status_pendaftaran')->label('Status')->options(['Menunggu' => 'Menunggu', 'Aktif' => 'Aktif', 'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan'])->default('Aktif')->required(),
+                Select::make('status_pendaftaran')->label('Status')->options(function (?Pendaftaran $record): array {
+                    $options = ['Menunggu' => 'Menunggu'];
+                    $hasValidatedPayment = $record?->payments()->whereIn('status_pembayaran', ['Lunas', 'Terverifikasi'])->exists() ?? false;
+
+                    if ($record?->status_pendaftaran === 'Aktif' || ($record?->status_pendaftaran === 'Menunggu' && $hasValidatedPayment)) {
+                        $options['Aktif'] = 'Aktif';
+                    }
+                    if ($record) {
+                        $options['Selesai'] = 'Selesai';
+                        $options['Dibatalkan'] = 'Dibatalkan';
+                    }
+
+                    return $options;
+                })->default('Menunggu')->required(),
                 Hidden::make('cabang_id')->default($viewer->cabang_id),
                 Textarea::make('catatan')->label('Catatan')->rows(4)->maxLength(1500)->columnSpanFull(),
             ]),

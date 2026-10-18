@@ -35,12 +35,12 @@ class Pembayaran extends Model
 
     public function activateRegistrationIfVerified(): void
     {
-        if ($this->status_pembayaran !== 'Terverifikasi') {
+        if (! in_array($this->status_pembayaran, ['Lunas', 'Terverifikasi'], true)) {
             return;
         }
 
         $registration = $this->pendaftaran()->first();
-        if (! $registration || $registration->status_pendaftaran === 'Aktif') {
+        if (! $registration || $registration->status_pendaftaran !== 'Menunggu') {
             return;
         }
 

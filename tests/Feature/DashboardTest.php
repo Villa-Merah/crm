@@ -156,7 +156,7 @@ class DashboardTest extends TestCase
             'jenjang_program' => 'SMA',
             'biaya_pendidikan' => 1000000,
         ]);
-        $currentRegisteredLead = Lead::create([...$this->leadData($branch, $staff, 'Lead terdaftar periode ini'), 'status_lead' => 'Daftar']);
+        $currentRegisteredLead = Lead::create($this->leadData($branch, $staff, 'Lead terdaftar periode ini'));
         Pendaftaran::create([
             'lead_id' => $currentRegisteredLead->lead_id,
             'program_bimbel_id' => $program->program_bimbel_id,
@@ -169,7 +169,7 @@ class DashboardTest extends TestCase
         Lead::create([...$this->leadData($branch, $staff, 'Lead hangat periode ini'), 'status_lead' => 'Warm']);
 
         $previousDate = now()->subMonthNoOverflow()->startOfMonth();
-        $previousRegisteredLead = Lead::create([...$this->leadData($branch, $staff, 'Lead terdaftar periode lalu', $previousDate), 'status_lead' => 'Daftar']);
+        $previousRegisteredLead = Lead::create($this->leadData($branch, $staff, 'Lead terdaftar periode lalu', $previousDate));
         Pendaftaran::create([
             'lead_id' => $previousRegisteredLead->lead_id,
             'program_bimbel_id' => $program->program_bimbel_id,

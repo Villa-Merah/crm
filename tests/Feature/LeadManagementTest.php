@@ -17,6 +17,7 @@ use App\Models\SumberLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -77,7 +78,7 @@ class LeadManagementTest extends TestCase
             ->assertSee('Cold')
             ->assertSee('Warm')
             ->assertSee('Hot')
-            ->assertSee('Daftar')
+            ->assertDontSee('Daftar')
             ->assertSee('Tidak Berminat')
             ->assertSee('Sumber leads')
             ->assertSee('Instagram')
@@ -285,6 +286,22 @@ class LeadManagementTest extends TestCase
         ]);
 
         $this->assertSame(LeadStatus::Daftar->value, $lead->refresh()->status_lead);
+    }
+
+    public function test_lead_cannot_be_manually_marked_as_registered_without_an_active_registration(): void
+    {
+        $branch = Cabang::create(['kode_cabang' => 'BDG', 'nama' => 'Bandung', 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $lead = Lead::create($this->leadData($branch, $staff, 'Lead Belum Terdaftar'));
+
+        try {
+            $lead->update(['status_lead' => LeadStatus::Daftar->value]);
+            $this->fail('Lead tanpa pendaftaran aktif tidak boleh diubah menjadi Daftar.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('status_lead', $exception->errors());
+        }
+
+        $this->assertSame(LeadStatus::Cold->value, $lead->refresh()->status_lead);
     }
 
     private function leadData(Cabang $branch, User $user, string $name): array

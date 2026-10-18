@@ -122,6 +122,16 @@ class Lead extends Model
                 }
             }
 
+            if (
+                $lead->isDirty('status_lead')
+                && $lead->status_lead === LeadStatus::Daftar->value
+                && (! $lead->exists || ! $lead->pendaftaran()->where('status_pendaftaran', 'Aktif')->exists())
+            ) {
+                throw ValidationException::withMessages([
+                    'status_lead' => 'Status Daftar hanya dapat ditetapkan melalui pendaftaran berstatus Aktif.',
+                ]);
+            }
+
             if ($lead->isDirty('kota_asal')) {
                 $lead->kota_asal = filled($lead->kota_asal)
                     ? Str::squish((string) $lead->kota_asal)

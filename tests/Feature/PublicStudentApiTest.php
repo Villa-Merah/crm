@@ -135,7 +135,7 @@ class PublicStudentApiTest extends TestCase
             'sekolah_id' => $school->getKey(),
             'minat_program_id' => $program->getKey(),
             'cabang_id' => $branch->getKey(),
-            'status_lead' => LeadStatus::Daftar->value,
+            'status_lead' => LeadStatus::Hot->value,
             'diinput_oleh_user_id' => $user->getKey(),
             'tanggal_masuk' => '2026-08-25',
         ]);

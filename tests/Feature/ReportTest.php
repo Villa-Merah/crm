@@ -155,7 +155,7 @@ class ReportTest extends TestCase
             ['kota' => 'Bandung', 'aktif' => true],
         );
         $phone = '081'.str_pad((string) self::$waPhoneSequence++, 9, '0', STR_PAD_LEFT);
-        $lead = Lead::create(['nama' => 'Siswa '.$branch->kode_cabang, 'no_wa' => $phone, 'sekolah_id' => $school->getKey(), 'minat_program_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'status_lead' => 'Daftar', 'diinput_oleh_user_id' => $staff->id, 'diserahkan_ke_user_id' => $staff->id, 'tanggal_masuk' => $transactionDate->toDateString()]);
+        $lead = Lead::create(['nama' => 'Siswa '.$branch->kode_cabang, 'no_wa' => $phone, 'sekolah_id' => $school->getKey(), 'minat_program_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'status_lead' => 'Hot', 'diinput_oleh_user_id' => $staff->id, 'diserahkan_ke_user_id' => $staff->id, 'tanggal_masuk' => $transactionDate->toDateString()]);
         $registration = Pendaftaran::create(['lead_id' => $lead->getKey(), 'program_bimbel_id' => $program->getKey(), 'cabang_id' => $branch->getKey(), 'tanggal_daftar' => $transactionDate->toDateString(), 'status_pendaftaran' => 'Aktif']);
         Pembayaran::create(['pendaftaran_id' => $registration->getKey(), 'tanggal_pembayaran' => $transactionDate, 'nominal' => $nominal, 'metode_pembayaran' => 'Transfer Bank', 'status_pembayaran' => 'Terverifikasi']);
     }

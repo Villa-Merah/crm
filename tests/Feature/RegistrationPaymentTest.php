@@ -16,6 +16,7 @@ use App\Models\Pendaftaran;
 use App\Models\ProgramBimbel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -263,14 +264,23 @@ class RegistrationPaymentTest extends TestCase
                 'lead_id' => $lead->lead_id,
                 'program_bimbel_id' => $program->program_bimbel_id,
                 'tanggal_daftar' => today()->toDateString(),
-                'kelas_angkatan' => 'Angkatan 2026',
                 'status_pendaftaran' => 'Aktif',
+            ])->call('create')->assertHasFormErrors(['status_pendaftaran']);
+
+        Livewire::actingAs($staff)->test(CreatePendaftaran::class)
+            ->set('data', [
+                'lead_id' => $lead->lead_id,
+                'program_bimbel_id' => $program->program_bimbel_id,
+                'tanggal_daftar' => today()->toDateString(),
+                'kelas_angkatan' => 'Angkatan 2026',
+                'status_pendaftaran' => 'Menunggu',
                 'cabang_id' => $jaksel->cabang_id,
             ])->call('create')->assertHasNoFormErrors();
 
         $registration = Pendaftaran::where('lead_id', $lead->lead_id)->firstOrFail();
         $this->assertSame($bandung->cabang_id, $registration->cabang_id);
-        $this->assertSame('Daftar', $lead->refresh()->status_lead);
+        $this->assertSame('Menunggu', $registration->status_pendaftaran);
+        $this->assertSame('Hot', $lead->refresh()->status_lead);
 
         Livewire::actingAs($staff)->test(CreatePembayaran::class)
             ->set('data', [
@@ -348,6 +358,128 @@ class RegistrationPaymentTest extends TestCase
 
         $this->assertSame('Aktif', $registration->refresh()->status_pendaftaran);
         $this->assertSame('Daftar', $lead->refresh()->status_lead);
+    }
+
+    public function test_legacy_lunas_payment_activates_only_a_waiting_registration(): void
+    {
+        [$branch] = $this->branches();
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = $this->program();
+        $waitingLead = Lead::create($this->leadData($branch, $staff, 'Siswa Lunas Menunggu'));
+        $waitingRegistration = Pendaftaran::create([
+            'lead_id' => $waitingLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Menunggu',
+        ]);
+        $completedLead = Lead::create($this->leadData($branch, $staff, 'Siswa Lunas Selesai'));
+        $completedRegistration = Pendaftaran::create([
+            'lead_id' => $completedLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Selesai',
+        ]);
+
+        Pembayaran::create([
+            'pendaftaran_id' => $waitingRegistration->pendaftaran_id,
+            'tanggal_pembayaran' => now(),
+            'nominal' => 1000000,
+            'metode_pembayaran' => 'Tunai',
+            'status_pembayaran' => 'Lunas',
+        ]);
+        Pembayaran::create([
+            'pendaftaran_id' => $completedRegistration->pendaftaran_id,
+            'tanggal_pembayaran' => now(),
+            'nominal' => 1000000,
+            'metode_pembayaran' => 'Tunai',
+            'status_pembayaran' => 'Lunas',
+        ]);
+
+        $this->assertSame('Aktif', $waitingRegistration->refresh()->status_pendaftaran);
+        $this->assertSame('Daftar', $waitingLead->refresh()->status_lead);
+        $this->assertSame('Selesai', $completedRegistration->refresh()->status_pendaftaran);
+        $this->assertSame('Hot', $completedLead->refresh()->status_lead);
+    }
+
+    public function test_data_migration_activates_existing_waiting_registrations_with_validated_payments(): void
+    {
+        [$branch] = $this->branches();
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = $this->program();
+        $verifiedLead = Lead::create($this->leadData($branch, $staff, 'Siswa Legacy Terverifikasi'));
+        $verifiedRegistration = Pendaftaran::create([
+            'lead_id' => $verifiedLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Menunggu',
+        ]);
+        $cancelledLead = Lead::create($this->leadData($branch, $staff, 'Siswa Legacy Dibatalkan'));
+        $cancelledRegistration = Pendaftaran::create([
+            'lead_id' => $cancelledLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Dibatalkan',
+        ]);
+
+        DB::table('pembayaran')->insert([
+            [
+                'pendaftaran_id' => $verifiedRegistration->pendaftaran_id,
+                'tanggal_pembayaran' => now(),
+                'nominal' => 1000000,
+                'metode_pembayaran' => 'Transfer Bank',
+                'status_pembayaran' => 'Terverifikasi',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'pendaftaran_id' => $cancelledRegistration->pendaftaran_id,
+                'tanggal_pembayaran' => now(),
+                'nominal' => 1000000,
+                'metode_pembayaran' => 'Transfer Bank',
+                'status_pembayaran' => 'Lunas',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $migration = require database_path('migrations/2026_10_18_000001_activate_waiting_registrations_with_validated_payments.php');
+        $migration->up();
+
+        $this->assertSame('Aktif', $verifiedRegistration->refresh()->status_pendaftaran);
+        $this->assertSame('Daftar', $verifiedLead->refresh()->status_lead);
+        $this->assertSame('Dibatalkan', $cancelledRegistration->refresh()->status_pendaftaran);
+        $this->assertSame('Hot', $cancelledLead->refresh()->status_lead);
+    }
+
+    public function test_finance_cannot_reassign_a_verified_payment_to_another_registration(): void
+    {
+        [$branch] = $this->branches();
+        $finance = User::factory()->create(['role' => UserRole::Keuangan, 'aktif' => true]);
+        $staff = User::factory()->create(['cabang_id' => $branch->cabang_id, 'role' => UserRole::Staff, 'aktif' => true]);
+        $program = $this->program();
+        $originalRegistration = $this->registration($branch, $staff, $program, 'Siswa Relasi Asal');
+        $otherLead = Lead::create($this->leadData($branch, $staff, 'Siswa Relasi Tujuan'));
+        $otherRegistration = Pendaftaran::create([
+            'lead_id' => $otherLead->lead_id,
+            'program_bimbel_id' => $program->program_bimbel_id,
+            'cabang_id' => $branch->cabang_id,
+            'tanggal_daftar' => today(),
+            'status_pendaftaran' => 'Menunggu',
+        ]);
+        $payment = $this->payment($originalRegistration);
+
+        Livewire::actingAs($finance)->test(EditPembayaran::class, ['record' => $payment->getKey()])
+            ->set('data.pendaftaran_id', $otherRegistration->getKey())
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame($originalRegistration->getKey(), $payment->refresh()->pendaftaran_id);
+        $this->assertSame('Menunggu', $otherRegistration->refresh()->status_pendaftaran);
+        $this->assertSame('Hot', $otherLead->refresh()->status_lead);
     }
 
     private function branches(): array
